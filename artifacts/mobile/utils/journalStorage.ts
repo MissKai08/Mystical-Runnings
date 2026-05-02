@@ -8,6 +8,24 @@ export interface DrawingData {
   height: number;
 }
 
+export interface Mood {
+  id: string;
+  emoji: string;
+  label: string;
+  color: string;
+}
+
+export const MOODS: Mood[] = [
+  { id: "grounded",  emoji: "🪨", label: "Grounded",  color: "#92694A" },
+  { id: "fire",      emoji: "🔥", label: "Fire",       color: "#F97316" },
+  { id: "flow",      emoji: "💧", label: "Flow",       color: "#38BDF8" },
+  { id: "growth",    emoji: "🌿", label: "Growth",     color: "#4ADE80" },
+  { id: "electric",  emoji: "⚡", label: "Electric",   color: "#FCD34D" },
+  { id: "mystical",  emoji: "🌙", label: "Mystical",   color: "#A78BFA" },
+  { id: "clarity",   emoji: "✨", label: "Clarity",    color: "#BAE6FD" },
+  { id: "shadow",    emoji: "🌑", label: "Shadow",     color: "#7C3AED" },
+];
+
 export interface JournalEntry {
   id: string;
   date: string;
@@ -16,6 +34,7 @@ export interface JournalEntry {
   inputType: "text" | "drawing";
   textContent?: string;
   drawingData?: DrawingData;
+  mood?: string[];
   createdAt: number;
 }
 
@@ -70,7 +89,6 @@ export function calculateStreak(entries: JournalEntry[]): number {
   if (entries.length === 0) return 0;
   const written = new Set(entries.map((e) => e.date));
   const today = new Date();
-  // If nothing written today the streak is still alive until midnight — start from yesterday
   const cursor = new Date(today);
   if (!written.has(dateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
   let streak = 0;

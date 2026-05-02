@@ -26,6 +26,7 @@ import {
   formatEntryDate,
   calculateStreak,
   longestStreak,
+  MOODS,
 } from "@/utils/journalStorage";
 import {
   getMoonPhaseData,
@@ -352,6 +353,8 @@ export default function JournalScreen() {
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
   const [composerDate, setComposerDate] = useState<string | null>(null);
+  const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
+  const [moodFilter, setMoodFilter] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -375,6 +378,7 @@ export default function JournalScreen() {
   const openComposer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setComposerDate(null);
+    setSelectedMoods([]);
     setTextValue("");
     setInputMode("text");
     drawingRef.current?.clear();
@@ -384,6 +388,7 @@ export default function JournalScreen() {
   const openComposerForDate = (date: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setComposerDate(date);
+    setSelectedMoods([]);
     setTextValue("");
     setInputMode("text");
     drawingRef.current?.clear();
@@ -393,6 +398,14 @@ export default function JournalScreen() {
   const closeComposer = () => {
     setComposerOpen(false);
     setComposerDate(null);
+    setSelectedMoods([]);
+  };
+
+  const toggleMood = (id: string) => {
+    Haptics.selectionAsync();
+    setSelectedMoods((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
   };
 
   const handleSave = async () => {
@@ -409,6 +422,7 @@ export default function JournalScreen() {
       date: composerDate ?? todayKey(),
       moonPhase: entrySpiritualCtx.moonPhase,
       spiritualContext: entrySpiritualCtx.context,
+      mood: selectedMoods.length > 0 ? [...selectedMoods] : undefined,
       inputType: inputMode,
       textContent: inputMode === "text" ? textValue.trim() : undefined,
       drawingData:
@@ -477,17 +491,18 @@ export default function JournalScreen() {
   const best = useMemo(() => longestStreak(entries), [entries]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
 
-  const filteredEntries = searchQuery.trim()
-    ? entries.filter((e) => {
-        const q = searchQuery.toLowerCase();
-        return (
-          (e.textContent ?? "").toLowerCase().includes(q) ||
-          e.moonPhase.toLowerCase().includes(q) ||
-          e.spiritualContext.some((c) => c.toLowerCase().includes(q)) ||
-          e.date.includes(q)
-        );
-      })
-    : entries;
+  const filteredEntries = entries.filter((e) => {
+    if (moodFilter && !e.mood?.includes(moodFilter)) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (e.textContent ?? "").toLowerCase().includes(q) ||
+      e.moonPhase.toLowerCase().includes(q) ||
+      e.spiritualContext.some((c) => c.toLowerCase().includes(q)) ||
+      (e.mood ?? []).some((m) => m.includes(q)) ||
+      e.date.includes(q)
+    );
+  });
   const grouped = groupEntriesByDate(filteredEntries);
 
   return (
@@ -574,6 +589,47 @@ export default function JournalScreen() {
             </Text>
           )}
         </View>
+      )}
+
+      {/* Mood filter strip */}
+      {entries.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.moodFilterContent}
+          style={[styles.moodFilterStrip, { borderBottomColor: colors.border }]}
+        >
+          {MOODS.map((m) => {
+            const active = moodFilter === m.id;
+            const hasSome = entries.some((e) => e.mood?.includes(m.id));
+            if (!hasSome) return null;
+            return (
+              <Pressable
+                key={m.id}
+                onPress={() => { Haptics.selectionAsync(); setMoodFilter(active ? null : m.id); }}
+                style={[
+                  styles.moodFilterChip,
+                  { borderColor: active ? m.color : colors.border },
+                  active && { backgroundColor: m.color + "22" },
+                ]}
+              >
+                <Text style={styles.moodFilterEmoji}>{m.emoji}</Text>
+                <Text style={[styles.moodFilterLabel, { color: active ? m.color : colors.mutedForeground }]}>
+                  {m.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+          {moodFilter && (
+            <Pressable
+              onPress={() => { Haptics.selectionAsync(); setMoodFilter(null); }}
+              style={[styles.moodFilterChip, { borderColor: colors.border }]}
+            >
+              <Feather name="x" size={11} color={colors.mutedForeground} />
+              <Text style={[styles.moodFilterLabel, { color: colors.mutedForeground }]}>Clear</Text>
+            </Pressable>
+          )}
+        </ScrollView>
       )}
 
       {/* Entry list */}
@@ -690,6 +746,34 @@ export default function JournalScreen() {
               ))}
             </ScrollView>
           )}
+
+          {/* Mood / energy selector */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodSelectorContent}
+            style={[styles.moodSelectorRow, { borderBottomColor: colors.border }]}
+          >
+            {MOODS.map((m) => {
+              const active = selectedMoods.includes(m.id);
+              return (
+                <Pressable
+                  key={m.id}
+                  onPress={() => toggleMood(m.id)}
+                  style={[
+                    styles.moodPill,
+                    { borderColor: active ? m.color : colors.border },
+                    active && { backgroundColor: m.color + "22" },
+                  ]}
+                >
+                  <Text style={styles.moodPillEmoji}>{m.emoji}</Text>
+                  <Text style={[styles.moodPillLabel, { color: active ? m.color : colors.mutedForeground }]}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
           {/* Mode toggle */}
           <View style={[styles.modeRow, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
@@ -821,6 +905,22 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
         </View>
       )}
 
+      {/* Mood badges */}
+      {(entry.mood ?? []).length > 0 && (
+        <View style={styles.moodBadgeRow}>
+          {(entry.mood ?? []).map((id) => {
+            const m = MOODS.find((x) => x.id === id);
+            if (!m) return null;
+            return (
+              <View key={id} style={[styles.moodBadge, { borderColor: m.color + "66", backgroundColor: m.color + "18" }]}>
+                <Text style={styles.moodBadgeEmoji}>{m.emoji}</Text>
+                <Text style={[styles.moodBadgeLabel, { color: m.color }]}>{m.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
       {/* Content preview */}
       {entry.inputType === "text" && entry.textContent && (
         <Text style={[styles.entryTextPreview, { color: colors.foreground }]} numberOfLines={4}>
@@ -934,6 +1034,68 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 0.2,
   },
+  moodSelectorRow: {
+    borderBottomWidth: 1,
+    maxHeight: 52,
+  },
+  moodSelectorContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  moodPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  moodPillEmoji: { fontSize: 14 },
+  moodPillLabel: { fontSize: 11, fontWeight: "600" },
+  moodBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingTop: 8,
+    paddingHorizontal: 2,
+  },
+  moodBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  moodBadgeEmoji: { fontSize: 11 },
+  moodBadgeLabel: { fontSize: 10, fontWeight: "600" },
+  moodFilterStrip: {
+    borderBottomWidth: 1,
+    maxHeight: 48,
+  },
+  moodFilterContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    gap: 7,
+  },
+  moodFilterChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  moodFilterEmoji: { fontSize: 12 },
+  moodFilterLabel: { fontSize: 10, fontWeight: "600" },
   emptyState: {
     flex: 1,
     alignItems: "center",
