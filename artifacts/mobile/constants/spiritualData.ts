@@ -79,33 +79,39 @@ const LUNAR_CYCLE_DAYS = 29.53058867;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
 export function getMoonPhaseData(date: Date): MoonPhaseData {
+  // Use UTC noon to avoid timezone drift shifting the phase by hours
   const noon = new Date(date);
-  noon.setHours(12, 0, 0, 0);
+  noon.setUTCHours(12, 0, 0, 0);
   const daysDiff = (noon.getTime() - KNOWN_NEW_MOON_MS) / MS_PER_DAY;
   const phase = ((daysDiff % LUNAR_CYCLE_DAYS) + LUNAR_CYCLE_DAYS) % LUNAR_CYCLE_DAYS;
   const phaseFraction = phase / LUNAR_CYCLE_DAYS;
 
+  // Cosine formula gives accurate illumination across the full cycle
+  const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
+
   let name: string;
-  let illumination: number;
   let isMajorPhase = false;
   let eventType: EventType;
 
-  if (phase < 1.85) {
-    name = "New Moon"; illumination = 0; isMajorPhase = true; eventType = "new-moon";
+  // Widened Full Moon window (13.5–17.0) accounts for the lunar elliptical orbit,
+  // which can shift the true peak up to ~1.3 days earlier than the mean cycle midpoint.
+  // Widened New Moon window (0–2.5) mirrors this for symmetry.
+  if (phase < 2.5) {
+    name = "New Moon"; isMajorPhase = true; eventType = "new-moon";
   } else if (phase < 7.38) {
-    name = "Waxing Crescent"; illumination = Math.round((phase / 7.38) * 45); eventType = "waxing-crescent";
+    name = "Waxing Crescent"; eventType = "waxing-crescent";
   } else if (phase < 9.22) {
-    name = "First Quarter"; illumination = 50; isMajorPhase = true; eventType = "first-quarter";
-  } else if (phase < 14.77) {
-    name = "Waxing Gibbous"; illumination = Math.round(50 + ((phase - 9.22) / 5.55) * 50); eventType = "waxing-gibbous";
-  } else if (phase < 16.61) {
-    name = "Full Moon"; illumination = 100; isMajorPhase = true; eventType = "full-moon";
+    name = "First Quarter"; isMajorPhase = true; eventType = "first-quarter";
+  } else if (phase < 13.5) {
+    name = "Waxing Gibbous"; eventType = "waxing-gibbous";
+  } else if (phase < 17.0) {
+    name = "Full Moon"; isMajorPhase = true; eventType = "full-moon";
   } else if (phase < 22.15) {
-    name = "Waning Gibbous"; illumination = Math.round(100 - ((phase - 16.61) / 5.54) * 50); eventType = "waning-gibbous";
-  } else if (phase < 23.99) {
-    name = "Last Quarter"; illumination = 50; isMajorPhase = true; eventType = "last-quarter";
+    name = "Waning Gibbous"; eventType = "waning-gibbous";
+  } else if (phase < 24.5) {
+    name = "Last Quarter"; isMajorPhase = true; eventType = "last-quarter";
   } else {
-    name = "Waning Crescent"; illumination = Math.round(Math.max(0, 50 - ((phase - 23.99) / 5.54) * 45)); eventType = "waning-crescent";
+    name = "Waning Crescent"; eventType = "waning-crescent";
   }
 
   return { phase, phaseFraction, name, illumination, isMajorPhase, eventType };
@@ -198,7 +204,7 @@ export const NAMED_FULL_MOONS: WheelEvent[] = [
   { name: "Quickening Full Moon", date: new Date(2026, 0, 30), type: "named-moon", description: "Full Moon in Leo", sign: "Leo" },
   { name: "Storm Full Moon", date: new Date(2026, 2, 2), type: "named-moon", description: "Full Moon in Virgo — Lunar Eclipse", sign: "Virgo" },
   { name: "Wind Full Moon", date: new Date(2026, 3, 1), type: "named-moon", description: "Full Moon in Libra", sign: "Libra" },
-  { name: "Flower Full Moon", date: new Date(2026, 3, 30), type: "named-moon", description: "Full Moon in Scorpio", sign: "Scorpio" },
+  { name: "Flower Full Moon", date: new Date(2026, 4, 1), type: "named-moon", description: "Full Moon in Scorpio", sign: "Scorpio" },
   { name: "Strong Sun Full Moon", date: new Date(2026, 4, 30), type: "named-moon", description: "Full Moon in Sagittarius", sign: "Sagittarius" },
   { name: "Blessing Full Moon", date: new Date(2026, 5, 29), type: "named-moon", description: "Full Moon in Capricorn", sign: "Capricorn" },
   { name: "Corn Full Moon", date: new Date(2026, 6, 28), type: "named-moon", description: "Full Moon in Aquarius", sign: "Aquarius" },
@@ -266,7 +272,7 @@ export function isSameDay(a: Date, b: Date): boolean {
 
 export function getMercuryRetrogradeInfo(date: Date): RetrogradePeriod | null {
   const d = new Date(date);
-  d.setHours(12, 0, 0, 0);
+  d.setUTCHours(12, 0, 0, 0);
   return MERCURY_RETROGRADES.find((r) => d >= r.start && d <= r.end) ?? null;
 }
 
