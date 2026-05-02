@@ -24,6 +24,8 @@ import {
   generateId,
   todayKey,
   formatEntryDate,
+  calculateStreak,
+  longestStreak,
 } from "@/utils/journalStorage";
 import {
   getMoonPhaseData,
@@ -184,6 +186,10 @@ export default function JournalScreen() {
     if (width > 0 && height > 0) setCanvasSize({ width, height });
   }, []);
 
+  const streak = useMemo(() => calculateStreak(entries), [entries]);
+  const best = useMemo(() => longestStreak(entries), [entries]);
+  const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
+
   const filteredEntries = searchQuery.trim()
     ? entries.filter((e) => {
         const q = searchQuery.toLowerCase();
@@ -201,10 +207,36 @@ export default function JournalScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
-        <Text style={[styles.screenTitle, { color: colors.foreground }]}>Sacred Journal</Text>
-        <Text style={[styles.screenSub, { color: colors.mutedForeground }]}>
-          {entries.length === 0 ? "Your reflections begin here" : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
-        </Text>
+        <View style={styles.headerTopRow}>
+          <Text style={[styles.screenTitle, { color: colors.foreground }]}>Sacred Journal</Text>
+          {streak > 0 && (
+            <View style={[styles.streakBadge, {
+              backgroundColor: wroteToday ? "#D4A84322" : "#D4A84314",
+              borderColor: wroteToday ? "#D4A84366" : "#D4A84333",
+            }]}>
+              <Text style={styles.streakFlame}>{wroteToday ? "🔥" : "✦"}</Text>
+              <Text style={[styles.streakCount, { color: wroteToday ? "#D4A843" : "#A08030" }]}>
+                {streak}
+              </Text>
+              <Text style={[styles.streakDayLabel, { color: wroteToday ? "#D4A843" : "#A08030" }]}>
+                {streak === 1 ? "day" : "days"}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.headerBottomRow}>
+          <Text style={[styles.screenSub, { color: colors.mutedForeground }]}>
+            {entries.length === 0
+              ? "Your reflections begin here"
+              : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
+          </Text>
+          {best > 1 && (
+            <Text style={[styles.bestStreakLabel, { color: colors.mutedForeground }]}>
+              best {best}
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Search bar */}
@@ -489,7 +521,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    gap: 2,
+    gap: 4,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   screenTitle: {
     fontSize: 26,
@@ -498,6 +540,31 @@ const styles = StyleSheet.create({
   },
   screenSub: {
     fontSize: 13,
+  },
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  streakFlame: {
+    fontSize: 14,
+  },
+  streakCount: {
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+  },
+  streakDayLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  bestStreakLabel: {
+    fontSize: 11,
+    fontWeight: "500",
   },
   emptyState: {
     flex: 1,
