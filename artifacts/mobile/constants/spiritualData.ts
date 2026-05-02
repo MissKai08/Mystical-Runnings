@@ -78,52 +78,57 @@ const KNOWN_NEW_MOON_MS = new Date(Date.UTC(2000, 0, 6, 18, 14, 0)).getTime();
 const LUNAR_CYCLE_DAYS = 29.53058867;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-export function getMoonPhaseData(date: Date): MoonPhaseData {
-  // Use UTC noon to avoid timezone drift shifting the phase by hours
+function moonAge(date: Date): number {
   const noon = new Date(date);
   noon.setUTCHours(12, 0, 0, 0);
-  const daysDiff = (noon.getTime() - KNOWN_NEW_MOON_MS) / MS_PER_DAY;
-  const phase = ((daysDiff % LUNAR_CYCLE_DAYS) + LUNAR_CYCLE_DAYS) % LUNAR_CYCLE_DAYS;
-  const phaseFraction = phase / LUNAR_CYCLE_DAYS;
+  const diff = (noon.getTime() - KNOWN_NEW_MOON_MS) / MS_PER_DAY;
+  return ((diff % LUNAR_CYCLE_DAYS) + LUNAR_CYCLE_DAYS) % LUNAR_CYCLE_DAYS;
+}
 
-  // Cosine formula gives accurate illumination across the full cycle
+// Angular distance from a phase age to a quarter-point, handling the New Moon wrap.
+function distToQ(age: number, q: number): number {
+  if (q === 0) return Math.min(age, LUNAR_CYCLE_DAYS - age);
+  return Math.abs(age - q);
+}
+
+export function getMoonPhaseData(date: Date): MoonPhaseData {
+  const Q1 = LUNAR_CYCLE_DAYS / 4;       // ≈  7.38
+  const Q2 = LUNAR_CYCLE_DAYS / 2;       // ≈ 14.77
+  const Q3 = (3 * LUNAR_CYCLE_DAYS) / 4; // ≈ 22.15
+
+  const phase = moonAge(date);
+
+  const dPrev = new Date(date); dPrev.setDate(dPrev.getDate() - 1);
+  const dNext = new Date(date); dNext.setDate(dNext.getDate() + 1);
+  const prev = moonAge(dPrev);
+  const next = moonAge(dNext);
+
+  const phaseFraction = phase / LUNAR_CYCLE_DAYS;
   const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
+
+  // A major phase fires on the one day whose noon is closest to the true astronomical event.
+  // Comparing against both neighbours guarantees exactly one day fires per quarter phase.
+  const closest = (q: number) =>
+    distToQ(phase, q) < distToQ(prev, q) && distToQ(phase, q) <= distToQ(next, q);
 
   let name: string;
   let isMajorPhase = false;
   let eventType: EventType;
 
-  // All four major phase windows are widened ~1.3 days before their mean positions
-  // to account for the lunar elliptical orbit (actual peaks can arrive up to ~1.5 days
-  // earlier than the simple average predicts). Each major phase spans ~3 days.
-  //
-  // Mean positions in a 29.53-day cycle:
-  //   New Moon  ≈  0.0   First Quarter ≈  7.38
-  //   Full Moon ≈ 14.77  Last Quarter  ≈ 22.15
-  //
-  // Windows used (start ~1.3 days before mean, end ~1.5 days after):
-  //   New Moon:      0.0 – 2.5
-  //   Waxing Cres:   2.5 – 6.0
-  //   First Quarter: 6.0 – 9.5
-  //   Waxing Gibb:   9.5 – 13.5
-  //   Full Moon:    13.5 – 17.0
-  //   Waning Gibb:  17.0 – 21.0
-  //   Last Quarter: 21.0 – 24.0
-  //   Waning Cres:  24.0 – 29.53
-  if (phase < 2.5) {
-    name = "New Moon"; isMajorPhase = true; eventType = "new-moon";
-  } else if (phase < 6.0) {
-    name = "Waxing Crescent"; eventType = "waxing-crescent";
-  } else if (phase < 9.5) {
+  if (closest(0)) {
+    name = "New Moon";      isMajorPhase = true; eventType = "new-moon";
+  } else if (closest(Q1)) {
     name = "First Quarter"; isMajorPhase = true; eventType = "first-quarter";
-  } else if (phase < 13.5) {
-    name = "Waxing Gibbous"; eventType = "waxing-gibbous";
-  } else if (phase < 17.0) {
-    name = "Full Moon"; isMajorPhase = true; eventType = "full-moon";
-  } else if (phase < 21.0) {
-    name = "Waning Gibbous"; eventType = "waning-gibbous";
-  } else if (phase < 24.0) {
-    name = "Last Quarter"; isMajorPhase = true; eventType = "last-quarter";
+  } else if (closest(Q2)) {
+    name = "Full Moon";     isMajorPhase = true; eventType = "full-moon";
+  } else if (closest(Q3)) {
+    name = "Last Quarter";  isMajorPhase = true; eventType = "last-quarter";
+  } else if (phase < Q1 || distToQ(phase, 0) < Q1) {
+    name = "Waxing Crescent"; eventType = "waxing-crescent";
+  } else if (phase < Q2) {
+    name = "Waxing Gibbous";  eventType = "waxing-gibbous";
+  } else if (phase < Q3) {
+    name = "Waning Gibbous";  eventType = "waning-gibbous";
   } else {
     name = "Waning Crescent"; eventType = "waning-crescent";
   }
