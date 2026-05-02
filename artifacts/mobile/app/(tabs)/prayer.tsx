@@ -8,6 +8,7 @@ import {
   Linking,
   Platform,
 } from "react-native";
+import { SearchBar } from "@/components/SearchBar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
@@ -157,6 +158,7 @@ export default function PrayerScreen() {
   const [activeTab, setActiveTab] = useState<Tab>("guide");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [ibaExpanded, setIbaExpanded] = useState(false);
   const [oriExpanded, setOriExpanded] = useState(false);
   const [guardianExpanded, setGuardianExpanded] = useState(false);
@@ -164,9 +166,19 @@ export default function PrayerScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const filtered = PRAYERS.filter(
-    (p) => activeFilter === "all" || p.category === activeFilter
-  );
+  const filtered = PRAYERS.filter((p) => {
+    const matchesCategory = activeFilter === "all" || p.category === activeFilter;
+    if (!matchesCategory) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      p.title.toLowerCase().includes(q) ||
+      p.orisha.toLowerCase().includes(q) ||
+      p.purpose.toLowerCase().includes(q) ||
+      p.english.toLowerCase().includes(q) ||
+      (p.yoruba ?? "").toLowerCase().includes(q)
+    );
+  });
 
   const toggleExpand = (id: string) => {
     Haptics.selectionAsync();
@@ -403,6 +415,20 @@ export default function PrayerScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 60 }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Search */}
+          <View style={styles.prayerSearchWrap}>
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search by orisha, title, or keywords…"
+            />
+            {searchQuery.length > 0 && (
+              <Text style={[styles.prayerSearchCount, { color: "#A78BFA" }]}>
+                {filtered.length} prayer{filtered.length === 1 ? "" : "s"} found
+              </Text>
+            )}
+          </View>
+
           {/* Filters */}
           <ScrollView
             horizontal
@@ -428,6 +454,15 @@ export default function PrayerScreen() {
               );
             })}
           </ScrollView>
+
+          {filtered.length === 0 && searchQuery.length > 0 && (
+            <View style={styles.prayerNoResults}>
+              <Feather name="search" size={28} color="#A78BFA66" />
+              <Text style={[styles.prayerNoResultsText, { color: "#A78BFA99" }]}>
+                No prayers match "{searchQuery}"
+              </Text>
+            </View>
+          )}
 
           {filtered.map((prayer) => {
             const isExpanded = expandedId === prayer.id;
@@ -474,6 +509,28 @@ export default function PrayerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  prayerSearchWrap: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    gap: 4,
+  },
+  prayerSearchCount: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    paddingLeft: 4,
+    paddingBottom: 4,
+  },
+  prayerNoResults: {
+    alignItems: "center",
+    paddingTop: 40,
+    gap: 10,
+  },
+  prayerNoResultsText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
   header: {
     paddingHorizontal: 16,
     paddingBottom: 12,

@@ -36,6 +36,7 @@ import {
   getIfaFestivalForDate,
 } from "@/constants/spiritualData";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
+import { SearchBar } from "@/components/SearchBar";
 import Svg, { Path } from "react-native-svg";
 
 type InputMode = "text" | "drawing";
@@ -108,6 +109,7 @@ export default function JournalScreen() {
   const [textValue, setTextValue] = useState("");
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const drawingRef = useRef<DrawingCanvasRef>(null);
   const spiritualCtx = getTodaySpiritualContext();
@@ -181,7 +183,18 @@ export default function JournalScreen() {
     if (width > 0 && height > 0) setCanvasSize({ width, height });
   }, []);
 
-  const grouped = groupEntriesByDate(entries);
+  const filteredEntries = searchQuery.trim()
+    ? entries.filter((e) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          (e.textContent ?? "").toLowerCase().includes(q) ||
+          e.moonPhase.toLowerCase().includes(q) ||
+          e.spiritualContext.some((c) => c.toLowerCase().includes(q)) ||
+          e.date.includes(q)
+        );
+      })
+    : entries;
+  const grouped = groupEntriesByDate(filteredEntries);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -192,6 +205,22 @@ export default function JournalScreen() {
           {entries.length === 0 ? "Your reflections begin here" : `${entries.length} entr${entries.length === 1 ? "y" : "ies"}`}
         </Text>
       </View>
+
+      {/* Search bar */}
+      {entries.length > 0 && (
+        <View style={[styles.searchWrap, { borderBottomColor: colors.border }]}>
+          <SearchBar
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search entries, moon phases, events…"
+          />
+          {searchQuery.length > 0 && (
+            <Text style={[styles.searchCount, { color: colors.mutedForeground }]}>
+              {filteredEntries.length} result{filteredEntries.length === 1 ? "" : "s"}
+            </Text>
+          )}
+        </View>
+      )}
 
       {/* Entry list */}
       {entries.length === 0 ? (
@@ -208,6 +237,14 @@ export default function JournalScreen() {
             <Feather name="edit-3" size={16} color="#D4A843" />
             <Text style={[styles.emptyBtnText, { color: "#D4A843" }]}>Write First Entry</Text>
           </Pressable>
+        </View>
+      ) : filteredEntries.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Feather name="search" size={32} color={colors.mutedForeground} />
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No Results</Text>
+          <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+            No entries match "{searchQuery}"
+          </Text>
         </View>
       ) : (
         <ScrollView
@@ -528,6 +565,18 @@ const styles = StyleSheet.create({
   },
   drawingStrokesLabel: {
     fontSize: 12,
+  },
+  searchWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 4,
+  },
+  searchCount: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    paddingLeft: 4,
   },
   fab: {
     position: "absolute",
