@@ -78,6 +78,104 @@ function groupEntriesByDate(entries: JournalEntry[]): { date: string; entries: J
     .map(([date, entries]) => ({ date, entries }));
 }
 
+const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function WeekStrip({ entries, colors }: { entries: JournalEntry[]; colors: ReturnType<typeof useColors> }) {
+  const written = new Set(entries.map((e) => e.date));
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const sunday = new Date(today);
+  sunday.setDate(today.getDate() - today.getDay());
+  sunday.setHours(0, 0, 0, 0);
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return {
+      key,
+      letter: DAY_LETTERS[i],
+      dateNum: d.getDate(),
+      isToday: key === todayStr,
+      isFuture: d > today && key !== todayStr,
+      hasEntry: written.has(key),
+    };
+  });
+
+  return (
+    <View style={stripStyles.row}>
+      {days.map((day, i) => (
+        <View key={i} style={stripStyles.col}>
+          <Text style={[
+            stripStyles.letter,
+            { color: day.isToday ? "#D4A843" : colors.mutedForeground,
+              opacity: day.isFuture ? 0.3 : 1 }
+          ]}>
+            {day.letter}
+          </Text>
+          <View style={[
+            stripStyles.dot,
+            day.hasEntry
+              ? { backgroundColor: "#D4A843", borderColor: "#D4A843" }
+              : day.isToday
+              ? { backgroundColor: "transparent", borderColor: "#D4A843", borderWidth: 1.5 }
+              : { backgroundColor: "transparent", borderColor: day.isFuture ? "#1E1A3A" : "#2D2650", opacity: day.isFuture ? 0.3 : 1 },
+          ]}>
+            {day.isToday && !day.hasEntry && (
+              <View style={stripStyles.todayCore} />
+            )}
+          </View>
+          <Text style={[
+            stripStyles.dateNum,
+            { color: day.isToday ? "#D4A843" : colors.mutedForeground,
+              fontWeight: day.isToday ? "700" : "400",
+              opacity: day.isFuture ? 0.35 : 1 }
+          ]}>
+            {day.dateNum}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const stripStyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 6,
+    paddingHorizontal: 4,
+  },
+  col: {
+    flex: 1,
+    alignItems: "center",
+    gap: 5,
+  },
+  letter: {
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  todayCore: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#D4A843",
+  },
+  dateNum: {
+    fontSize: 9,
+  },
+});
+
 function DrawingThumbnail({ data, size = 80 }: { data: { paths: string[]; width: number; height: number }; size?: number }) {
   const scaleX = size / (data.width || 1);
   const scaleY = (size * 0.75) / (data.height || 1);
@@ -237,6 +335,8 @@ export default function JournalScreen() {
             </Text>
           )}
         </View>
+
+        <WeekStrip entries={entries} colors={colors} />
       </View>
 
       {/* Search bar */}
