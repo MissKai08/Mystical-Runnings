@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import {
   getMoonPhaseData,
@@ -15,6 +15,8 @@ import {
   EVENT_COLORS,
 } from "@/constants/spiritualData";
 import { MoonPhaseCircle } from "./MoonPhaseCircle";
+import { OseDetailModal } from "./OseDetailModal";
+import type { OseGroup } from "@/constants/spiritualData";
 
 interface Props {
   date: Date;
@@ -31,6 +33,7 @@ export function DayView({ date }: Props) {
   const darkMoon = getDarkMoonForDate(date);
   const eclipse = getEclipseForDate(date);
   const oseDay = getOseDay(date);
+  const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
 
   return (
     <ScrollView
@@ -206,10 +209,17 @@ export function DayView({ date }: Props) {
       )}
 
       {/* Ose Calendar — always present, the eternal 4-day Yoruba sacred week */}
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: oseDay.color + "44" }]}>
+      <Pressable
+        onPress={() => setOseModalGroup(oseDay)}
+        style={({ pressed }) => [
+          styles.card,
+          { backgroundColor: colors.card, borderColor: oseDay.color + "44", opacity: pressed ? 0.85 : 1 },
+        ]}
+      >
         <View style={styles.cardHeader}>
           <View style={[styles.cardDot, { backgroundColor: oseDay.color }]} />
           <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>OSE CALENDAR</Text>
+          <Text style={[styles.oseTapHint, { color: colors.mutedForeground }]}>Tap to expand</Text>
         </View>
         <Text style={[styles.cardTitle, { color: colors.foreground }]}>{oseDay.name}</Text>
         <View style={styles.oseOrisas}>
@@ -219,16 +229,15 @@ export function DayView({ date }: Props) {
             </View>
           ))}
         </View>
-        <Text style={[styles.cardDescription, { color: colors.mutedForeground, marginTop: 8 }]}>
+        <Text style={[styles.cardDescription, { color: colors.mutedForeground, marginTop: 8 }]} numberOfLines={2}>
           {oseDay.description}
         </Text>
         <View style={[styles.infoBox, { backgroundColor: oseDay.color + "15" }]}>
-          <Text style={[styles.infoText, { color: oseDay.color }]}>{oseDay.guidance}</Text>
+          <Text style={[styles.infoText, { color: oseDay.color }]} numberOfLines={2}>{oseDay.guidance}</Text>
         </View>
-        <Text style={[styles.oseOfferings, { color: colors.mutedForeground }]}>
-          Offerings: {oseDay.offerings}
-        </Text>
-      </View>
+      </Pressable>
+
+      <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
     </ScrollView>
   );
 }
@@ -324,10 +333,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 0.3,
   },
-  oseOfferings: {
-    fontSize: 11,
-    fontStyle: "italic",
-    marginTop: 8,
-    lineHeight: 16,
+  oseTapHint: {
+    fontSize: 10,
+    marginLeft: "auto",
+    letterSpacing: 0.2,
   },
 });

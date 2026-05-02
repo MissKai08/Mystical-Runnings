@@ -26,6 +26,7 @@ import {
 } from "@/constants/spiritualData";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
+import { OseDetailModal } from "@/components/OseDetailModal";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -49,6 +50,7 @@ export default function HomeScreen() {
   const oseDay = useMemo(() => getOseDay(today), [today]);
 
   const [notifOpen, setNotifOpen] = useState(false);
+  const [oseModalGroup, setOseModalGroup] = useState<import("@/constants/spiritualData").OseGroup | null>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -301,10 +303,17 @@ export default function HomeScreen() {
 
       {/* Ose Calendar — today's 4-day Yoruba sacred week group */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ose Calendar</Text>
-      <View style={[styles.oseCard, { backgroundColor: colors.card, borderColor: oseDay.color + "44" }]}>
+      <Pressable
+        onPress={() => setOseModalGroup(oseDay)}
+        style={({ pressed }) => [
+          styles.oseCard,
+          { backgroundColor: colors.card, borderColor: oseDay.color + "44", opacity: pressed ? 0.85 : 1 },
+        ]}
+      >
         <View style={styles.oseCardHeader}>
           <View style={[styles.oseDot, { backgroundColor: oseDay.color }]} />
           <Text style={[styles.oseCardName, { color: colors.foreground }]}>{oseDay.name}</Text>
+          <Text style={[styles.oseTapHint, { color: colors.mutedForeground }]}>Tap to expand</Text>
         </View>
         <View style={styles.oseChips}>
           {oseDay.orisas.map((o, i) => (
@@ -313,13 +322,11 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
-        <Text style={[styles.oseGuidance, { color: colors.mutedForeground }]}>
+        <Text style={[styles.oseGuidance, { color: colors.mutedForeground }]} numberOfLines={2}>
           {oseDay.guidance}
         </Text>
-        <Text style={[styles.oseOfferings, { color: colors.mutedForeground }]}>
-          Offerings: {oseDay.offerings}
-        </Text>
-      </View>
+      </Pressable>
+      <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
 
       {/* Upcoming */}
       {upcomingDays.length > 0 && (
@@ -582,6 +589,11 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     marginTop: 2,
+  },
+  oseTapHint: {
+    fontSize: 10,
+    marginLeft: "auto",
+    letterSpacing: 0.2,
   },
   upcomingEventText: {
     fontSize: 14,
