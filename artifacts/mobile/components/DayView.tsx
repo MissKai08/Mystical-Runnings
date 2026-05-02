@@ -6,6 +6,10 @@ import {
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
+  getSabbatForDate,
+  getNamedFullMoonForDate,
+  getDarkMoonForDate,
+  getEclipseForDate,
   formatDateLong,
   EVENT_COLORS,
 } from "@/constants/spiritualData";
@@ -21,6 +25,12 @@ export function DayView({ date }: Props) {
   const retrograde = getMercuryRetrogradeInfo(date);
   const prayerDay = isIfaPrayerDay(date);
   const festival = getIfaFestivalForDate(date);
+  const sabbat = getSabbatForDate(date);
+  const namedMoon = getNamedFullMoonForDate(date);
+  const darkMoon = getDarkMoonForDate(date);
+  const eclipse = getEclipseForDate(date);
+
+  const hasExtra = !!(retrograde || prayerDay || festival || sabbat || eclipse);
 
   return (
     <ScrollView
@@ -32,27 +42,115 @@ export function DayView({ date }: Props) {
         {formatDateLong(date)}
       </Text>
 
-      {/* Moon Phase Card */}
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS.moon }]} />
-          <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>LUNAR</Text>
+      {/* Named Full Moon overrides generic moon */}
+      {namedMoon ? (
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA55" }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>FULL MOON</Text>
+          </View>
+          <View style={styles.moonContent}>
+            <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
+            <View style={styles.moonInfo}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>{namedMoon.name}</Text>
+              <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
+                {namedMoon.sign ? `in ${namedMoon.sign}` : ""}
+              </Text>
+              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                {namedMoon.description}
+              </Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.moonContent}>
-          <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
-          <View style={styles.moonInfo}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>{moon.name}</Text>
-            <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-              {moon.illumination}% illuminated
+      ) : darkMoon ? (
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#6D28D944" }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>DARK MOON</Text>
+          </View>
+          <View style={styles.moonContent}>
+            <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
+            <View style={styles.moonInfo}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Dark Moon</Text>
+              <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
+                {darkMoon.sign ? `in ${darkMoon.sign}` : ""}
+              </Text>
+              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                A time for deep rest, shadow work, and release before the new cycle begins.
+              </Text>
+            </View>
+          </View>
+        </View>
+      ) : (
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["full-moon"] }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>LUNAR</Text>
+          </View>
+          <View style={styles.moonContent}>
+            <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
+            <View style={styles.moonInfo}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>{moon.name}</Text>
+              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                {moon.illumination}% illuminated
+              </Text>
+              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                Day {Math.round(moon.phase)} of 30 in cycle
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Eclipse */}
+      {eclipse && (
+        <View style={[
+          styles.card,
+          { backgroundColor: colors.card, borderColor: eclipse.type === "solar-eclipse" ? "#F59E0B55" : "#EC489955" },
+        ]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>
+              {eclipse.type === "solar-eclipse" ? "SOLAR ECLIPSE" : "LUNAR ECLIPSE"}
             </Text>
-            <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-              Day {Math.round(moon.phase)} of 30 in cycle
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>{eclipse.name}</Text>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            {eclipse.description}
+          </Text>
+          <View style={[
+            styles.infoBox,
+            { backgroundColor: eclipse.type === "solar-eclipse" ? "#F59E0B11" : "#EC489911" },
+          ]}>
+            <Text style={[styles.infoText, { color: eclipse.type === "solar-eclipse" ? "#F59E0B" : "#EC4899" }]}>
+              {eclipse.type === "solar-eclipse"
+                ? "A powerful portal for bold new beginnings. Set intentions with full awareness."
+                : "Deep illumination and release. What the eclipse reveals cannot be unseen — trust the process."}
             </Text>
           </View>
         </View>
-      </View>
+      )}
 
-      {/* Mercury Retrograde Card */}
+      {/* Sabbat / Wheel of the Year */}
+      {sabbat && (
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#34D39944" }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS.sabbat }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>WHEEL OF THE YEAR</Text>
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>{sabbat.name}</Text>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            {sabbat.description}
+          </Text>
+          <View style={[styles.infoBox, { backgroundColor: "#34D39911" }]}>
+            <Text style={[styles.infoText, { color: "#34D399" }]}>
+              Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's energy.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {/* Mercury Retrograde */}
       {retrograde && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#F9731633" }]}>
           <View style={styles.cardHeader}>
@@ -74,11 +172,11 @@ export function DayView({ date }: Props) {
         </View>
       )}
 
-      {/* Ifa Prayer Day Card */}
+      {/* Ifa Prayer Day */}
       {prayerDay && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#D4A84333" }]}>
           <View style={styles.cardHeader}>
-            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS.ifaPrayer }]} />
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>IFA PRAYER</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Ojo Orunmila</Text>
@@ -93,11 +191,11 @@ export function DayView({ date }: Props) {
         </View>
       )}
 
-      {/* Ifa Festival Card */}
+      {/* Ifa Festival */}
       {festival && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#22D3EE33" }]}>
           <View style={styles.cardHeader}>
-            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS.ifaFestival }]} />
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>IFA FESTIVAL</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{festival.name}</Text>
@@ -107,8 +205,8 @@ export function DayView({ date }: Props) {
         </View>
       )}
 
-      {/* Peaceful Day */}
-      {!retrograde && !prayerDay && !festival && (
+      {/* Peaceful Day — only if truly nothing notable */}
+      {!hasExtra && !namedMoon && !darkMoon && !eclipse && (
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Peaceful Day</Text>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
@@ -121,13 +219,8 @@ export function DayView({ date }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
+  container: { flex: 1 },
+  content: { padding: 16, paddingBottom: 40 },
   dateTitle: {
     fontSize: 16,
     fontWeight: "700",

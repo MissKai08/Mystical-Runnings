@@ -7,9 +7,14 @@ export type EventType =
   | "waning-gibbous"
   | "last-quarter"
   | "waning-crescent"
+  | "dark-moon"
+  | "named-moon"
   | "retrograde"
   | "ifa-prayer"
-  | "ifa-festival";
+  | "ifa-festival"
+  | "sabbat"
+  | "solar-eclipse"
+  | "lunar-eclipse";
 
 export interface MoonPhaseData {
   phase: number;
@@ -32,6 +37,14 @@ export interface IfaFestival {
   description: string;
 }
 
+export interface WheelEvent {
+  name: string;
+  date: Date;
+  type: EventType;
+  description: string;
+  sign?: string;
+}
+
 export interface SpiritualEvent {
   id: string;
   type: EventType;
@@ -42,11 +55,23 @@ export interface SpiritualEvent {
   endDate?: Date;
 }
 
-export const EVENT_COLORS = {
-  moon: "#A78BFA",
+export const EVENT_COLORS: Record<EventType, string> = {
+  "new-moon": "#6D28D9",
+  "waxing-crescent": "#8B5CF6",
+  "first-quarter": "#A78BFA",
+  "waxing-gibbous": "#C4B5FD",
+  "full-moon": "#A78BFA",
+  "waning-gibbous": "#C4B5FD",
+  "last-quarter": "#A78BFA",
+  "waning-crescent": "#8B5CF6",
+  "dark-moon": "#4C1D95",
+  "named-moon": "#A78BFA",
   retrograde: "#F97316",
-  ifaPrayer: "#D4A843",
-  ifaFestival: "#22D3EE",
+  "ifa-prayer": "#D4A843",
+  "ifa-festival": "#22D3EE",
+  sabbat: "#34D399",
+  "solar-eclipse": "#F59E0B",
+  "lunar-eclipse": "#EC4899",
 };
 
 const KNOWN_NEW_MOON_MS = new Date(Date.UTC(2000, 0, 6, 18, 14, 0)).getTime();
@@ -109,6 +134,128 @@ export const IFA_FESTIVALS: IfaFestival[] = [
   { name: "Egungun Festival", date: new Date(2026, 5, 19), description: "Masquerade festival honoring ancestral spirits" },
 ];
 
+// 2026 Wheel of the Year — Sabbats (source: Patheos / Heron Michelle)
+export const SABBATS: WheelEvent[] = [
+  {
+    name: "Yule — Winter Solstice",
+    date: new Date(2025, 11, 21),
+    type: "sabbat",
+    description: "Sun enters Capricorn at 10:03 AM ET. The longest night of the year — light a candle and honor the return of the sun.",
+  },
+  {
+    name: "Imbolc — High Winter",
+    date: new Date(2026, 1, 3),
+    type: "sabbat",
+    description: "Sun at 15° Aquarius. Festival of the returning light — honor Brigid, cleanse and set intentions for the year ahead.",
+  },
+  {
+    name: "Ostara — Spring Equinox",
+    date: new Date(2026, 2, 20),
+    type: "sabbat",
+    description: "Sun enters Aries at 10:46 AM ET. Balance of light and dark — seeds planted now carry the force of the equinox.",
+  },
+  {
+    name: "Beltane — High Spring",
+    date: new Date(2026, 4, 5),
+    type: "sabbat",
+    description: "Sun at 15° Taurus. Festival of fire and fertility — the peak of spring's creative power.",
+  },
+  {
+    name: "Litha — Summer Solstice",
+    date: new Date(2026, 5, 21),
+    type: "sabbat",
+    description: "Sun enters Cancer at 4:24 AM ET. The longest day of the year — celebrate the sun at its fullest strength.",
+  },
+  {
+    name: "Lammas — High Summer",
+    date: new Date(2026, 7, 7),
+    type: "sabbat",
+    description: "Sun at 15° Leo. First harvest festival — give thanks for abundance, begin the slow turn toward autumn.",
+  },
+  {
+    name: "Mabon — Autumn Equinox",
+    date: new Date(2026, 8, 22),
+    type: "sabbat",
+    description: "Sun enters Libra at 8:05 PM ET. Second harvest — balance returns, honor gratitude and release.",
+  },
+  {
+    name: "Samhain — High Autumn",
+    date: new Date(2026, 10, 7),
+    type: "sabbat",
+    description: "Sun at 15° Scorpio. The veil between worlds is thinnest — honor the dead, your ancestors, and the cycle of endings.",
+  },
+  {
+    name: "Yule — Winter Solstice",
+    date: new Date(2026, 11, 21),
+    type: "sabbat",
+    description: "Sun enters Capricorn at 3:50 PM ET. The wheel completes — welcome the return of the light once more.",
+  },
+];
+
+// 2026 Named Full Moons (source: Patheos / Heron Michelle)
+export const NAMED_FULL_MOONS: WheelEvent[] = [
+  { name: "Cold Full Moon", date: new Date(2026, 0, 2), type: "named-moon", description: "Full Moon in Cancer", sign: "Cancer" },
+  { name: "Quickening Full Moon", date: new Date(2026, 0, 30), type: "named-moon", description: "Full Moon in Leo", sign: "Leo" },
+  { name: "Storm Full Moon", date: new Date(2026, 2, 2), type: "named-moon", description: "Full Moon in Virgo — Lunar Eclipse", sign: "Virgo" },
+  { name: "Wind Full Moon", date: new Date(2026, 3, 1), type: "named-moon", description: "Full Moon in Libra", sign: "Libra" },
+  { name: "Flower Full Moon", date: new Date(2026, 3, 30), type: "named-moon", description: "Full Moon in Scorpio", sign: "Scorpio" },
+  { name: "Strong Sun Full Moon", date: new Date(2026, 4, 30), type: "named-moon", description: "Full Moon in Sagittarius", sign: "Sagittarius" },
+  { name: "Blessing Full Moon", date: new Date(2026, 5, 29), type: "named-moon", description: "Full Moon in Capricorn", sign: "Capricorn" },
+  { name: "Corn Full Moon", date: new Date(2026, 6, 28), type: "named-moon", description: "Full Moon in Aquarius", sign: "Aquarius" },
+  { name: "Harvest Full Moon", date: new Date(2026, 7, 27), type: "named-moon", description: "Full Moon in Pisces — Lunar Eclipse", sign: "Pisces" },
+  { name: "Blood Full Moon", date: new Date(2026, 8, 26), type: "named-moon", description: "Full Moon in Aries", sign: "Aries" },
+  { name: "Mourning Full Moon", date: new Date(2026, 9, 25), type: "named-moon", description: "Full Moon in Taurus", sign: "Taurus" },
+  { name: "Long Nights Full Moon", date: new Date(2026, 10, 23), type: "named-moon", description: "Full Moon in Gemini", sign: "Gemini" },
+];
+
+// 2026 Dark Moons (source: Patheos / Heron Michelle)
+export const DARK_MOONS: WheelEvent[] = [
+  { name: "Dark Moon", date: new Date(2026, 0, 18), type: "dark-moon", description: "Dark Moon in Capricorn", sign: "Capricorn" },
+  { name: "Dark Moon", date: new Date(2026, 1, 16), type: "dark-moon", description: "Dark Moon in Aquarius — Solar Eclipse / Lunar New Year (Year of the Horse)", sign: "Aquarius" },
+  { name: "Dark Moon", date: new Date(2026, 2, 18), type: "dark-moon", description: "Dark Moon in Pisces", sign: "Pisces" },
+  { name: "Dark Moon", date: new Date(2026, 3, 16), type: "dark-moon", description: "Dark Moon in Aries", sign: "Aries" },
+  { name: "Dark Moon", date: new Date(2026, 4, 15), type: "dark-moon", description: "Dark Moon in Taurus", sign: "Taurus" },
+  { name: "Dark Moon", date: new Date(2026, 5, 14), type: "dark-moon", description: "Dark Moon in Gemini", sign: "Gemini" },
+  { name: "Dark Moon", date: new Date(2026, 6, 13), type: "dark-moon", description: "Dark Moon in Cancer", sign: "Cancer" },
+  { name: "Dark Moon", date: new Date(2026, 7, 11), type: "dark-moon", description: "Dark Moon in Leo — Solar Eclipse", sign: "Leo" },
+  { name: "Dark Moon", date: new Date(2026, 8, 10), type: "dark-moon", description: "Dark Moon in Virgo", sign: "Virgo" },
+  { name: "Dark Moon", date: new Date(2026, 9, 9), type: "dark-moon", description: "Dark Moon in Libra", sign: "Libra" },
+  { name: "Dark Moon", date: new Date(2026, 10, 8), type: "dark-moon", description: "Dark Moon in Scorpio", sign: "Scorpio" },
+  { name: "Dark Moon", date: new Date(2026, 11, 8), type: "dark-moon", description: "Dark Moon in Sagittarius", sign: "Sagittarius" },
+];
+
+// 2026 Eclipses (source: Patheos / Heron Michelle)
+export const ECLIPSES: WheelEvent[] = [
+  {
+    name: "Solar Eclipse",
+    date: new Date(2026, 1, 16),
+    type: "solar-eclipse",
+    description: "Solar Eclipse — Dark Moon in Aquarius. Powerful portal for new beginnings. Also Lunar New Year (Year of the Horse).",
+    sign: "Aquarius",
+  },
+  {
+    name: "Lunar Eclipse",
+    date: new Date(2026, 2, 2),
+    type: "lunar-eclipse",
+    description: "Lunar Eclipse — Storm Full Moon in Virgo. Deep release and illumination of what must be healed.",
+    sign: "Virgo",
+  },
+  {
+    name: "Solar Eclipse",
+    date: new Date(2026, 7, 11),
+    type: "solar-eclipse",
+    description: "Solar Eclipse — Dark Moon in Leo. A powerful reset at the height of summer — bold intentions carry extra force.",
+    sign: "Leo",
+  },
+  {
+    name: "Lunar Eclipse",
+    date: new Date(2026, 7, 27),
+    type: "lunar-eclipse",
+    description: "Lunar Eclipse — Harvest Full Moon in Pisces. Dissolution of what no longer serves — surrender with trust.",
+    sign: "Pisces",
+  },
+];
+
 export function isSameDay(a: Date, b: Date): boolean {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -131,6 +278,22 @@ export function getIfaFestivalForDate(date: Date): IfaFestival | null {
   return IFA_FESTIVALS.find((f) => isSameDay(f.date, date)) ?? null;
 }
 
+export function getSabbatForDate(date: Date): WheelEvent | null {
+  return SABBATS.find((s) => isSameDay(s.date, date)) ?? null;
+}
+
+export function getNamedFullMoonForDate(date: Date): WheelEvent | null {
+  return NAMED_FULL_MOONS.find((m) => isSameDay(m.date, date)) ?? null;
+}
+
+export function getDarkMoonForDate(date: Date): WheelEvent | null {
+  return DARK_MOONS.find((m) => isSameDay(m.date, date)) ?? null;
+}
+
+export function getEclipseForDate(date: Date): WheelEvent | null {
+  return ECLIPSES.find((e) => isSameDay(e.date, date)) ?? null;
+}
+
 export function getStartOfWeek(date: Date): Date {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());
@@ -150,15 +313,62 @@ export function getEventsForDate(date: Date): SpiritualEvent[] {
   const retrograde = getMercuryRetrogradeInfo(date);
   const isPrayerDay = isIfaPrayerDay(date);
   const festival = getIfaFestivalForDate(date);
+  const sabbat = getSabbatForDate(date);
+  const namedMoon = getNamedFullMoonForDate(date);
+  const darkMoon = getDarkMoonForDate(date);
+  const eclipse = getEclipseForDate(date);
 
-  events.push({
-    id: `moon-${date.toDateString()}`,
-    type: moonData.eventType,
-    name: moonData.name,
-    description: `${moonData.illumination}% illuminated`,
-    color: EVENT_COLORS.moon,
-    date,
-  });
+  // Named full moons override the generic moon event if present
+  if (namedMoon) {
+    events.push({
+      id: `named-moon-${date.toDateString()}`,
+      type: "named-moon",
+      name: namedMoon.name,
+      description: namedMoon.description,
+      color: EVENT_COLORS["named-moon"],
+      date,
+    });
+  } else if (darkMoon) {
+    events.push({
+      id: `dark-moon-${date.toDateString()}`,
+      type: "dark-moon",
+      name: darkMoon.name,
+      description: darkMoon.description,
+      color: EVENT_COLORS["dark-moon"],
+      date,
+    });
+  } else {
+    events.push({
+      id: `moon-${date.toDateString()}`,
+      type: moonData.eventType,
+      name: moonData.name,
+      description: `${moonData.illumination}% illuminated`,
+      color: EVENT_COLORS[moonData.eventType],
+      date,
+    });
+  }
+
+  if (eclipse) {
+    events.push({
+      id: `eclipse-${date.toDateString()}`,
+      type: eclipse.type,
+      name: eclipse.name,
+      description: eclipse.description,
+      color: EVENT_COLORS[eclipse.type],
+      date,
+    });
+  }
+
+  if (sabbat) {
+    events.push({
+      id: `sabbat-${date.toDateString()}`,
+      type: "sabbat",
+      name: sabbat.name,
+      description: sabbat.description,
+      color: EVENT_COLORS.sabbat,
+      date,
+    });
+  }
 
   if (retrograde) {
     events.push({
@@ -178,7 +388,7 @@ export function getEventsForDate(date: Date): SpiritualEvent[] {
       type: "ifa-prayer",
       name: "Ifa Prayer Day",
       description: "Ojo Orunmila — Sacred day of the Ifa Oracle",
-      color: EVENT_COLORS.ifaPrayer,
+      color: EVENT_COLORS["ifa-prayer"],
       date,
     });
   }
@@ -189,7 +399,7 @@ export function getEventsForDate(date: Date): SpiritualEvent[] {
       type: "ifa-festival",
       name: festival.name,
       description: festival.description,
-      color: EVENT_COLORS.ifaFestival,
+      color: EVENT_COLORS["ifa-festival"],
       date,
     });
   }

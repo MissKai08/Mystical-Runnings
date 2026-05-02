@@ -8,13 +8,7 @@ interface Props {
 }
 
 function getColor(type: EventType): string {
-  if (type.includes("moon") || type.includes("quarter") || type.includes("crescent") || type.includes("gibbous")) {
-    return EVENT_COLORS.moon;
-  }
-  if (type === "retrograde") return EVENT_COLORS.retrograde;
-  if (type === "ifa-prayer") return EVENT_COLORS.ifaPrayer;
-  if (type === "ifa-festival") return EVENT_COLORS.ifaFestival;
-  return EVENT_COLORS.moon;
+  return EVENT_COLORS[type] ?? EVENT_COLORS["full-moon"];
 }
 
 export function EventDot({ type, size = 5 }: Props) {

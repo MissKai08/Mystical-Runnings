@@ -13,6 +13,10 @@ import {
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
+  getSabbatForDate,
+  getNamedFullMoonForDate,
+  getDarkMoonForDate,
+  getEclipseForDate,
   EVENT_COLORS,
   addDays,
   formatDateShort,
@@ -32,26 +36,43 @@ export default function HomeScreen() {
   const retrograde = useMemo(() => getMercuryRetrogradeInfo(today), [today]);
   const prayerDay = useMemo(() => isIfaPrayerDay(today), [today]);
   const festival = useMemo(() => getIfaFestivalForDate(today), [today]);
+  const sabbat = useMemo(() => getSabbatForDate(today), [today]);
+  const namedMoon = useMemo(() => getNamedFullMoonForDate(today), [today]);
+  const darkMoon = useMemo(() => getDarkMoonForDate(today), [today]);
+  const eclipse = useMemo(() => getEclipseForDate(today), [today]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const hasAnyAlert = !!(retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse);
+
   const upcomingDays = useMemo(() => {
     const result: { date: Date; events: string[] }[] = [];
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= 21; i++) {
       const d = addDays(today, i);
       const m = getMoonPhaseData(d);
       const r = getMercuryRetrogradeInfo(d);
       const p = isIfaPrayerDay(d);
       const f = getIfaFestivalForDate(d);
+      const s = getSabbatForDate(d);
+      const nm = getNamedFullMoonForDate(d);
+      const dm = getDarkMoonForDate(d);
+      const ec = getEclipseForDate(d);
       const events: string[] = [];
-      if (m.isMajorPhase) events.push(m.name);
+
+      if (nm) events.push(nm.name);
+      else if (dm) events.push("Dark Moon — " + (dm.sign ?? ""));
+      else if (m.isMajorPhase) events.push(m.name);
+
+      if (ec) events.push(ec.name);
+      if (s) events.push(s.name.split(" —")[0]);
       if (r && !getMercuryRetrogradeInfo(addDays(today, i - 1))) events.push("Mercury Retrograde begins");
       if (p) events.push("Ifa Prayer Day");
       if (f) events.push(f.name);
+
       if (events.length > 0) result.push({ date: d, events });
     }
-    return result.slice(0, 5);
+    return result.slice(0, 7);
   }, [today]);
 
   return (
@@ -73,16 +94,75 @@ export default function HomeScreen() {
       {/* Moon Phase Hero */}
       <View style={[styles.moonHero, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
         <MoonPhaseCircle moonData={moon} size={96} showLabel />
+        {namedMoon && (
+          <View style={[styles.namedMoonBadge, { backgroundColor: "#A78BFA22", borderColor: "#A78BFA55" }]}>
+            <Text style={[styles.namedMoonText, { color: "#C4B5FD" }]}>
+              {namedMoon.name} {namedMoon.sign ? `· ${namedMoon.sign}` : ""}
+            </Text>
+          </View>
+        )}
+        {darkMoon && (
+          <View style={[styles.namedMoonBadge, { backgroundColor: "#4C1D9522", borderColor: "#6D28D955" }]}>
+            <Text style={[styles.namedMoonText, { color: "#A78BFA" }]}>
+              Dark Moon {darkMoon.sign ? `· ${darkMoon.sign}` : ""}
+            </Text>
+          </View>
+        )}
         <View style={styles.moonHeroExtra}>
           <Text style={[styles.moonHeroLabel, { color: colors.mutedForeground }]}>Tonight's Sky</Text>
           <Text style={[styles.moonHeroSub, { color: colors.mutedForeground }]}>
-            Day {Math.round(moon.phase)} of {Math.round(30)} in current cycle
+            Day {Math.round(moon.phase)} of 30 in current cycle · {moon.illumination}% illuminated
           </Text>
         </View>
       </View>
 
-      {/* Today's Alerts */}
+      {/* Today's Energies */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today's Energies</Text>
+
+      {eclipse && (
+        <View style={[styles.alertCard, {
+          backgroundColor: eclipse.type === "solar-eclipse" ? "#F59E0B11" : "#EC489911",
+          borderColor: eclipse.type === "solar-eclipse" ? "#F59E0B55" : "#EC489955",
+        }]}>
+          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
+          <View style={styles.alertText}>
+            <Text style={[styles.alertTitle, { color: colors.foreground }]}>{eclipse.name}</Text>
+            <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{eclipse.description}</Text>
+          </View>
+        </View>
+      )}
+
+      {sabbat && (
+        <View style={[styles.alertCard, { backgroundColor: "#34D39911", borderColor: "#34D39944" }]}>
+          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS.sabbat }]} />
+          <View style={styles.alertText}>
+            <Text style={[styles.alertTitle, { color: colors.foreground }]}>{sabbat.name}</Text>
+            <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{sabbat.description}</Text>
+          </View>
+        </View>
+      )}
+
+      {namedMoon && !eclipse && (
+        <View style={[styles.alertCard, { backgroundColor: "#A78BFA11", borderColor: "#A78BFA44" }]}>
+          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
+          <View style={styles.alertText}>
+            <Text style={[styles.alertTitle, { color: colors.foreground }]}>{namedMoon.name}</Text>
+            <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{namedMoon.description}</Text>
+          </View>
+        </View>
+      )}
+
+      {darkMoon && !eclipse && (
+        <View style={[styles.alertCard, { backgroundColor: "#4C1D9522", borderColor: "#6D28D955" }]}>
+          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
+          <View style={styles.alertText}>
+            <Text style={[styles.alertTitle, { color: colors.foreground }]}>Dark Moon — {darkMoon.sign}</Text>
+            <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>
+              Rest, release, and turn inward. The new cycle approaches.
+            </Text>
+          </View>
+        </View>
+      )}
 
       {retrograde && (
         <View style={[styles.alertCard, { backgroundColor: "#F9731615", borderColor: "#F9731644" }]}>
@@ -96,7 +176,7 @@ export default function HomeScreen() {
 
       {prayerDay && (
         <View style={[styles.alertCard, { backgroundColor: "#D4A84315", borderColor: "#D4A84344" }]}>
-          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS.ifaPrayer }]} />
+          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>Ojo Orunmila</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>Sacred Ifa Prayer Day — offer gratitude</Text>
@@ -106,7 +186,7 @@ export default function HomeScreen() {
 
       {festival && (
         <View style={[styles.alertCard, { backgroundColor: "#22D3EE15", borderColor: "#22D3EE44" }]}>
-          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS.ifaFestival }]} />
+          <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>{festival.name}</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{festival.description}</Text>
@@ -114,7 +194,7 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {!retrograde && !prayerDay && !festival && (
+      {!hasAnyAlert && (
         <View style={[styles.alertCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[styles.alertDot, { backgroundColor: colors.mutedForeground }]} />
           <View style={styles.alertText}>
@@ -139,11 +219,20 @@ export default function HomeScreen() {
                 <Text style={[styles.upcomingNum, { color: colors.foreground }]}>{date.getDate()}</Text>
               </View>
               <View style={styles.upcomingEvents}>
-                {events.map((e, ei) => (
-                  <Text key={ei} style={[styles.upcomingEventText, { color: colors.foreground }]}>
-                    {e}
-                  </Text>
-                ))}
+                {events.map((e, ei) => {
+                  const isSabbat = SABBATS_CHECK.some((s) => e.startsWith(s));
+                  const isEclipse = e.includes("Eclipse");
+                  const isMoon = e.includes("Moon");
+                  const isRetro = e.includes("Retrograde");
+                  const isPrayer = e.includes("Prayer");
+                  const dotColor = isSabbat ? "#34D399" : isEclipse ? "#F59E0B" : isMoon ? "#A78BFA" : isRetro ? "#F97316" : isPrayer ? "#D4A843" : "#22D3EE";
+                  return (
+                    <View key={ei} style={styles.upcomingEventRow}>
+                      <View style={[styles.upcomingDot, { backgroundColor: dotColor }]} />
+                      <Text style={[styles.upcomingEventText, { color: colors.foreground }]}>{e}</Text>
+                    </View>
+                  );
+                })}
               </View>
             </View>
           ))}
@@ -152,6 +241,8 @@ export default function HomeScreen() {
     </ScrollView>
   );
 }
+
+const SABBATS_CHECK = ["Yule", "Imbolc", "Ostara", "Beltane", "Litha", "Lammas", "Mabon", "Samhain"];
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -179,7 +270,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 24,
     borderWidth: 1,
-    gap: 12,
+    gap: 10,
+  },
+  namedMoonBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderWidth: 1,
+  },
+  namedMoonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   moonHeroExtra: {
     alignItems: "center",
@@ -189,7 +291,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1,
     textTransform: "uppercase",
-    marginTop: 4,
+    marginTop: 2,
   },
   moonHeroSub: {
     fontSize: 12,
@@ -247,9 +349,21 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
   },
-  upcomingEvents: { flex: 1, justifyContent: "center", gap: 2 },
+  upcomingEvents: { flex: 1, justifyContent: "center", gap: 4 },
+  upcomingEventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  upcomingDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    flexShrink: 0,
+  },
   upcomingEventText: {
     fontSize: 14,
     fontWeight: "500",
+    flex: 1,
   },
 });

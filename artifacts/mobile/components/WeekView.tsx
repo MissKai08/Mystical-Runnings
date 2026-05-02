@@ -8,6 +8,10 @@ import {
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
+  getSabbatForDate,
+  getNamedFullMoonForDate,
+  getDarkMoonForDate,
+  getEclipseForDate,
   EVENT_COLORS,
 } from "@/constants/spiritualData";
 import * as Haptics from "expo-haptics";
@@ -38,6 +42,10 @@ export function WeekView({ startDate, selectedDate, onSelectDate }: Props) {
           const retrograde = getMercuryRetrogradeInfo(day);
           const prayerDay = isIfaPrayerDay(day);
           const festival = getIfaFestivalForDate(day);
+          const sabbat = getSabbatForDate(day);
+          const namedMoon = getNamedFullMoonForDate(day);
+          const darkMoon = getDarkMoonForDate(day);
+          const eclipse = getEclipseForDate(day);
 
           return (
             <Pressable
@@ -68,17 +76,26 @@ export function WeekView({ startDate, selectedDate, onSelectDate }: Props) {
                 </Text>
               </View>
               <View style={styles.indicators}>
-                {moon.isMajorPhase && (
-                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS.moon }]} />
+                {(namedMoon || moon.isMajorPhase) && (
+                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
+                )}
+                {darkMoon && (
+                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
+                )}
+                {eclipse && (
+                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
+                )}
+                {sabbat && (
+                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS.sabbat }]} />
                 )}
                 {retrograde && (
                   <View style={[styles.dot, { backgroundColor: EVENT_COLORS.retrograde }]} />
                 )}
                 {prayerDay && (
-                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS.ifaPrayer }]} />
+                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
                 )}
                 {festival && (
-                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS.ifaFestival }]} />
+                  <View style={[styles.dot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
                 )}
               </View>
             </Pressable>
@@ -92,7 +109,11 @@ export function WeekView({ startDate, selectedDate, onSelectDate }: Props) {
           const retrograde = getMercuryRetrogradeInfo(day);
           const prayerDay = isIfaPrayerDay(day);
           const festival = getIfaFestivalForDate(day);
-          const hasEvents = moon.isMajorPhase || retrograde || prayerDay || festival;
+          const sabbat = getSabbatForDate(day);
+          const namedMoon = getNamedFullMoonForDate(day);
+          const darkMoon = getDarkMoonForDate(day);
+          const eclipse = getEclipseForDate(day);
+          const hasEvents = moon.isMajorPhase || retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse;
           if (!hasEvents) return null;
 
           return (
@@ -100,10 +121,34 @@ export function WeekView({ startDate, selectedDate, onSelectDate }: Props) {
               <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }]}>
                 {SHORT_DAYS[day.getDay()]} {day.getDate()}
               </Text>
-              {moon.isMajorPhase && (
+              {namedMoon && (
                 <View style={[styles.eventChip, { backgroundColor: "#A78BFA22" }]}>
-                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS.moon }]} />
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
+                  <Text style={[styles.chipText, { color: colors.foreground }]}>{namedMoon.name}</Text>
+                </View>
+              )}
+              {darkMoon && (
+                <View style={[styles.eventChip, { backgroundColor: "#4C1D9522" }]}>
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
+                  <Text style={[styles.chipText, { color: colors.foreground }]}>Dark Moon — {darkMoon.sign}</Text>
+                </View>
+              )}
+              {!namedMoon && !darkMoon && moon.isMajorPhase && (
+                <View style={[styles.eventChip, { backgroundColor: "#A78BFA22" }]}>
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["full-moon"] }]} />
                   <Text style={[styles.chipText, { color: colors.foreground }]}>{moon.name}</Text>
+                </View>
+              )}
+              {eclipse && (
+                <View style={[styles.eventChip, { backgroundColor: eclipse.type === "solar-eclipse" ? "#F59E0B22" : "#EC489922" }]}>
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
+                  <Text style={[styles.chipText, { color: colors.foreground }]}>{eclipse.name}</Text>
+                </View>
+              )}
+              {sabbat && (
+                <View style={[styles.eventChip, { backgroundColor: "#34D39922" }]}>
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS.sabbat }]} />
+                  <Text style={[styles.chipText, { color: colors.foreground }]}>{sabbat.name.split(" —")[0]}</Text>
                 </View>
               )}
               {retrograde && (
@@ -114,13 +159,13 @@ export function WeekView({ startDate, selectedDate, onSelectDate }: Props) {
               )}
               {prayerDay && (
                 <View style={[styles.eventChip, { backgroundColor: "#D4A84322" }]}>
-                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS.ifaPrayer }]} />
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
                   <Text style={[styles.chipText, { color: colors.foreground }]}>Ifa Prayer Day</Text>
                 </View>
               )}
               {festival && (
                 <View style={[styles.eventChip, { backgroundColor: "#22D3EE22" }]}>
-                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS.ifaFestival }]} />
+                  <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
                   <Text style={[styles.chipText, { color: colors.foreground }]}>{festival.name}</Text>
                 </View>
               )}
@@ -133,9 +178,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   row: {
     flexDirection: "row",
     paddingHorizontal: 8,
