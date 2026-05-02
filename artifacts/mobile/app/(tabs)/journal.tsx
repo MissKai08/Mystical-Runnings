@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import {
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
+  getDailyOdu,
 } from "@/constants/spiritualData";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
 import { SearchBar } from "@/components/SearchBar";
@@ -377,6 +378,14 @@ export default function JournalScreen() {
 function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onDelete: () => void }) {
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
+  // Derive Odu from the entry date — deterministic, works for all existing entries
+  const entryOdu = useMemo(() => {
+    const [y, m, d] = entry.date.split("-").map(Number);
+    return getDailyOdu(new Date(y, m - 1, d));
+  }, [entry.date]);
+
+  const moonEmoji = moonPhaseEmoji(entry.moonPhase);
+
   return (
     <View style={[styles.entryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       {/* Card header */}
@@ -402,8 +411,35 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
         </Pressable>
       </View>
 
-      {/* Moon phase */}
-      <Text style={[styles.entryMoon, { color: "#A78BFA" }]}>✦ {entry.moonPhase}</Text>
+      {/* Lunar history row — moon phase + Odu stamped on the entry */}
+      <View style={[styles.lunarHistoryRow, { backgroundColor: "#0D0B1E", borderColor: "#1E1A3A" }]}>
+        <View style={styles.lunarHistoryItem}>
+          <Text style={[styles.lunarHistoryLabel, { color: colors.mutedForeground }]}>MOON</Text>
+          <View style={styles.lunarHistoryValue}>
+            <Text style={styles.lunarHistoryEmoji}>{moonEmoji}</Text>
+            <Text style={[styles.lunarHistoryText, { color: "#A78BFA" }]} numberOfLines={1}>
+              {entry.moonPhase}
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.lunarHistoryDivider, { backgroundColor: "#1E1A3A" }]} />
+        <View style={styles.lunarHistoryItem}>
+          <Text style={[styles.lunarHistoryLabel, { color: colors.mutedForeground }]}>ODU</Text>
+          <View style={styles.lunarHistoryValue}>
+            <Text style={styles.lunarHistoryEmoji}>✦</Text>
+            <Text style={[styles.lunarHistoryText, { color: "#D4A843" }]} numberOfLines={1}>
+              {entryOdu.name}
+            </Text>
+          </View>
+        </View>
+        <View style={[styles.lunarHistoryDivider, { backgroundColor: "#1E1A3A" }]} />
+        <View style={styles.lunarHistoryItem}>
+          <Text style={[styles.lunarHistoryLabel, { color: colors.mutedForeground }]}>ORISHA</Text>
+          <Text style={[styles.lunarHistoryText, { color: colors.mutedForeground }]} numberOfLines={1}>
+            {entryOdu.orisha}
+          </Text>
+        </View>
+      </View>
 
       {/* Context chips */}
       {entry.spiritualContext.length > 0 && (
@@ -432,6 +468,19 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
       )}
     </View>
   );
+}
+
+function moonPhaseEmoji(phase: string): string {
+  const p = phase.toLowerCase();
+  if (p.includes("new") || p.includes("dark")) return "🌑";
+  if (p.includes("waxing crescent")) return "🌒";
+  if (p.includes("first quarter")) return "🌓";
+  if (p.includes("waxing gibbous")) return "🌔";
+  if (p.includes("full")) return "🌕";
+  if (p.includes("waning gibbous")) return "🌖";
+  if (p.includes("last quarter")) return "🌗";
+  if (p.includes("waning crescent")) return "🌘";
+  return "🌙";
 }
 
 const styles = StyleSheet.create({
@@ -533,6 +582,42 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     padding: 4,
+  },
+  lunarHistoryRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  lunarHistoryItem: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    gap: 3,
+    alignItems: "center",
+  },
+  lunarHistoryLabel: {
+    fontSize: 8,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  lunarHistoryValue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  lunarHistoryEmoji: {
+    fontSize: 11,
+  },
+  lunarHistoryText: {
+    fontSize: 11,
+    fontWeight: "700",
+    flexShrink: 1,
+  },
+  lunarHistoryDivider: {
+    width: 1,
+    marginVertical: 6,
   },
   entryMoon: {
     fontSize: 12,
