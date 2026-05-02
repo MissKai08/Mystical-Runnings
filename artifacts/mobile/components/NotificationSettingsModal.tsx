@@ -89,6 +89,13 @@ const TYPE_ROWS: TypeRow[] = [
     color: "#22D3EE",
     emoji: "✨",
   },
+  {
+    key: "oseTransitions",
+    label: "Ose Calendar Transitions",
+    description: "Every 4 days when a new Orisa group begins (7 AM)",
+    color: "#D4A843",
+    emoji: "✦",
+  },
 ];
 
 const ADVANCE_OPTIONS: { value: 1 | 2 | 3; label: string }[] = [
@@ -302,7 +309,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
             </View>
             <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
               Reminder delivered at 8:00 AM on the selected day before each event.
-              Ifa Prayer Days always notify at 7:00 AM Thursday.
+              Ifa Prayer Days notify at 7:00 AM every Thursday. Ose Calendar transitions notify at 7:00 AM on the day they begin.
             </Text>
           </View>
 

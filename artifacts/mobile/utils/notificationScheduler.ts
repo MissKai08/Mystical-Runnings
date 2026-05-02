@@ -6,6 +6,7 @@ import {
   ECLIPSES,
   IFA_FESTIVALS,
   MERCURY_RETROGRADES,
+  OSE_GROUPS,
 } from "@/constants/spiritualData";
 import type { NotificationSettings } from "./notificationSettings";
 
@@ -19,10 +20,52 @@ Notifications.setNotificationHandler({
   }),
 });
 
+const MS_PER_DAY = 86_400_000;
+// April 26 2026 = Day 0 (Obatala) — must match spiritualData.ts anchor
+const OSE_ANCHOR_MS = new Date(2026, 3, 26).getTime();
+
 interface SchedulableEvent {
   name: string;
   date: Date;
   body: string;
+}
+
+function getOseTransitionEvents(windowDays = 90): SchedulableEvent[] {
+  const now = new Date();
+  const noon = new Date(now);
+  noon.setHours(12, 0, 0, 0);
+
+  const todayDiff = Math.round((noon.getTime() - OSE_ANCHOR_MS) / MS_PER_DAY);
+  const todayIdx = ((todayDiff % 4) + 4) % 4;
+  // Day offset where the CURRENT group started
+  const currentGroupStart = todayDiff - todayIdx;
+  // First upcoming transition = start of NEXT group
+  let nextDiff = currentGroupStart + 4;
+
+  const events: SchedulableEvent[] = [];
+  const cutoff = now.getTime() + windowDays * MS_PER_DAY;
+
+  while (true) {
+    const transitionMs = OSE_ANCHOR_MS + nextDiff * MS_PER_DAY;
+    if (transitionMs > cutoff) break;
+
+    const transitionDate = new Date(transitionMs);
+    transitionDate.setHours(7, 0, 0, 0);
+
+    if (transitionDate > now) {
+      const groupIdx = (((nextDiff % 4) + 4) % 4);
+      const group = OSE_GROUPS[groupIdx];
+      events.push({
+        name: `✦ ${group.name}`,
+        date: transitionDate,
+        body: group.guidance,
+      });
+    }
+
+    nextDiff += 4;
+  }
+
+  return events;
 }
 
 function getFutureEvents(settings: NotificationSettings): SchedulableEvent[] {
@@ -87,6 +130,10 @@ function getFutureEvents(settings: NotificationSettings): SchedulableEvent[] {
     }
   }
 
+  if (settings.types.oseTransitions) {
+    events.push(...getOseTransitionEvents(90));
+  }
+
   return events;
 }
 
@@ -122,12 +169,20 @@ export async function scheduleAllNotifications(
   const events = getFutureEvents(settings);
   let scheduled = 0;
 
-  // iOS allows max 64 local notifications — take the soonest 60 to leave room
+  // iOS allows max 64 local notifications.
+  // Reserve 2 slots for repeating triggers (Ifa prayer day).
+  // Ose transitions already included in `events` list above when enabled,
+  // so they compete fairly in the sorted cap.
   const sorted = events
-    .map((e) => ({ ...e, trigger: notifDate(e.date, settings.advanceDays) }))
+    .map((e) => {
+      // Ose transition events already have their exact notify time as `date`;
+      // for everything else, offset by advanceDays.
+      const isOse = e.name.startsWith("✦ Ose");
+      return { ...e, trigger: isOse ? e.date : notifDate(e.date, settings.advanceDays) };
+    })
     .filter((e) => e.trigger > now)
     .sort((a, b) => a.trigger.getTime() - b.trigger.getTime())
-    .slice(0, 60);
+    .slice(0, 62);
 
   for (const evt of sorted) {
     try {
@@ -148,7 +203,7 @@ export async function scheduleAllNotifications(
     }
   }
 
-  // Weekly Ifa Prayer Day (Thursday = day 4) if enabled
+  // Weekly Ifa Prayer Day (Thursday = weekday 5 in Expo) — repeating trigger
   if (settings.types.ifaPrayerDays) {
     try {
       await Notifications.scheduleNotificationAsync({

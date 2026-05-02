@@ -10,6 +10,7 @@ export interface NotifTypeSettings {
   mercuryRetrograde: boolean;
   ifaPrayerDays: boolean;
   ifaFestivals: boolean;
+  oseTransitions: boolean;
 }
 
 export interface NotificationSettings {
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
     mercuryRetrograde: true,
     ifaPrayerDays: false,
     ifaFestivals: true,
+    oseTransitions: false,
   },
 };
 
@@ -36,7 +38,12 @@ export async function loadNotificationSettings(): Promise<NotificationSettings> 
   try {
     const raw = await AsyncStorage.getItem(KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const saved = JSON.parse(raw);
+    return {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      types: { ...DEFAULT_SETTINGS.types, ...(saved.types ?? {}) },
+    };
   } catch {
     return DEFAULT_SETTINGS;
   }
