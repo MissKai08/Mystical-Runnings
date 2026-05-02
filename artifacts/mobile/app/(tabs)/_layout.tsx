@@ -24,6 +24,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "hands.sparkles", selected: "hands.sparkles.fill" }} />
         <Label>Prayer</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="journal">
+        <Icon sf={{ default: "book", selected: "book.fill" }} />
+        <Label>Journal</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -99,6 +103,18 @@ function ClassicTabLayout() {
               <SymbolView name="hands.sparkles" tintColor={color} size={24} />
             ) : (
               <Feather name="heart" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="journal"
+        options={{
+          title: "Journal",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="book" tintColor={color} size={24} />
+            ) : (
+              <Feather name="book-open" size={22} color={color} />
             ),
         }}
       />
