@@ -44,17 +44,16 @@ import Svg, { Path } from "react-native-svg";
 
 type InputMode = "text" | "drawing";
 
-function getTodaySpiritualContext(): { moonPhase: string; context: string[] } {
-  const today = new Date();
-  const moon = getMoonPhaseData(today);
+function getSpiritualContextForDate(date: Date): { moonPhase: string; context: string[] } {
+  const moon = getMoonPhaseData(date);
   const context: string[] = [];
-  const nm = getNamedFullMoonForDate(today);
-  const dm = getDarkMoonForDate(today);
-  const ec = getEclipseForDate(today);
-  const sb = getSabbatForDate(today);
-  const rt = getMercuryRetrogradeInfo(today);
-  const pr = isIfaPrayerDay(today);
-  const fv = getIfaFestivalForDate(today);
+  const nm = getNamedFullMoonForDate(date);
+  const dm = getDarkMoonForDate(date);
+  const ec = getEclipseForDate(date);
+  const sb = getSabbatForDate(date);
+  const rt = getMercuryRetrogradeInfo(date);
+  const pr = isIfaPrayerDay(date);
+  const fv = getIfaFestivalForDate(date);
   if (nm) context.push(nm.name);
   else if (dm) context.push(`Dark Moon · ${dm.sign ?? ""}`);
   else if (moon.isMajorPhase) context.push(moon.name);
@@ -184,7 +183,7 @@ const MONTH_NAMES = [
 const ENTRY_COLORS = ["#13102A", "#D4A84330", "#D4A84358", "#D4A84385", "#D4A843AA"];
 
 function MonthHeatmap({
-  entries, year, month, onPrev, onNext, onDayPress, colors,
+  entries, year, month, onPrev, onNext, onDayPress, onEmptyDayPress, colors,
 }: {
   entries: JournalEntry[];
   year: number;
@@ -192,6 +191,7 @@ function MonthHeatmap({
   onPrev: () => void;
   onNext: () => void;
   onDayPress?: (date: string) => void;
+  onEmptyDayPress?: (date: string) => void;
   colors: ReturnType<typeof useColors>;
 }) {
   const today = new Date();
@@ -245,17 +245,24 @@ function MonthHeatmap({
             const bg = day ? ENTRY_COLORS[Math.min(count, ENTRY_COLORS.length - 1)] : "transparent";
             const isToday = day ? dayKey(day) === todayStr : false;
             const textColor = count > 0 ? "#D4A843" : colors.mutedForeground;
+            const isPast = day !== null && (() => { const dk = dayKey(day); return dk <= todayStr; })();
             const tappable = day !== null && count > 0;
+            const emptyTappable = day !== null && count === 0 && isPast && !isToday;
             return (
               <Pressable
                 key={col}
-                disabled={!tappable}
-                onPress={tappable ? () => onDayPress?.(dayKey(day!)) : undefined}
+                disabled={!tappable && !emptyTappable}
+                onPress={
+                  tappable ? () => onDayPress?.(dayKey(day!))
+                  : emptyTappable ? () => onEmptyDayPress?.(dayKey(day!))
+                  : undefined
+                }
                 style={({ pressed }) => [
                   heatStyles.cell,
                   { backgroundColor: bg },
                   isToday && { borderWidth: 1.5, borderColor: "#D4A843" },
-                  tappable && pressed && { opacity: 0.55 },
+                  (tappable || emptyTappable) && pressed && { opacity: 0.55 },
+                  emptyTappable && { borderColor: "#2D2650", borderWidth: 1 },
                 ]}
               >
                 {day !== null && (
@@ -344,6 +351,7 @@ export default function JournalScreen() {
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
   const [highlightDate, setHighlightDate] = useState<string | null>(null);
+  const [composerDate, setComposerDate] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -352,7 +360,13 @@ export default function JournalScreen() {
   useEffect(() => () => { if (highlightTimer.current) clearTimeout(highlightTimer.current); }, []);
 
   const drawingRef = useRef<DrawingCanvasRef>(null);
-  const spiritualCtx = getTodaySpiritualContext();
+
+  const entryDate = useMemo(() => {
+    if (!composerDate) return new Date();
+    const [y, m, d] = composerDate.split("-").map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0);
+  }, [composerDate]);
+  const entrySpiritualCtx = useMemo(() => getSpiritualContextForDate(entryDate), [entryDate]);
 
   useEffect(() => {
     loadEntries().then(setEntries);
@@ -360,6 +374,16 @@ export default function JournalScreen() {
 
   const openComposer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setComposerDate(null);
+    setTextValue("");
+    setInputMode("text");
+    drawingRef.current?.clear();
+    setComposerOpen(true);
+  };
+
+  const openComposerForDate = (date: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setComposerDate(date);
     setTextValue("");
     setInputMode("text");
     drawingRef.current?.clear();
@@ -368,6 +392,7 @@ export default function JournalScreen() {
 
   const closeComposer = () => {
     setComposerOpen(false);
+    setComposerDate(null);
   };
 
   const handleSave = async () => {
@@ -381,9 +406,9 @@ export default function JournalScreen() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const entry: JournalEntry = {
       id: generateId(),
-      date: todayKey(),
-      moonPhase: spiritualCtx.moonPhase,
-      spiritualContext: spiritualCtx.context,
+      date: composerDate ?? todayKey(),
+      moonPhase: entrySpiritualCtx.moonPhase,
+      spiritualContext: entrySpiritualCtx.context,
       inputType: inputMode,
       textContent: inputMode === "text" ? textValue.trim() : undefined,
       drawingData:
@@ -529,6 +554,7 @@ export default function JournalScreen() {
               onPrev={handlePrevMonth}
               onNext={handleNextMonth}
               onDayPress={handleDayPress}
+              onEmptyDayPress={openComposerForDate}
               colors={colors}
             />
         }
@@ -627,10 +653,18 @@ export default function JournalScreen() {
               <Feather name="x" size={22} color={colors.mutedForeground} />
             </Pressable>
             <View style={styles.modalTitleWrap}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Entry</Text>
-              <Text style={[styles.modalDate, { color: "#D4A843" }]}>
-                {spiritualCtx.moonPhase}
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                {composerDate ? "Past Entry" : "New Entry"}
               </Text>
+              {composerDate ? (
+                <Text style={[styles.modalDate, { color: "#D4A843" }]}>
+                  {formatEntryDate(composerDate)}
+                </Text>
+              ) : (
+                <Text style={[styles.modalDate, { color: "#D4A843" }]}>
+                  {entrySpiritualCtx.moonPhase}
+                </Text>
+              )}
             </View>
             <Pressable
               onPress={handleSave}
@@ -642,14 +676,14 @@ export default function JournalScreen() {
           </View>
 
           {/* Spiritual context chips */}
-          {spiritualCtx.context.length > 0 && (
+          {entrySpiritualCtx.context.length > 0 && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.contextChips}
               style={[styles.contextRow, { borderBottomColor: colors.border }]}
             >
-              {spiritualCtx.context.map((c, i) => (
+              {entrySpiritualCtx.context.map((c, i) => (
                 <View key={i} style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}>
                   <Text style={[styles.chipText, { color: colors.mutedForeground }]}>{c}</Text>
                 </View>
