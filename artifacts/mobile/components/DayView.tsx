@@ -16,6 +16,7 @@ import {
 } from "@/constants/spiritualData";
 import { MoonPhaseCircle } from "./MoonPhaseCircle";
 import { OseDetailModal } from "./OseDetailModal";
+import { EventDetailModal, EventDetail } from "./EventDetailModal";
 import type { OseGroup } from "@/constants/spiritualData";
 
 interface Props {
@@ -34,6 +35,42 @@ export function DayView({ date }: Props) {
   const eclipse = getEclipseForDate(date);
   const oseDay = getOseDay(date);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
+
+  const moonDetail: EventDetail = namedMoon
+    ? {
+        title: namedMoon.name,
+        category: "FULL MOON",
+        color: "#A78BFA",
+        description: namedMoon.description,
+        guidance:
+          "Full moons illuminate what was hidden and call for release, gratitude, and completion. A sacred time for ritual and reflection.",
+        rows: namedMoon.sign ? [{ label: "Sign", value: namedMoon.sign }] : [],
+      }
+    : darkMoon
+    ? {
+        title: "Dark Moon",
+        category: "DARK MOON",
+        color: "#6D28D9",
+        description: darkMoon.sign
+          ? `The Dark Moon rests in ${darkMoon.sign} — a liminal threshold between endings and new beginnings. The sky is void of moonlight.`
+          : "A liminal threshold between endings and new beginnings. The sky is void of moonlight.",
+        guidance:
+          "Rest, retreat, and turn inward. Release what no longer serves. The next cycle begins soon — allow space for renewal.",
+        rows: darkMoon.sign ? [{ label: "Sign", value: darkMoon.sign }] : [],
+      }
+    : {
+        title: moon.name,
+        category: "LUNAR PHASE",
+        color: "#A78BFA",
+        description: `The moon is currently in its ${moon.name} phase, illuminated at ${moon.illumination}% on day ${Math.round(moon.phase)} of the 30-day lunar cycle.`,
+        guidance:
+          "Align your intentions, actions, and rest with the moon's natural rhythm. Each phase from new to full carries distinct spiritual energy.",
+        rows: [
+          { label: "Illumination", value: `${moon.illumination}%` },
+          { label: "Day in Cycle", value: `${Math.round(moon.phase)} of 30` },
+        ],
+      };
 
   return (
     <ScrollView
@@ -46,76 +83,96 @@ export function DayView({ date }: Props) {
       </Text>
 
       {/* Named Full Moon overrides generic moon */}
-      {namedMoon ? (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA55" }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
-            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>FULL MOON</Text>
-          </View>
-          <View style={styles.moonContent}>
-            <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
-            <View style={styles.moonInfo}>
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>{namedMoon.name}</Text>
-              <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
-                {namedMoon.sign ? `in ${namedMoon.sign}` : ""}
-              </Text>
-              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-                {namedMoon.description}
-              </Text>
+      <Pressable
+        onPress={() => setSelectedEvent(moonDetail)}
+        style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+      >
+        {namedMoon ? (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA55" }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
+              <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>FULL MOON</Text>
+              <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+            </View>
+            <View style={styles.moonContent}>
+              <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
+              <View style={styles.moonInfo}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>{namedMoon.name}</Text>
+                <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
+                  {namedMoon.sign ? `in ${namedMoon.sign}` : ""}
+                </Text>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                  {namedMoon.description}
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      ) : darkMoon ? (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#6D28D944" }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
-            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>DARK MOON</Text>
-          </View>
-          <View style={styles.moonContent}>
-            <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
-            <View style={styles.moonInfo}>
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Dark Moon</Text>
-              <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
-                {darkMoon.sign ? `in ${darkMoon.sign}` : ""}
-              </Text>
-              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-                A time for deep rest, shadow work, and release before the new cycle begins.
-              </Text>
+        ) : darkMoon ? (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#6D28D944" }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
+              <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>DARK MOON</Text>
+              <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+            </View>
+            <View style={styles.moonContent}>
+              <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
+              <View style={styles.moonInfo}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>Dark Moon</Text>
+                <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
+                  {darkMoon.sign ? `in ${darkMoon.sign}` : ""}
+                </Text>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                  A time for deep rest, shadow work, and release before the new cycle begins.
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      ) : (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["full-moon"] }]} />
-            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>LUNAR</Text>
-          </View>
-          <View style={styles.moonContent}>
-            <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
-            <View style={styles.moonInfo}>
-              <Text style={[styles.cardTitle, { color: colors.foreground }]}>{moon.name}</Text>
-              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-                {moon.illumination}% illuminated
-              </Text>
-              <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-                Day {Math.round(moon.phase)} of 30 in cycle
-              </Text>
+        ) : (
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["full-moon"] }]} />
+              <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>LUNAR</Text>
+              <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+            </View>
+            <View style={styles.moonContent}>
+              <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
+              <View style={styles.moonInfo}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>{moon.name}</Text>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                  {moon.illumination}% illuminated
+                </Text>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                  Day {Math.round(moon.phase)} of 30 in cycle
+                </Text>
+              </View>
             </View>
           </View>
-        </View>
-      )}
+        )}
+      </Pressable>
 
       {/* Eclipse */}
       {eclipse && (
-        <View style={[
-          styles.card,
-          { backgroundColor: colors.card, borderColor: eclipse.type === "solar-eclipse" ? "#F59E0B55" : "#EC489955" },
-        ]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: eclipse.name,
+            category: eclipse.type === "solar-eclipse" ? "SOLAR ECLIPSE" : "LUNAR ECLIPSE",
+            color: eclipse.type === "solar-eclipse" ? "#F59E0B" : "#EC4899",
+            description: eclipse.description,
+            guidance: eclipse.type === "solar-eclipse"
+              ? "A powerful portal for bold new beginnings. Set intentions with full awareness — eclipses accelerate what is ready to emerge."
+              : "Deep illumination and release. What the eclipse reveals cannot be unseen. Trust the profound process of transformation.",
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: eclipse.type === "solar-eclipse" ? "#F59E0B55" : "#EC489955", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>
               {eclipse.type === "solar-eclipse" ? "SOLAR ECLIPSE" : "LUNAR ECLIPSE"}
             </Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{eclipse.name}</Text>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
@@ -131,15 +188,28 @@ export function DayView({ date }: Props) {
                 : "Deep illumination and release. What the eclipse reveals cannot be unseen — trust the process."}
             </Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {/* Sabbat / Wheel of the Year */}
       {sabbat && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#34D39944" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: sabbat.name,
+            category: "WHEEL OF THE YEAR",
+            color: "#34D399",
+            description: sabbat.description,
+            guidance: "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy.",
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: "#34D39944", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS.sabbat }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>WHEEL OF THE YEAR</Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{sabbat.name}</Text>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
@@ -150,15 +220,31 @@ export function DayView({ date }: Props) {
               Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's energy.
             </Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {/* Mercury Retrograde */}
       {retrograde && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#F9731633" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: "Mercury Retrograde",
+            category: "PLANETARY",
+            color: "#F97316",
+            description: `${retrograde.label}. Mercury governs communication, technology, contracts, and travel. During retrograde, these areas can feel disrupted or delayed.`,
+            guidance: "Pause major decisions and new commitments. Use this period to review, revise, and reconnect. Back up data, confirm appointments, and speak with extra care.",
+            rows: [
+              { label: "Active Until", value: retrograde.end.toLocaleDateString("en-US", { month: "long", day: "numeric" }) },
+            ],
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: "#F9731633", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS.retrograde }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>MERCURY</Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Mercury Retrograde</Text>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
@@ -172,15 +258,32 @@ export function DayView({ date }: Props) {
               Pause major decisions. Review, reflect, and reconnect. Communication may be disrupted.
             </Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {/* Ifa Prayer Day */}
       {prayerDay && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#D4A84333" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: "Ojo Orunmila",
+            category: "IFA PRAYER",
+            color: "#D4A843",
+            description: "A sacred prayer day honoring Orunmila (Ifa), the Orisa of wisdom, destiny, and divination. These days recur on a sacred Ifa calendar cycle.",
+            guidance: "A powerful day for prayer, divination, and deep spiritual reflection. Offer gratitude to Orunmila — kola nuts, palm oil, and cool water are traditional.",
+            rows: [
+              { label: "Sacred to", value: "Orunmila · Ifa" },
+              { label: "Offerings", value: "Kola nuts, palm oil, cool water" },
+            ],
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: "#D4A84333", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>IFA PRAYER</Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>Ojo Orunmila</Text>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
@@ -191,21 +294,34 @@ export function DayView({ date }: Props) {
               A powerful day for prayer, divination, and spiritual reflection. Offer gratitude to Orunmila.
             </Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {/* Ifa Festival */}
       {festival && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#22D3EE33" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: festival.name,
+            category: "IFA FESTIVAL",
+            color: "#22D3EE",
+            description: festival.description,
+            guidance: "Participate in the energy of this festival through prayer, offerings, music, and communal celebration. Connect with the Orisa honored today.",
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: "#22D3EE33", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
           <View style={styles.cardHeader}>
             <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
             <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>IFA FESTIVAL</Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
           </View>
           <Text style={[styles.cardTitle, { color: colors.foreground }]}>{festival.name}</Text>
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
             {festival.description}
           </Text>
-        </View>
+        </Pressable>
       )}
 
       {/* Ose Calendar — always present, the eternal 4-day Yoruba sacred week */}
@@ -237,6 +353,7 @@ export function DayView({ date }: Props) {
         </View>
       </Pressable>
 
+      <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
     </ScrollView>
   );
@@ -334,6 +451,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   oseTapHint: {
+    fontSize: 10,
+    marginLeft: "auto",
+    letterSpacing: 0.2,
+  },
+  tapHint: {
     fontSize: 10,
     marginLeft: "auto",
     letterSpacing: 0.2,

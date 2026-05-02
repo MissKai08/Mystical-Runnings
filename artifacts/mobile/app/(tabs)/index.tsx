@@ -27,6 +27,7 @@ import {
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
+import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -51,6 +52,7 @@ export default function HomeScreen() {
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [oseModalGroup, setOseModalGroup] = useState<import("@/constants/spiritualData").OseGroup | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -215,40 +217,89 @@ export default function HomeScreen() {
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Today's Energies</Text>
 
       {eclipse && (
-        <View style={[styles.alertCard, {
-          backgroundColor: eclipse.type === "solar-eclipse" ? "#F59E0B11" : "#EC489911",
-          borderColor: eclipse.type === "solar-eclipse" ? "#F59E0B55" : "#EC489955",
-        }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: eclipse.name,
+            category: eclipse.type === "solar-eclipse" ? "SOLAR ECLIPSE" : "LUNAR ECLIPSE",
+            color: eclipse.type === "solar-eclipse" ? "#F59E0B" : "#EC4899",
+            description: eclipse.description,
+            guidance: eclipse.type === "solar-eclipse"
+              ? "A powerful portal for bold new beginnings. Set intentions with full awareness — eclipses accelerate what is ready to emerge."
+              : "Deep illumination and release. What the eclipse reveals cannot be unseen. Trust the profound process of transformation.",
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: eclipse.type === "solar-eclipse" ? "#F59E0B11" : "#EC489911",
+            borderColor: eclipse.type === "solar-eclipse" ? "#F59E0B55" : "#EC489955",
+            opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>{eclipse.name}</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{eclipse.description}</Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {sabbat && (
-        <View style={[styles.alertCard, { backgroundColor: "#34D39911", borderColor: "#34D39944" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: sabbat.name,
+            category: "WHEEL OF THE YEAR",
+            color: "#34D399",
+            description: sabbat.description,
+            guidance: "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy.",
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: "#34D39911", borderColor: "#34D39944", opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS.sabbat }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>{sabbat.name}</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{sabbat.description}</Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {namedMoon && !eclipse && (
-        <View style={[styles.alertCard, { backgroundColor: "#A78BFA11", borderColor: "#A78BFA44" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: namedMoon.name,
+            category: "FULL MOON",
+            color: "#A78BFA",
+            description: namedMoon.description,
+            guidance: "Full moons illuminate what was hidden and call for release, gratitude, and completion. A sacred time for ritual and reflection.",
+            rows: namedMoon.sign ? [{ label: "Sign", value: namedMoon.sign }] : [],
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: "#A78BFA11", borderColor: "#A78BFA44", opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>{namedMoon.name}</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{namedMoon.description}</Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {darkMoon && !eclipse && (
-        <View style={[styles.alertCard, { backgroundColor: "#4C1D9522", borderColor: "#6D28D955" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: "Dark Moon",
+            category: "DARK MOON",
+            color: "#6D28D9",
+            description: darkMoon.sign
+              ? `The Dark Moon rests in ${darkMoon.sign} — a liminal threshold between endings and new beginnings. The sky is void of moonlight.`
+              : "A liminal threshold between endings and new beginnings. The sky is void of moonlight.",
+            guidance: "Rest, retreat, and turn inward. Release what no longer serves. The next cycle begins soon — allow space for renewal.",
+            rows: darkMoon.sign ? [{ label: "Sign", value: darkMoon.sign }] : [],
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: "#4C1D9522", borderColor: "#6D28D955", opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>Dark Moon — {darkMoon.sign}</Text>
@@ -256,37 +307,77 @@ export default function HomeScreen() {
               Rest, release, and turn inward. The new cycle approaches.
             </Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {retrograde && (
-        <View style={[styles.alertCard, { backgroundColor: "#F9731615", borderColor: "#F9731644" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: "Mercury Retrograde",
+            category: "PLANETARY",
+            color: "#F97316",
+            description: `${retrograde.label}. Mercury governs communication, technology, contracts, and travel. During retrograde, these areas can feel disrupted or delayed.`,
+            guidance: "Pause major decisions and new commitments. Use this period to review, revise, and reconnect. Back up data, confirm appointments, and speak with extra care.",
+            rows: [
+              { label: "Active Until", value: retrograde.end.toLocaleDateString("en-US", { month: "long", day: "numeric" }) },
+            ],
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: "#F9731615", borderColor: "#F9731644", opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS.retrograde }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>Mercury Retrograde Active</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{retrograde.label}</Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {prayerDay && (
-        <View style={[styles.alertCard, { backgroundColor: "#D4A84315", borderColor: "#D4A84344" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: "Ojo Orunmila",
+            category: "IFA PRAYER",
+            color: "#D4A843",
+            description: "A sacred prayer day honoring Orunmila (Ifa), the Orisa of wisdom, destiny, and divination. These days recur on a sacred Ifa calendar cycle.",
+            guidance: "A powerful day for prayer, divination, and deep spiritual reflection. Offer gratitude to Orunmila — kola nuts, palm oil, and cool water are traditional.",
+            rows: [
+              { label: "Sacred to", value: "Orunmila · Ifa" },
+              { label: "Offerings", value: "Kola nuts, palm oil, cool water" },
+            ],
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: "#D4A84315", borderColor: "#D4A84344", opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>Ojo Orunmila</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>Sacred Ifa Prayer Day — offer gratitude</Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {festival && (
-        <View style={[styles.alertCard, { backgroundColor: "#22D3EE15", borderColor: "#22D3EE44" }]}>
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: festival.name,
+            category: "IFA FESTIVAL",
+            color: "#22D3EE",
+            description: festival.description,
+            guidance: "Participate in the energy of this festival through prayer, offerings, music, and communal celebration. Connect with the Orisa honored today.",
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: "#22D3EE15", borderColor: "#22D3EE44", opacity: pressed ? 0.85 : 1,
+          }]}
+        >
           <View style={[styles.alertDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
           <View style={styles.alertText}>
             <Text style={[styles.alertTitle, { color: colors.foreground }]}>{festival.name}</Text>
             <Text style={[styles.alertDesc, { color: colors.mutedForeground }]}>{festival.description}</Text>
           </View>
-        </View>
+        </Pressable>
       )}
 
       {!hasAnyAlert && (
@@ -327,6 +418,7 @@ export default function HomeScreen() {
         </Text>
       </Pressable>
       <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
+      <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
 
       {/* Upcoming */}
       {upcomingDays.length > 0 && (
