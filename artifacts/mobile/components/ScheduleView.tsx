@@ -4,12 +4,15 @@ import { useColors } from "@/hooks/useColors";
 import {
   addDays,
   getEventsForDate,
-  formatDateShort,
   isSameDay,
   SpiritualEvent,
   EventType,
+  getOseDay,
+  OseGroup,
+  EVENT_COLORS,
 } from "@/constants/spiritualData";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
+import { OseDetailModal } from "./OseDetailModal";
 
 interface Props {
   startDate: Date;
@@ -76,9 +79,10 @@ export function ScheduleView({ startDate }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
+  const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
 
   const schedule = useMemo(() => {
-    const entries: { date: Date; events: SpiritualEvent[] }[] = [];
+    const entries: { date: Date; events: SpiritualEvent[]; oseDay: OseGroup }[] = [];
     for (let i = 0; i < 60; i++) {
       const date = addDays(startDate, i);
       const events = getEventsForDate(date);
@@ -90,7 +94,7 @@ export function ScheduleView({ startDate }: Props) {
           e.type !== "waning-gibbous"
       );
       if (notable.length > 0) {
-        entries.push({ date, events: notable });
+        entries.push({ date, events: notable, oseDay: getOseDay(date) });
       }
     }
     return entries;
@@ -103,7 +107,7 @@ export function ScheduleView({ startDate }: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {schedule.map(({ date, events }, i) => {
+        {schedule.map(({ date, events, oseDay }, i) => {
           const isToday = isSameDay(date, today);
           return (
             <View key={i} style={styles.entry}>
@@ -144,6 +148,25 @@ export function ScheduleView({ startDate }: Props) {
                     </Text>
                   </Pressable>
                 ))}
+
+                {/* Ose Calendar entry */}
+                <Pressable
+                  onPress={() => setOseModalGroup(oseDay)}
+                  style={({ pressed }) => [
+                    styles.eventCard,
+                    styles.oseCard,
+                    { backgroundColor: colors.card, borderLeftColor: oseDay.color, opacity: pressed ? 0.82 : 1 },
+                  ]}
+                >
+                  <View style={styles.eventCardHeader}>
+                    <View style={[styles.oseDot, { backgroundColor: oseDay.color }]} />
+                    <Text style={[styles.eventName, { color: colors.foreground }]}>{oseDay.name}</Text>
+                    <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                  </View>
+                  <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
+                    {oseDay.guidance}
+                  </Text>
+                </Pressable>
               </View>
             </View>
           );
@@ -151,6 +174,7 @@ export function ScheduleView({ startDate }: Props) {
       </ScrollView>
 
       <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
     </>
   );
 }
@@ -203,6 +227,15 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 12,
     borderLeftWidth: 3,
+  },
+  oseCard: {
+    borderStyle: "dashed",
+  },
+  oseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 4,
   },
   eventCardHeader: {
     flexDirection: "row",
