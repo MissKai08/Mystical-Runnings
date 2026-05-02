@@ -184,13 +184,14 @@ const MONTH_NAMES = [
 const ENTRY_COLORS = ["#13102A", "#D4A84330", "#D4A84358", "#D4A84385", "#D4A843AA"];
 
 function MonthHeatmap({
-  entries, year, month, onPrev, onNext, colors,
+  entries, year, month, onPrev, onNext, onDayPress, colors,
 }: {
   entries: JournalEntry[];
   year: number;
   month: number;
   onPrev: () => void;
   onNext: () => void;
+  onDayPress?: (date: string) => void;
   colors: ReturnType<typeof useColors>;
 }) {
   const today = new Date();
@@ -244,12 +245,19 @@ function MonthHeatmap({
             const bg = day ? ENTRY_COLORS[Math.min(count, ENTRY_COLORS.length - 1)] : "transparent";
             const isToday = day ? dayKey(day) === todayStr : false;
             const textColor = count > 0 ? "#D4A843" : colors.mutedForeground;
+            const tappable = day !== null && count > 0;
             return (
-              <View key={col} style={[
-                heatStyles.cell,
-                { backgroundColor: bg },
-                isToday && { borderWidth: 1.5, borderColor: "#D4A843" },
-              ]}>
+              <Pressable
+                key={col}
+                disabled={!tappable}
+                onPress={tappable ? () => onDayPress?.(dayKey(day!)) : undefined}
+                style={({ pressed }) => [
+                  heatStyles.cell,
+                  { backgroundColor: bg },
+                  isToday && { borderWidth: 1.5, borderColor: "#D4A843" },
+                  tappable && pressed && { opacity: 0.55 },
+                ]}
+              >
                 {day !== null && (
                   <Text style={[
                     heatStyles.cellText,
@@ -258,7 +266,7 @@ function MonthHeatmap({
                     {day}
                   </Text>
                 )}
-              </View>
+              </Pressable>
             );
           })}
         </View>
@@ -335,6 +343,13 @@ export default function JournalScreen() {
   const [calMode, setCalMode] = useState<"week" | "month">("week");
   const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
   const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
+  const [highlightDate, setHighlightDate] = useState<string | null>(null);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const offsetMap = useRef<Map<string, number>>(new Map());
+  const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (highlightTimer.current) clearTimeout(highlightTimer.current); }, []);
 
   const drawingRef = useRef<DrawingCanvasRef>(null);
   const spiritualCtx = getTodaySpiritualContext();
@@ -422,6 +437,17 @@ export default function JournalScreen() {
     });
   }, []);
 
+  const handleDayPress = useCallback((date: string) => {
+    const offset = offsetMap.current.get(date);
+    if (offset !== undefined) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      scrollViewRef.current?.scrollTo({ y: Math.max(0, offset - 16), animated: true });
+      if (highlightTimer.current) clearTimeout(highlightTimer.current);
+      setHighlightDate(date);
+      highlightTimer.current = setTimeout(() => setHighlightDate(null), 2000);
+    }
+  }, []);
+
   const streak = useMemo(() => calculateStreak(entries), [entries]);
   const best = useMemo(() => longestStreak(entries), [entries]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
@@ -502,6 +528,7 @@ export default function JournalScreen() {
               month={viewMonth}
               onPrev={handlePrevMonth}
               onNext={handleNextMonth}
+              onDayPress={handleDayPress}
               colors={colors}
             />
         }
@@ -549,11 +576,19 @@ export default function JournalScreen() {
         </View>
       ) : (
         <ScrollView
+          ref={scrollViewRef}
           contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad + 90 }]}
           showsVerticalScrollIndicator={false}
         >
           {grouped.map(({ date, entries: dayEntries }) => (
-            <View key={date} style={styles.dateGroup}>
+            <View
+              key={date}
+              style={[
+                styles.dateGroup,
+                highlightDate === date && styles.dateGroupHighlight,
+              ]}
+              onLayout={(e) => { offsetMap.current.set(date, e.nativeEvent.layout.y); }}
+            >
               <Text style={[styles.dateHeader, { color: colors.mutedForeground }]}>
                 {formatEntryDate(date).toUpperCase()}
               </Text>
@@ -833,6 +868,14 @@ const styles = StyleSheet.create({
   bestStreakLabel: {
     fontSize: 11,
     fontWeight: "500",
+  },
+  dateGroupHighlight: {
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#D4A84355",
+    backgroundColor: "#D4A84309",
+    paddingHorizontal: 6,
+    marginHorizontal: -6,
   },
   calToggleRow: {
     flexDirection: "row",
