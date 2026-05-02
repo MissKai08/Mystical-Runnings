@@ -176,6 +176,127 @@ const stripStyles = StyleSheet.create({
   },
 });
 
+const MONTH_NAMES = [
+  "January","February","March","April","May","June",
+  "July","August","September","October","November","December",
+];
+
+const ENTRY_COLORS = ["#13102A", "#D4A84330", "#D4A84358", "#D4A84385", "#D4A843AA"];
+
+function MonthHeatmap({
+  entries, year, month, onPrev, onNext, colors,
+}: {
+  entries: JournalEntry[];
+  year: number;
+  month: number;
+  onPrev: () => void;
+  onNext: () => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+
+  const countMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of entries) {
+      const [ey, em] = e.date.split("-").map(Number);
+      if (ey === year && em === month + 1) m.set(e.date, (m.get(e.date) ?? 0) + 1);
+    }
+    return m;
+  }, [entries, year, month]);
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startOffset = new Date(year, month, 1).getDay();
+  const cells: (number | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks = Math.floor(cells.length / 7);
+
+  const dayKey = (day: number) =>
+    `${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+  return (
+    <View style={heatStyles.container}>
+      <View style={heatStyles.nav}>
+        <Pressable onPress={onPrev} hitSlop={10} style={heatStyles.navBtn}>
+          <Feather name="chevron-left" size={15} color={colors.mutedForeground} />
+        </Pressable>
+        <Text style={[heatStyles.monthTitle, { color: colors.foreground }]}>
+          {MONTH_NAMES[month]} {year}
+        </Text>
+        <Pressable onPress={onNext} hitSlop={10} style={heatStyles.navBtn}>
+          <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+
+      <View style={heatStyles.gridRow}>
+        {DAY_LETTERS.map((l, i) => (
+          <Text key={i} style={[heatStyles.gridLetter, { color: colors.mutedForeground }]}>{l}</Text>
+        ))}
+      </View>
+
+      {Array.from({ length: weeks }, (_, row) => (
+        <View key={row} style={heatStyles.gridRow}>
+          {cells.slice(row * 7, row * 7 + 7).map((day, col) => {
+            const count = day ? (countMap.get(dayKey(day)) ?? 0) : 0;
+            const bg = day ? ENTRY_COLORS[Math.min(count, ENTRY_COLORS.length - 1)] : "transparent";
+            const isToday = day ? dayKey(day) === todayStr : false;
+            const textColor = count > 0 ? "#D4A843" : colors.mutedForeground;
+            return (
+              <View key={col} style={[
+                heatStyles.cell,
+                { backgroundColor: bg },
+                isToday && { borderWidth: 1.5, borderColor: "#D4A843" },
+              ]}>
+                {day !== null && (
+                  <Text style={[
+                    heatStyles.cellText,
+                    { color: textColor, fontWeight: isToday ? "800" : "400" },
+                  ]}>
+                    {day}
+                  </Text>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const heatStyles = StyleSheet.create({
+  container: { gap: 3, paddingTop: 8 },
+  nav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  navBtn: { padding: 4 },
+  monthTitle: { fontSize: 13, fontWeight: "700", letterSpacing: 0.2 },
+  gridRow: { flexDirection: "row" },
+  gridLetter: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    paddingBottom: 4,
+  },
+  cell: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 1.5,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cellText: { fontSize: 9 },
+});
+
 function DrawingThumbnail({ data, size = 80 }: { data: { paths: string[]; width: number; height: number }; size?: number }) {
   const scaleX = size / (data.width || 1);
   const scaleY = (size * 0.75) / (data.height || 1);
@@ -211,6 +332,9 @@ export default function JournalScreen() {
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [calMode, setCalMode] = useState<"week" | "month">("week");
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear());
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth());
 
   const drawingRef = useRef<DrawingCanvasRef>(null);
   const spiritualCtx = getTodaySpiritualContext();
@@ -284,6 +408,20 @@ export default function JournalScreen() {
     if (width > 0 && height > 0) setCanvasSize({ width, height });
   }, []);
 
+  const handlePrevMonth = useCallback(() => {
+    setViewMonth((m) => {
+      if (m === 0) { setViewYear((y) => y - 1); return 11; }
+      return m - 1;
+    });
+  }, []);
+
+  const handleNextMonth = useCallback(() => {
+    setViewMonth((m) => {
+      if (m === 11) { setViewYear((y) => y + 1); return 0; }
+      return m + 1;
+    });
+  }, []);
+
   const streak = useMemo(() => calculateStreak(entries), [entries]);
   const best = useMemo(() => longestStreak(entries), [entries]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
@@ -336,7 +474,37 @@ export default function JournalScreen() {
           )}
         </View>
 
-        <WeekStrip entries={entries} colors={colors} />
+        {/* Calendar mode toggle */}
+        <View style={styles.calToggleRow}>
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setCalMode("week"); }}
+            style={[styles.calToggleBtn, calMode === "week" && styles.calToggleBtnActive]}
+          >
+            <Text style={[styles.calToggleTxt, { color: calMode === "week" ? "#D4A843" : colors.mutedForeground }]}>
+              Week
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setCalMode("month"); }}
+            style={[styles.calToggleBtn, calMode === "month" && styles.calToggleBtnActive]}
+          >
+            <Text style={[styles.calToggleTxt, { color: calMode === "month" ? "#D4A843" : colors.mutedForeground }]}>
+              Month
+            </Text>
+          </Pressable>
+        </View>
+
+        {calMode === "week"
+          ? <WeekStrip entries={entries} colors={colors} />
+          : <MonthHeatmap
+              entries={entries}
+              year={viewYear}
+              month={viewMonth}
+              onPrev={handlePrevMonth}
+              onNext={handleNextMonth}
+              colors={colors}
+            />
+        }
       </View>
 
       {/* Search bar */}
@@ -665,6 +833,29 @@ const styles = StyleSheet.create({
   bestStreakLabel: {
     fontSize: 11,
     fontWeight: "500",
+  },
+  calToggleRow: {
+    flexDirection: "row",
+    alignSelf: "flex-end",
+    backgroundColor: "#0F0D20",
+    borderRadius: 8,
+    padding: 2,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#2D2650",
+  },
+  calToggleBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  calToggleBtnActive: {
+    backgroundColor: "#1E1A3A",
+  },
+  calToggleTxt: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   emptyState: {
     flex: 1,
