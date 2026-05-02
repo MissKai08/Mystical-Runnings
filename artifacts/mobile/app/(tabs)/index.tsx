@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ import {
   formatDateShort,
 } from "@/constants/spiritualData";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
+import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
+import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
 const MONTH_NAMES = [
@@ -43,6 +45,8 @@ export default function HomeScreen() {
   const namedMoon = useMemo(() => getNamedFullMoonForDate(today), [today]);
   const darkMoon = useMemo(() => getDarkMoonForDate(today), [today]);
   const eclipse = useMemo(() => getEclipseForDate(today), [today]);
+
+  const [notifOpen, setNotifOpen] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -119,13 +123,22 @@ export default function HomeScreen() {
     >
       {/* Greeting */}
       <View style={styles.greetingRow}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
             {MONTH_NAMES[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
           </Text>
           <Text style={[styles.appName, { color: colors.foreground }]}>Mystical Runnings</Text>
         </View>
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); setNotifOpen(true); }}
+          style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          hitSlop={8}
+        >
+          <Feather name="bell" size={18} color={colors.mutedForeground} />
+        </Pressable>
       </View>
+
+      <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
 
       {/* Moon Phase Hero */}
       <View style={[styles.moonHero, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
@@ -330,6 +343,15 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     marginBottom: 20,
+  },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
   },
   greeting: {
     fontSize: 13,

@@ -1,0 +1,49 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const KEY = "@mystical_notif_settings";
+
+export interface NotifTypeSettings {
+  namedMoons: boolean;
+  darkMoons: boolean;
+  sabbats: boolean;
+  eclipses: boolean;
+  mercuryRetrograde: boolean;
+  ifaPrayerDays: boolean;
+  ifaFestivals: boolean;
+}
+
+export interface NotificationSettings {
+  masterEnabled: boolean;
+  advanceDays: 1 | 2 | 3;
+  types: NotifTypeSettings;
+}
+
+export const DEFAULT_SETTINGS: NotificationSettings = {
+  masterEnabled: false,
+  advanceDays: 1,
+  types: {
+    namedMoons: true,
+    darkMoons: true,
+    sabbats: true,
+    eclipses: true,
+    mercuryRetrograde: true,
+    ifaPrayerDays: false,
+    ifaFestivals: true,
+  },
+};
+
+export async function loadNotificationSettings(): Promise<NotificationSettings> {
+  try {
+    const raw = await AsyncStorage.getItem(KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+export async function saveNotificationSettings(
+  settings: NotificationSettings
+): Promise<void> {
+  await AsyncStorage.setItem(KEY, JSON.stringify(settings));
+}
