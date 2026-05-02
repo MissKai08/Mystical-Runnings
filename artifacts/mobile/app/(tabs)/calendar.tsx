@@ -24,6 +24,7 @@ import {
   ECLIPSES,
   IFA_FESTIVALS,
   MERCURY_RETROGRADES,
+  OSE_GROUPS,
   EVENT_COLORS,
   EventType,
 } from "@/constants/spiritualData";
@@ -92,6 +93,28 @@ const SEARCH_INDEX: CalSearchResult[] = [
     color: EVENT_COLORS.retrograde,
     type: "retrograde" as EventType,
   })),
+  // Ose Calendar — compute the next occurrence of each of the 4 groups from today
+  ...(() => {
+    const anchor = new Date(2026, 3, 26);
+    anchor.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const MS_DAY = 1000 * 60 * 60 * 24;
+    const todayIdx = ((Math.round((today.getTime() - anchor.getTime()) / MS_DAY) % 4) + 4) % 4;
+    return OSE_GROUPS.map((g) => {
+      const daysUntil = ((g.dayIndex - todayIdx) + 4) % 4;
+      const next = new Date(today);
+      next.setDate(next.getDate() + daysUntil);
+      return {
+        id: `ose-${g.id}`,
+        name: g.name,
+        date: next,
+        description: g.shortOrisas,
+        color: g.color,
+        type: "ose-day" as EventType,
+      };
+    });
+  })(),
 ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
 export default function CalendarScreen() {
@@ -345,6 +368,15 @@ const LEGEND_GROUPS = [
     items: [
       { color: "#D4A843", label: "Ifa Prayer Day" },
       { color: "#22D3EE", label: "Ifa Festival" },
+    ],
+  },
+  {
+    heading: "Ose Calendar",
+    items: [
+      { color: "#E8D5A0", label: "Ose Obatala" },
+      { color: "#D4A843", label: "Ose Ifa" },
+      { color: "#94A3B8", label: "Ose Ogun" },
+      { color: "#EF4444", label: "Ose Sango" },
     ],
   },
 ];

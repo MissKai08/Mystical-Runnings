@@ -18,6 +18,7 @@ import {
   getNamedFullMoonForDate,
   getDarkMoonForDate,
   getEclipseForDate,
+  getOseDay,
   isSameDay,
   EVENT_COLORS,
   addDays,
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const namedMoon = useMemo(() => getNamedFullMoonForDate(today), [today]);
   const darkMoon = useMemo(() => getDarkMoonForDate(today), [today]);
   const eclipse = useMemo(() => getEclipseForDate(today), [today]);
+  const oseDay = useMemo(() => getOseDay(today), [today]);
 
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -297,6 +299,28 @@ export default function HomeScreen() {
         </View>
       )}
 
+      {/* Ose Calendar — today's 4-day Yoruba sacred week group */}
+      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ose Calendar</Text>
+      <View style={[styles.oseCard, { backgroundColor: colors.card, borderColor: oseDay.color + "44" }]}>
+        <View style={styles.oseCardHeader}>
+          <View style={[styles.oseDot, { backgroundColor: oseDay.color }]} />
+          <Text style={[styles.oseCardName, { color: colors.foreground }]}>{oseDay.name}</Text>
+        </View>
+        <View style={styles.oseChips}>
+          {oseDay.orisas.map((o, i) => (
+            <View key={i} style={[styles.oseChip, { borderColor: oseDay.color + "55", backgroundColor: oseDay.color + "18" }]}>
+              <Text style={[styles.oseChipText, { color: oseDay.color }]}>{o}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={[styles.oseGuidance, { color: colors.mutedForeground }]}>
+          {oseDay.guidance}
+        </Text>
+        <Text style={[styles.oseOfferings, { color: colors.mutedForeground }]}>
+          Offerings: {oseDay.offerings}
+        </Text>
+      </View>
+
       {/* Upcoming */}
       {upcomingDays.length > 0 && (
         <>
@@ -508,6 +532,56 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
     flexShrink: 0,
+  },
+  oseCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+    gap: 6,
+  },
+  oseCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 4,
+  },
+  oseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  oseCardName: {
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: 0.2,
+  },
+  oseChips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 6,
+  },
+  oseChip: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  oseChipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  oseGuidance: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontStyle: "italic",
+  },
+  oseOfferings: {
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 2,
   },
   upcomingEventText: {
     fontSize: 14,

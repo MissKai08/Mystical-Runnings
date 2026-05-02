@@ -14,7 +14,8 @@ export type EventType =
   | "ifa-festival"
   | "sabbat"
   | "solar-eclipse"
-  | "lunar-eclipse";
+  | "lunar-eclipse"
+  | "ose-day";
 
 export interface MoonPhaseData {
   phase: number;
@@ -72,6 +73,7 @@ export const EVENT_COLORS: Record<EventType, string> = {
   sabbat: "#34D399",
   "solar-eclipse": "#F59E0B",
   "lunar-eclipse": "#EC4899",
+  "ose-day": "#D4A843",
 };
 
 const KNOWN_NEW_MOON_MS = new Date(Date.UTC(2000, 0, 6, 18, 14, 0)).getTime();
@@ -642,4 +644,84 @@ export function formatDateLong(date: Date): string {
 
 export function formatDateShort(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+// ─── Ose Calendar (Yoruba 4-day sacred week) ────────────────────────────────
+// Source: ashesoul.com/osecalendar — Anchor: April 26, 2026 = Day 0 (Obatala)
+
+export interface OseGroup {
+  id: string;
+  dayIndex: number;
+  name: string;
+  orisas: string[];
+  shortOrisas: string;
+  description: string;
+  guidance: string;
+  offerings: string;
+  color: string;
+}
+
+export const OSE_GROUPS: OseGroup[] = [
+  {
+    id: "obatala",
+    dayIndex: 0,
+    name: "Ose Obatala",
+    orisas: ["Obatala", "Egungun", "Iyaami", "Sanpanna"],
+    shortOrisas: "Obatala · Egungun · Iyaami · Sanpanna",
+    description:
+      "Day of Obatala — purity, wisdom, and creation. Day to honor the Egungun ancestor masquerades, the Iyaami elder powers, and Sanpanna's transformative earth mysteries.",
+    guidance:
+      "Wear white or light colors today. Speak with care and clarity. Offer cool water and white foods. A day for purification, prayer, and ancestral reverence.",
+    offerings: "White foods, shea butter, cool water, white cloth",
+    color: "#E8D5A0",
+  },
+  {
+    id: "ifa",
+    dayIndex: 1,
+    name: "Ose Ifa",
+    orisas: ["Ifa / Orunmila", "Esu", "Osun", "Yemoja", "Olokun"],
+    shortOrisas: "Ifa / Orunmila · Esu · Osun · Yemoja · Olokun",
+    description:
+      "Day of Ifa — wisdom, divination, and the crossroads. Day of Esu's sacred messages, Osun's sweet waters, and the deep ocean mysteries of Yemoja and Olokun.",
+    guidance:
+      "A powerful day for divination, study, and spiritual inquiry. Leave offerings at crossroads. Honey, palm oil, and fresh water honor this sacred group.",
+    offerings: "Palm nuts, palm oil, honey, kola nuts, fresh water, fish",
+    color: "#D4A843",
+  },
+  {
+    id: "ogun",
+    dayIndex: 2,
+    name: "Ose Ogun",
+    orisas: ["Ogun", "Egbe", "Osoosi", "Orisa Oko"],
+    shortOrisas: "Ogun · Egbe · Osoosi · Orisa Oko",
+    description:
+      "Day of Ogun — iron, labor, and the hunt. Day to honor Egbe (your celestial companions), Osoosi's forest wisdom, and Orisa Oko's harvest abundance.",
+    guidance:
+      "Engage in focused work and clear action today. Honor your Egbe with prayer. Palm oil and iron tools are sacred — clear obstacles and forge your path.",
+    offerings: "Palm oil, kola nuts, iron implements, green herbs, yam",
+    color: "#94A3B8",
+  },
+  {
+    id: "sango",
+    dayIndex: 3,
+    name: "Ose Sango",
+    orisas: ["Sango", "Oya", "Jakuta", "Aganju"],
+    shortOrisas: "Sango · Oya · Jakuta · Aganju",
+    description:
+      "Day of Sango — thunder, justice, and royal power. Day of Oya's transformative winds, Jakuta's lightning truth, and Aganju's volcanic wilderness energy.",
+    guidance:
+      "Stand in your power and speak truth boldly. Release what no longer serves — Oya will carry it away. Red and white are the sacred colors of this day.",
+    offerings: "Okra stew, bitter kola, plantains, red palm oil, red and white cloth",
+    color: "#EF4444",
+  },
+];
+
+const OSE_ANCHOR_MS = new Date(2026, 3, 26).getTime(); // April 26, 2026 = Day 0
+
+export function getOseDay(date: Date): OseGroup {
+  const noon = new Date(date);
+  noon.setHours(12, 0, 0, 0);
+  const diffDays = Math.round((noon.getTime() - OSE_ANCHOR_MS) / MS_PER_DAY);
+  const idx = ((diffDays % 4) + 4) % 4;
+  return OSE_GROUPS[idx];
 }

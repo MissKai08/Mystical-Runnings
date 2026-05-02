@@ -10,6 +10,7 @@ import {
   getNamedFullMoonForDate,
   getDarkMoonForDate,
   getEclipseForDate,
+  getOseDay,
   formatDateLong,
   EVENT_COLORS,
 } from "@/constants/spiritualData";
@@ -29,8 +30,7 @@ export function DayView({ date }: Props) {
   const namedMoon = getNamedFullMoonForDate(date);
   const darkMoon = getDarkMoonForDate(date);
   const eclipse = getEclipseForDate(date);
-
-  const hasExtra = !!(retrograde || prayerDay || festival || sabbat || eclipse);
+  const oseDay = getOseDay(date);
 
   return (
     <ScrollView
@@ -205,15 +205,30 @@ export function DayView({ date }: Props) {
         </View>
       )}
 
-      {/* Peaceful Day — only if truly nothing notable */}
-      {!hasExtra && !namedMoon && !darkMoon && !eclipse && (
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>Peaceful Day</Text>
-          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
-            No major spiritual events today. A day for stillness, gratitude, and alignment.
-          </Text>
+      {/* Ose Calendar — always present, the eternal 4-day Yoruba sacred week */}
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: oseDay.color + "44" }]}>
+        <View style={styles.cardHeader}>
+          <View style={[styles.cardDot, { backgroundColor: oseDay.color }]} />
+          <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>OSE CALENDAR</Text>
         </View>
-      )}
+        <Text style={[styles.cardTitle, { color: colors.foreground }]}>{oseDay.name}</Text>
+        <View style={styles.oseOrisas}>
+          {oseDay.orisas.map((o, i) => (
+            <View key={i} style={[styles.oseOrisa, { borderColor: oseDay.color + "55", backgroundColor: oseDay.color + "15" }]}>
+              <Text style={[styles.oseOrisaText, { color: oseDay.color }]}>{o}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={[styles.cardDescription, { color: colors.mutedForeground, marginTop: 8 }]}>
+          {oseDay.description}
+        </Text>
+        <View style={[styles.infoBox, { backgroundColor: oseDay.color + "15" }]}>
+          <Text style={[styles.infoText, { color: oseDay.color }]}>{oseDay.guidance}</Text>
+        </View>
+        <Text style={[styles.oseOfferings, { color: colors.mutedForeground }]}>
+          Offerings: {oseDay.offerings}
+        </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -291,5 +306,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontStyle: "italic",
+  },
+  oseOrisas: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 6,
+  },
+  oseOrisa: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  oseOrisaText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  oseOfferings: {
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 8,
+    lineHeight: 16,
   },
 });

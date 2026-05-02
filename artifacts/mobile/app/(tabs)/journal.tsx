@@ -38,6 +38,7 @@ import {
   isIfaPrayerDay,
   getIfaFestivalForDate,
   getDailyOdu,
+  getOseDay,
 } from "@/constants/spiritualData";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
 import { SearchBar } from "@/components/SearchBar";
@@ -63,6 +64,8 @@ function getSpiritualContextForDate(date: Date): { moonPhase: string; context: s
   if (rt) context.push("Mercury Retrograde");
   if (pr) context.push("Ifa Prayer Day");
   if (fv) context.push(fv.name);
+  const ose = getOseDay(date);
+  context.push(ose.name);
   return { moonPhase: nm?.name ?? moon.name, context };
 }
 
