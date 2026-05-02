@@ -149,22 +149,88 @@ export default function CalendarScreen() {
       </View>
 
       {/* Legend */}
-      <View style={[styles.legend, { borderTopColor: colors.border, paddingBottom: Platform.OS === "web" ? 34 : insets.bottom + 8 }]}>
-        <LegendItem color="#A78BFA" label="Moon" />
-        <LegendItem color="#F97316" label="Retrograde" />
-        <LegendItem color="#D4A843" label="Ifa Prayer" />
-        <LegendItem color="#22D3EE" label="Festival" />
-      </View>
+      <Legend bottomPad={Platform.OS === "web" ? 34 : insets.bottom + 8} />
     </View>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
+const LEGEND_GROUPS = [
+  {
+    heading: "Moon",
+    items: [
+      { color: "#A78BFA", label: "Full / Named Moon" },
+      { color: "#4C1D95", label: "Dark Moon" },
+    ],
+  },
+  {
+    heading: "Celestial",
+    items: [
+      { color: "#F59E0B", label: "Solar Eclipse" },
+      { color: "#EC4899", label: "Lunar Eclipse" },
+      { color: "#34D399", label: "Sabbat / Solstice" },
+      { color: "#F97316", label: "Mercury Retrograde" },
+    ],
+  },
+  {
+    heading: "Ifa",
+    items: [
+      { color: "#D4A843", label: "Ifa Prayer Day" },
+      { color: "#22D3EE", label: "Ifa Festival" },
+    ],
+  },
+];
+
+function Legend({ bottomPad }: { bottomPad: number }) {
   const colors = useColors();
+  const [expanded, setExpanded] = useState(false);
+
   return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={[styles.legendLabel, { color: colors.mutedForeground }]}>{label}</Text>
+    <View style={[styles.legendWrap, { borderTopColor: colors.border, paddingBottom: bottomPad }]}>
+      <Pressable
+        style={styles.legendToggle}
+        onPress={() => { Haptics.selectionAsync(); setExpanded((e) => !e); }}
+        hitSlop={8}
+      >
+        {/* Collapsed: single row of colored dots */}
+        {!expanded && (
+          <View style={styles.legendCollapsed}>
+            {LEGEND_GROUPS.flatMap((g) => g.items).map((item, i) => (
+              <View key={i} style={styles.legendDotWrap}>
+                <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+              </View>
+            ))}
+            <Text style={[styles.legendToggleLabel, { color: colors.mutedForeground }]}>
+              Legend
+            </Text>
+            <Feather name="chevron-up" size={13} color={colors.mutedForeground} />
+          </View>
+        )}
+
+        {/* Expanded: grouped rows */}
+        {expanded && (
+          <View style={styles.legendExpanded}>
+            <View style={styles.legendExpandedHeader}>
+              <Text style={[styles.legendExpandedTitle, { color: colors.foreground }]}>Calendar Legend</Text>
+              <Feather name="chevron-down" size={14} color={colors.mutedForeground} />
+            </View>
+            {LEGEND_GROUPS.map((group) => (
+              <View key={group.heading} style={styles.legendGroup}>
+                <Text style={[styles.legendGroupLabel, { color: colors.mutedForeground }]}>
+                  {group.heading.toUpperCase()}
+                </Text>
+                <View style={styles.legendGroupItems}>
+                  {group.items.map((item, i) => (
+                    <View key={i} style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                      <Text style={[styles.legendLabel, { color: colors.foreground }]}>{item.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </Pressable>
     </View>
   );
 }
@@ -204,18 +270,64 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     flex: 1,
   },
-  legend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 16,
-    paddingTop: 10,
+  legendWrap: {
     borderTopWidth: 1,
+    paddingTop: 8,
     paddingHorizontal: 16,
+  },
+  legendToggle: {
+    width: "100%",
+  },
+  legendCollapsed: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
+  legendDotWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  legendToggleLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.4,
+    marginLeft: 4,
+  },
+  legendExpanded: {
+    paddingBottom: 4,
+  },
+  legendExpandedHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  legendExpandedTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  legendGroup: {
+    marginBottom: 10,
+  },
+  legendGroupLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  legendGroupItems: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
+    minWidth: "45%",
   },
   legendDot: {
     width: 7,
@@ -223,7 +335,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   legendLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "500",
   },
 });
