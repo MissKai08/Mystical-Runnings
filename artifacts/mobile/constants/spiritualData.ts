@@ -93,22 +93,36 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
   let isMajorPhase = false;
   let eventType: EventType;
 
-  // Widened Full Moon window (13.5–17.0) accounts for the lunar elliptical orbit,
-  // which can shift the true peak up to ~1.3 days earlier than the mean cycle midpoint.
-  // Widened New Moon window (0–2.5) mirrors this for symmetry.
+  // All four major phase windows are widened ~1.3 days before their mean positions
+  // to account for the lunar elliptical orbit (actual peaks can arrive up to ~1.5 days
+  // earlier than the simple average predicts). Each major phase spans ~3 days.
+  //
+  // Mean positions in a 29.53-day cycle:
+  //   New Moon  ≈  0.0   First Quarter ≈  7.38
+  //   Full Moon ≈ 14.77  Last Quarter  ≈ 22.15
+  //
+  // Windows used (start ~1.3 days before mean, end ~1.5 days after):
+  //   New Moon:      0.0 – 2.5
+  //   Waxing Cres:   2.5 – 6.0
+  //   First Quarter: 6.0 – 9.5
+  //   Waxing Gibb:   9.5 – 13.5
+  //   Full Moon:    13.5 – 17.0
+  //   Waning Gibb:  17.0 – 21.0
+  //   Last Quarter: 21.0 – 24.0
+  //   Waning Cres:  24.0 – 29.53
   if (phase < 2.5) {
     name = "New Moon"; isMajorPhase = true; eventType = "new-moon";
-  } else if (phase < 7.38) {
+  } else if (phase < 6.0) {
     name = "Waxing Crescent"; eventType = "waxing-crescent";
-  } else if (phase < 9.22) {
+  } else if (phase < 9.5) {
     name = "First Quarter"; isMajorPhase = true; eventType = "first-quarter";
   } else if (phase < 13.5) {
     name = "Waxing Gibbous"; eventType = "waxing-gibbous";
   } else if (phase < 17.0) {
     name = "Full Moon"; isMajorPhase = true; eventType = "full-moon";
-  } else if (phase < 22.15) {
+  } else if (phase < 21.0) {
     name = "Waning Gibbous"; eventType = "waning-gibbous";
-  } else if (phase < 24.5) {
+  } else if (phase < 24.0) {
     name = "Last Quarter"; isMajorPhase = true; eventType = "last-quarter";
   } else {
     name = "Waning Crescent"; eventType = "waning-crescent";
