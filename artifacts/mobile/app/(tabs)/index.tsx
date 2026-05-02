@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  Pressable,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -17,11 +18,13 @@ import {
   getNamedFullMoonForDate,
   getDarkMoonForDate,
   getEclipseForDate,
+  isSameDay,
   EVENT_COLORS,
   addDays,
   formatDateShort,
 } from "@/constants/spiritualData";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
+import * as Haptics from "expo-haptics";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
@@ -45,6 +48,39 @@ export default function HomeScreen() {
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const hasAnyAlert = !!(retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse);
+
+  const weekStrip = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = addDays(today, i);
+      const m = getMoonPhaseData(d);
+      const dots: { color: string; key: string }[] = [];
+
+      const nm = getNamedFullMoonForDate(d);
+      const dm = getDarkMoonForDate(d);
+      const ec = getEclipseForDate(d);
+      const sb = getSabbatForDate(d);
+      const rt = getMercuryRetrogradeInfo(d);
+      const pr = isIfaPrayerDay(d);
+      const fv = getIfaFestivalForDate(d);
+
+      if (nm) dots.push({ color: EVENT_COLORS["named-moon"], key: "moon" });
+      else if (dm) dots.push({ color: EVENT_COLORS["dark-moon"], key: "dark" });
+      else if (m.isMajorPhase) dots.push({ color: EVENT_COLORS["full-moon"], key: "moon" });
+
+      if (ec) dots.push({ color: EVENT_COLORS[ec.type], key: "eclipse" });
+      if (sb) dots.push({ color: EVENT_COLORS.sabbat, key: "sabbat" });
+      if (rt) dots.push({ color: EVENT_COLORS.retrograde, key: "retro" });
+      if (pr) dots.push({ color: EVENT_COLORS["ifa-prayer"], key: "prayer" });
+      if (fv) dots.push({ color: EVENT_COLORS["ifa-festival"], key: "festival" });
+
+      // Build a short label for the most notable event
+      let highlight = nm?.name ?? (dm ? `Dark Moon` : m.isMajorPhase ? m.name : null);
+      if (!highlight && ec) highlight = ec.name;
+      if (!highlight && sb) highlight = sb.name.split(" —")[0];
+
+      return { date: d, dots, highlight };
+    });
+  }, [today]);
 
   const upcomingDays = useMemo(() => {
     const result: { date: Date; events: string[] }[] = [];
@@ -114,6 +150,48 @@ export default function HomeScreen() {
             Day {Math.round(moon.phase)} of 30 in current cycle · {moon.illumination}% illuminated
           </Text>
         </View>
+      </View>
+
+      {/* This Week at a Glance */}
+      <Text style={[styles.sectionTitle, { color: colors.foreground }]}>This Week</Text>
+      <View style={[styles.weekStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {weekStrip.map(({ date, dots, highlight }, i) => {
+          const isToday = isSameDay(date, today);
+          return (
+            <View key={i} style={styles.weekDay}>
+              <Text style={[styles.weekDayName, { color: isToday ? "#D4A843" : colors.mutedForeground }]}>
+                {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
+              </Text>
+              <View style={[
+                styles.weekDateCircle,
+                isToday && { backgroundColor: "#D4A843" },
+              ]}>
+                <Text style={[
+                  styles.weekDateNum,
+                  { color: isToday ? "#080714" : colors.foreground },
+                ]}>
+                  {date.getDate()}
+                </Text>
+              </View>
+              <View style={styles.weekDots}>
+                {dots.slice(0, 3).map((dot, di) => (
+                  <View
+                    key={di}
+                    style={[styles.weekDot, { backgroundColor: dot.color }]}
+                  />
+                ))}
+              </View>
+              {highlight && (
+                <Text
+                  style={[styles.weekHighlight, { color: colors.mutedForeground }]}
+                  numberOfLines={2}
+                >
+                  {highlight}
+                </Text>
+              )}
+            </View>
+          );
+        })}
       </View>
 
       {/* Today's Energies */}
@@ -348,6 +426,54 @@ const styles = StyleSheet.create({
   upcomingNum: {
     fontSize: 20,
     fontWeight: "700",
+  },
+  weekStrip: {
+    flexDirection: "row",
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 6,
+    marginBottom: 24,
+    gap: 2,
+  },
+  weekDay: {
+    flex: 1,
+    alignItems: "center",
+    gap: 4,
+  },
+  weekDayName: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+  },
+  weekDateCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekDateNum: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  weekDots: {
+    flexDirection: "row",
+    gap: 2,
+    height: 6,
+    alignItems: "center",
+  },
+  weekDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  weekHighlight: {
+    fontSize: 8,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 11,
+    paddingHorizontal: 1,
   },
   upcomingEvents: { flex: 1, justifyContent: "center", gap: 4 },
   upcomingEventRow: {
