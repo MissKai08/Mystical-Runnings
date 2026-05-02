@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
+import { getDailyOdu, type OduEntry } from "@/constants/spiritualData";
 
 type Tab = "guide" | "prayers";
 
@@ -162,6 +163,9 @@ export default function PrayerScreen() {
   const [ibaExpanded, setIbaExpanded] = useState(false);
   const [oriExpanded, setOriExpanded] = useState(false);
   const [guardianExpanded, setGuardianExpanded] = useState(false);
+  const [oduExpanded, setOduExpanded] = useState(false);
+
+  const dailyOdu: OduEntry = useMemo(() => getDailyOdu(new Date()), []);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -223,6 +227,65 @@ export default function PrayerScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 60 }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Today's Odu */}
+          <Pressable
+            style={[styles.oduCard, { backgroundColor: "#7C3AED14", borderColor: oduExpanded ? "#7C3AED88" : "#7C3AED44" }]}
+            onPress={() => { Haptics.selectionAsync(); setOduExpanded(!oduExpanded); }}
+            accessibilityRole="button"
+          >
+            <View style={styles.oduHeader}>
+              <View style={styles.oduHeaderLeft}>
+                <Text style={[styles.oduLabel, { color: "#7C3AED" }]}>TODAY'S ODU</Text>
+                <Text style={[styles.oduName, { color: colors.foreground }]}>{dailyOdu.name}</Text>
+                <Text style={[styles.oduYoruba, { color: colors.mutedForeground }]}>{dailyOdu.yoruba}</Text>
+              </View>
+              <View style={styles.oduHeaderRight}>
+                <Text style={[styles.oduSymbol, { color: "#7C3AED" }]}>{dailyOdu.symbol}</Text>
+                <Feather
+                  name={oduExpanded ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#7C3AED"
+                  style={{ marginTop: 8 }}
+                />
+              </View>
+            </View>
+
+            <View style={styles.oduEnergyRow}>
+              {dailyOdu.energy.map((tag) => (
+                <View key={tag} style={[styles.oduChip, { backgroundColor: "#7C3AED22", borderColor: "#7C3AED55" }]}>
+                  <Text style={[styles.oduChipText, { color: "#A78BFA" }]}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+
+            {oduExpanded && (
+              <View style={[styles.oduBody, { borderTopColor: "#7C3AED33" }]}>
+                <View style={styles.oduMetaRow}>
+                  <View style={styles.oduMetaItem}>
+                    <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ORISHA</Text>
+                    <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{dailyOdu.orisha}</Text>
+                  </View>
+                  <View style={styles.oduMetaDivider} />
+                  <View style={styles.oduMetaItem}>
+                    <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ELEMENT</Text>
+                    <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{dailyOdu.element}</Text>
+                  </View>
+                  <View style={styles.oduMetaDivider} />
+                  <View style={styles.oduMetaItem}>
+                    <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ODU #</Text>
+                    <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{dailyOdu.index} of 16</Text>
+                  </View>
+                </View>
+                <View style={[styles.oduGuidanceBox, { backgroundColor: "#7C3AED0A", borderColor: "#7C3AED33" }]}>
+                  <Text style={[styles.oduGuidanceText, { color: colors.foreground }]}>{dailyOdu.guidance}</Text>
+                </View>
+                <Text style={[styles.oduDisclaimer, { color: colors.mutedForeground }]}>
+                  For daily reflection only · changes each day
+                </Text>
+              </View>
+            )}
+          </Pressable>
+
           {/* Source credit */}
           <Pressable
             style={[styles.sourceCard, { backgroundColor: "#D4A84312", borderColor: "#D4A84344" }]}
@@ -753,5 +816,105 @@ const styles = StyleSheet.create({
   },
   yorubaText: {
     fontStyle: "italic",
+  },
+  oduCard: {
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  oduHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 10,
+  },
+  oduHeaderLeft: { flex: 1 },
+  oduHeaderRight: {
+    alignItems: "flex-end",
+    marginLeft: 12,
+  },
+  oduLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  oduName: {
+    fontSize: 20,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+    marginBottom: 2,
+  },
+  oduYoruba: {
+    fontSize: 12,
+    fontStyle: "italic",
+  },
+  oduSymbol: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 4,
+    fontFamily: "monospace",
+  },
+  oduEnergyRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 2,
+  },
+  oduChip: {
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderWidth: 1,
+  },
+  oduChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  oduBody: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    gap: 12,
+  },
+  oduMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  oduMetaItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  oduMetaDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: "#7C3AED33",
+  },
+  oduMetaLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+    marginBottom: 3,
+  },
+  oduMetaValue: {
+    fontSize: 13,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  oduGuidanceBox: {
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+  },
+  oduGuidanceText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  oduDisclaimer: {
+    fontSize: 10,
+    textAlign: "center",
+    letterSpacing: 0.3,
   },
 });

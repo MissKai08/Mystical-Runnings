@@ -200,30 +200,30 @@ export const SABBATS: WheelEvent[] = [
 
 // 2026 Named Full Moons (source: Patheos / Heron Michelle)
 export const NAMED_FULL_MOONS: WheelEvent[] = [
-  { name: "Cold Full Moon", date: new Date(2026, 0, 2), type: "named-moon", description: "Full Moon in Cancer", sign: "Cancer" },
-  { name: "Quickening Full Moon", date: new Date(2026, 0, 30), type: "named-moon", description: "Full Moon in Leo", sign: "Leo" },
-  { name: "Storm Full Moon", date: new Date(2026, 2, 2), type: "named-moon", description: "Full Moon in Virgo — Lunar Eclipse", sign: "Virgo" },
+  { name: "Cold Full Moon", date: new Date(2026, 0, 3), type: "named-moon", description: "Full Moon in Cancer", sign: "Cancer" },
+  { name: "Quickening Full Moon", date: new Date(2026, 1, 1), type: "named-moon", description: "Full Moon in Leo", sign: "Leo" },
+  { name: "Storm Full Moon", date: new Date(2026, 2, 3), type: "named-moon", description: "Full Moon in Virgo — Lunar Eclipse", sign: "Virgo" },
   { name: "Wind Full Moon", date: new Date(2026, 3, 1), type: "named-moon", description: "Full Moon in Libra", sign: "Libra" },
   { name: "Flower Full Moon", date: new Date(2026, 4, 1), type: "named-moon", description: "Full Moon in Scorpio", sign: "Scorpio" },
-  { name: "Strong Sun Full Moon", date: new Date(2026, 4, 30), type: "named-moon", description: "Full Moon in Sagittarius", sign: "Sagittarius" },
+  { name: "Strong Sun Full Moon", date: new Date(2026, 4, 31), type: "named-moon", description: "Full Moon in Sagittarius", sign: "Sagittarius" },
   { name: "Blessing Full Moon", date: new Date(2026, 5, 29), type: "named-moon", description: "Full Moon in Capricorn", sign: "Capricorn" },
-  { name: "Corn Full Moon", date: new Date(2026, 6, 28), type: "named-moon", description: "Full Moon in Aquarius", sign: "Aquarius" },
+  { name: "Corn Full Moon", date: new Date(2026, 6, 29), type: "named-moon", description: "Full Moon in Aquarius", sign: "Aquarius" },
   { name: "Harvest Full Moon", date: new Date(2026, 7, 27), type: "named-moon", description: "Full Moon in Pisces — Lunar Eclipse", sign: "Pisces" },
   { name: "Blood Full Moon", date: new Date(2026, 8, 26), type: "named-moon", description: "Full Moon in Aries", sign: "Aries" },
   { name: "Mourning Full Moon", date: new Date(2026, 9, 25), type: "named-moon", description: "Full Moon in Taurus", sign: "Taurus" },
-  { name: "Long Nights Full Moon", date: new Date(2026, 10, 23), type: "named-moon", description: "Full Moon in Gemini", sign: "Gemini" },
+  { name: "Long Nights Full Moon", date: new Date(2026, 10, 24), type: "named-moon", description: "Full Moon in Gemini", sign: "Gemini" },
 ];
 
 // 2026 Dark Moons (source: Patheos / Heron Michelle)
 export const DARK_MOONS: WheelEvent[] = [
   { name: "Dark Moon", date: new Date(2026, 0, 18), type: "dark-moon", description: "Dark Moon in Capricorn", sign: "Capricorn" },
-  { name: "Dark Moon", date: new Date(2026, 1, 16), type: "dark-moon", description: "Dark Moon in Aquarius — Solar Eclipse / Lunar New Year (Year of the Horse)", sign: "Aquarius" },
+  { name: "Dark Moon", date: new Date(2026, 1, 17), type: "dark-moon", description: "Dark Moon in Aquarius — Solar Eclipse / Lunar New Year (Year of the Horse)", sign: "Aquarius" },
   { name: "Dark Moon", date: new Date(2026, 2, 18), type: "dark-moon", description: "Dark Moon in Pisces", sign: "Pisces" },
-  { name: "Dark Moon", date: new Date(2026, 3, 16), type: "dark-moon", description: "Dark Moon in Aries", sign: "Aries" },
-  { name: "Dark Moon", date: new Date(2026, 4, 15), type: "dark-moon", description: "Dark Moon in Taurus", sign: "Taurus" },
+  { name: "Dark Moon", date: new Date(2026, 3, 17), type: "dark-moon", description: "Dark Moon in Aries", sign: "Aries" },
+  { name: "Dark Moon", date: new Date(2026, 4, 16), type: "dark-moon", description: "Dark Moon in Taurus", sign: "Taurus" },
   { name: "Dark Moon", date: new Date(2026, 5, 14), type: "dark-moon", description: "Dark Moon in Gemini", sign: "Gemini" },
   { name: "Dark Moon", date: new Date(2026, 6, 13), type: "dark-moon", description: "Dark Moon in Cancer", sign: "Cancer" },
-  { name: "Dark Moon", date: new Date(2026, 7, 11), type: "dark-moon", description: "Dark Moon in Leo — Solar Eclipse", sign: "Leo" },
+  { name: "Dark Moon", date: new Date(2026, 7, 12), type: "dark-moon", description: "Dark Moon in Leo — Solar Eclipse", sign: "Leo" },
   { name: "Dark Moon", date: new Date(2026, 8, 10), type: "dark-moon", description: "Dark Moon in Virgo", sign: "Virgo" },
   { name: "Dark Moon", date: new Date(2026, 9, 9), type: "dark-moon", description: "Dark Moon in Libra", sign: "Libra" },
   { name: "Dark Moon", date: new Date(2026, 10, 8), type: "dark-moon", description: "Dark Moon in Scorpio", sign: "Scorpio" },
@@ -411,6 +411,189 @@ export function getEventsForDate(date: Date): SpiritualEvent[] {
   }
 
   return events;
+}
+
+// ─── Odu of Ifa ─────────────────────────────────────────────────────────────
+
+export interface OduEntry {
+  index: number;
+  name: string;
+  yoruba: string;
+  energy: string[];
+  orisha: string;
+  element: string;
+  guidance: string;
+  symbol: string;
+}
+
+export const ODU_LIST: OduEntry[] = [
+  {
+    index: 1,
+    name: "Eji Ogbe",
+    yoruba: "Ogbe Meji",
+    energy: ["Clarity", "New Beginnings", "Divine Light"],
+    orisha: "Obatala",
+    element: "Light",
+    guidance: "The way ahead is illuminated. Walk boldly in alignment with your highest self — Ifa opens every door before you today.",
+    symbol: "I I I I",
+  },
+  {
+    index: 2,
+    name: "Oyeku Meji",
+    yoruba: "Oyeku Meji",
+    energy: ["Endings", "Rebirth", "The Sacred Void"],
+    orisha: "Yemoja",
+    element: "Darkness",
+    guidance: "Something must end so something greater may be born. Honor what you release today — death is the womb of new creation.",
+    symbol: "II II II II",
+  },
+  {
+    index: 3,
+    name: "Iwori Meji",
+    yoruba: "Iwori Meji",
+    energy: ["Inner Sight", "Intuition", "Self-Knowledge"],
+    orisha: "Orunmila",
+    element: "Spirit",
+    guidance: "Turn your gaze inward. The answers you seek already live within your Ori — quiet the noise and listen to the wisdom inside.",
+    symbol: "I II I II",
+  },
+  {
+    index: 4,
+    name: "Odi Meji",
+    yoruba: "Odi Meji",
+    energy: ["Mystery", "The Womb", "Hidden Depths"],
+    orisha: "Osun",
+    element: "Water",
+    guidance: "Not all truths are visible to the eye. Trust the hidden processes unfolding beneath the surface — fertile ground is quiet ground.",
+    symbol: "II I II I",
+  },
+  {
+    index: 5,
+    name: "Irosun Meji",
+    yoruba: "Irosun Meji",
+    energy: ["Vital Power", "Sacrifice", "Ashe"],
+    orisha: "Shango",
+    element: "Blood & Fire",
+    guidance: "Your life force is your currency. Give where it returns tenfold, guard it from where it drains. Your ashe is sacred — use it with intention.",
+    symbol: "I I II II",
+  },
+  {
+    index: 6,
+    name: "Owonrin Meji",
+    yoruba: "Owonrin Meji",
+    energy: ["Change", "Chaos", "Unexpected Grace"],
+    orisha: "Eshu-Elegba",
+    element: "Lightning",
+    guidance: "Disruption arrives wearing the face of blessing. Do not resist what seems chaotic today — Elegba is rerouting your path toward fortune.",
+    symbol: "II II I I",
+  },
+  {
+    index: 7,
+    name: "Obara Meji",
+    yoruba: "Obara Meji",
+    energy: ["Royalty", "Courage", "Generosity"],
+    orisha: "Shango",
+    element: "Thunder",
+    guidance: "Carry yourself as the sovereign you are. Lead with an open hand — the king who gives freely is the king whose abundance never runs dry.",
+    symbol: "I II I I",
+  },
+  {
+    index: 8,
+    name: "Okanran Meji",
+    yoruba: "Okanran Meji",
+    energy: ["Conflict", "Transformation", "Iron Will"],
+    orisha: "Ogun",
+    element: "Iron",
+    guidance: "The forge demands heat. Face the friction before you with a steady heart — what is being tested is also being strengthened.",
+    symbol: "II I II II",
+  },
+  {
+    index: 9,
+    name: "Ogunda Meji",
+    yoruba: "Ogunda Meji",
+    energy: ["Clearing Paths", "Justice", "Determination"],
+    orisha: "Ogun",
+    element: "Iron & Earth",
+    guidance: "Take up your machete and move. Obstacles are no match for focused will — Ogun clears the brush so your destiny can walk forward.",
+    symbol: "I I I II",
+  },
+  {
+    index: 10,
+    name: "Osa Meji",
+    yoruba: "Osa Meji",
+    energy: ["Protection", "Cunning", "Sudden Shifts"],
+    orisha: "Oshosi",
+    element: "Wind",
+    guidance: "Wisdom wears the mask of strategy. Stay alert, trust your instincts, and do not underestimate what is watching over you today.",
+    symbol: "II I I II",
+  },
+  {
+    index: 11,
+    name: "Ika Meji",
+    yoruba: "Ika Meji",
+    energy: ["Destiny", "Integrity", "Alignment"],
+    orisha: "Obatala",
+    element: "White Light",
+    guidance: "Your character is your destiny. Walk today in full integrity — every action that aligns with your highest values writes your sacred story.",
+    symbol: "I II II I",
+  },
+  {
+    index: 12,
+    name: "Oturupon Meji",
+    yoruba: "Oturupon Meji",
+    energy: ["Sacrifice", "Reversal", "Spiritual Battle"],
+    orisha: "Elegba",
+    element: "Crossroads",
+    guidance: "What appears to be loss may be liberation. Offer up what binds you — a willing sacrifice made with faith unlocks doors invisible to the eye.",
+    symbol: "II II I II",
+  },
+  {
+    index: 13,
+    name: "Otura Meji",
+    yoruba: "Otura Meji",
+    energy: ["Relationships", "Contracts", "Cosmic Order"],
+    orisha: "Orunmila",
+    element: "Spirit",
+    guidance: "Honor every bond you've made — spiritual and earthly. Your web of relationships is sacred geometry. Tend your connections with reverence today.",
+    symbol: "I I II I",
+  },
+  {
+    index: 14,
+    name: "Irete Meji",
+    yoruba: "Irete Meji",
+    energy: ["Patience", "Longevity", "Ancestral Wisdom"],
+    orisha: "Oya",
+    element: "Earth & Wind",
+    guidance: "The elders counsel patience. The great tree does not rush its growth. Settle into the long view — your ancestors planted so you could harvest.",
+    symbol: "II I I I",
+  },
+  {
+    index: 15,
+    name: "Ose Meji",
+    yoruba: "Ose Meji",
+    energy: ["Prosperity", "Fertility", "Sweet Life"],
+    orisha: "Osun",
+    element: "Honey & Water",
+    guidance: "Open your hands and receive. Osun's river flows toward you carrying abundance — do not block the current with doubt or unworthiness.",
+    symbol: "I II II II",
+  },
+  {
+    index: 16,
+    name: "Ofun Meji",
+    yoruba: "Ofun Meji",
+    energy: ["Completion", "Divine Law", "Full Circle"],
+    orisha: "Orunmila",
+    element: "Cosmic Fire",
+    guidance: "You stand at the point of completion. Give thanks for the full cycle — every ending encoded with the seed of what comes next. Ase.",
+    symbol: "II II II I",
+  },
+];
+
+export function getDailyOdu(date: Date): OduEntry {
+  // Use day-of-year to cycle deterministically through all 16 Odu
+  const startOfYear = new Date(date.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((date.getTime() - startOfYear.getTime()) / MS_PER_DAY) + 1;
+  return ODU_LIST[(dayOfYear - 1) % 16];
 }
 
 export function getMonthGrid(year: number, month: number): (Date | null)[][] {
