@@ -496,41 +496,69 @@ export default function CalendarScreen() {
             {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} />}
             {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} />}
             {calView === "almanac" && <AlmanacView />}
-          {specialEntries.length > 0 && calView !== "almanac" && (
-            <View style={styles.specialSection}>
-              <Text style={[styles.specialHeading, { color: colors.mutedForeground }]}>SPECIAL DAYS</Text>
-              {specialEntries.filter((e) => {
-                const [y, m, d] = e.date.split("-").map(Number);
-                const target = new Date(y, m - 1, d);
-                return calView === "month"
-                  ? target.getMonth() === month && target.getFullYear() === year
-                  : calView === "week"
-                    ? target >= weekStart && target <= new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
-                    : calView === "day"
-                      ? target.toDateString() === selectedDate.toDateString()
-                      : true;
-              }).map((e) => (
-                <View key={e.id} style={[styles.specialCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  <Text style={[styles.specialDate, { color: "#D4A843" }]}>{e.date}</Text>
-                  <Text style={[styles.specialTitle, { color: colors.foreground }]}>{e.title}</Text>
-                  <Text style={[styles.specialCategory, { color: colors.mutedForeground }]}>{e.category}{e.note ? ` · ${e.note}` : ""}</Text>
-                </View>
-              ))}
+            {specialEntries.length > 0 && calView !== "almanac" && (
+              <View style={styles.specialSection}>
+                <Text style={[styles.specialHeading, { color: colors.mutedForeground }]}>SPECIAL DAYS</Text>
+                {specialEntries
+                  .filter((e) => {
+                    const [y, m, d] = e.date.split("-").map(Number);
+                    const target = new Date(y, m - 1, d);
+                    return calView === "month"
+                      ? target.getMonth() === month && target.getFullYear() === year
+                      : calView === "week"
+                        ? target >= weekStart && target <= new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
+                        : calView === "day"
+                          ? target.toDateString() === selectedDate.toDateString()
+                          : true;
+                  })
+                  .map((e) => (
+                    <View key={e.id} style={[styles.specialCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                      <Text style={[styles.specialDate, { color: "#D4A843" }]}>{e.date}</Text>
+                      <Text style={[styles.specialTitle, { color: colors.foreground }]}>{e.title}</Text>
+                      <Text style={[styles.specialCategory, { color: colors.mutedForeground }]}>
+                        {e.category}
+                        {e.note ? ` · ${e.note}` : ""}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            )}
+          </View>
+
+          <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => setSpecialModalOpen(false)}>
+            <View style={styles.modalBackdrop}>
+              <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Calendar Entry</Text>
+                <TextInput
+                  value={specialTitle}
+                  onChangeText={setSpecialTitle}
+                  placeholder="Birthday, anniversary, transition date..."
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
+                <TextInput
+                  value={specialCategory}
+                  onChangeText={setSpecialCategory}
+                  placeholder="Loved One / Ancestor / Family"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
+                <TextInput
+                  value={specialNote}
+                  onChangeText={setSpecialNote}
+                  placeholder="Optional note"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
+                <Pressable onPress={handleSaveSpecialEntry} style={styles.saveSpecialBtn}>
+                  <Text style={styles.saveSpecialText}>Save</Text>
+                </Pressable>
+                <Pressable onPress={() => setSpecialModalOpen(false)} style={styles.cancelSpecialBtn}>
+                  <Text style={[styles.cancelSpecialText, { color: colors.mutedForeground }]}>Cancel</Text>
+                </Pressable>
+              </View>
             </View>
-          )}
-          </View>
-      <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => setSpecialModalOpen(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Calendar Entry</Text>
-            <TextInput value={specialTitle} onChangeText={setSpecialTitle} placeholder="Birthday, anniversary, transition date..." placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} />
-            <TextInput value={specialCategory} onChangeText={setSpecialCategory} placeholder="Loved One / Ancestor / Family" placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} />
-            <TextInput value={specialNote} onChangeText={setSpecialNote} placeholder="Optional note" placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} />
-            <Pressable onPress={handleSaveSpecialEntry} style={styles.saveSpecialBtn}><Text style={styles.saveSpecialText}>Save</Text></Pressable>
-            <Pressable onPress={() => setSpecialModalOpen(false)} style={styles.cancelSpecialBtn}><Text style={[styles.cancelSpecialText, { color: colors.mutedForeground }]}>Cancel</Text></Pressable>
-          </View>
-        </View>
-      </Modal>
+          </Modal>
 
           {/* Legend */}
           <Legend bottomPad={Platform.OS === "web" ? 34 : insets.bottom + 8} />

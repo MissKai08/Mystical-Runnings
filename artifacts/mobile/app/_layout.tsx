@@ -55,7 +55,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
-      const t = setTimeout(() => setReadyToShowSplash(true), 250);
+      const t = setTimeout(() => setReadyToShowSplash(true), 500);
       return () => clearTimeout(t);
     }
   }, [fontsLoaded, fontError]);
