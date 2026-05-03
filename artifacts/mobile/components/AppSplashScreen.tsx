@@ -147,15 +147,10 @@ export function AppSplashScreen({ onComplete }: Props) {
   const moonScale       = useRef(new Animated.Value(0.75)).current;
   const glowScale       = useRef(new Animated.Value(1)).current;
 
-  // Do NOT mount the title Text nodes until fonts are fully in the native
-  // rendering pipeline. Mounting them at opacity:0 still causes a flash on
-  // Android if the font switches from system-default → custom mid-frame.
-  // 200 ms gives Android's Skia/Harfbuzz pipeline plenty of time to register
-  // the Beasigne typeface before any Text node using it is created.
   const [titleMounted, setTitleMounted] = useState(false);
 
   useEffect(() => {
-    const mountTimer = setTimeout(() => setTitleMounted(true), 200);
+    const mountTimer = setTimeout(() => setTitleMounted(true), 700);
     return () => clearTimeout(mountTimer);
   }, []);
 

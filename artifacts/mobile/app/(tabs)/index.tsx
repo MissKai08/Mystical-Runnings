@@ -287,7 +287,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.brandHeader}>
-        <Text style={[styles.brandTitle, { color: colors.foreground }]}>Mystical Rumning</Text>
+        <Text style={[styles.brandTitle, { color: colors.foreground }]}>Mystical Runnings</Text>
         <Text style={[styles.brandSubtitle, { color: colors.mutedForeground }]}>curated by MissKai</Text>
       </View>
 
@@ -982,6 +982,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.4,
     textAlign: "center",
+    fontFamily: "Arial Rounded MT Bold",
   },
   brandSubtitle: {
     fontSize: 11,
