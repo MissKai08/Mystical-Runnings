@@ -182,6 +182,50 @@ function isDarkMoonDay(date: Date): boolean {
   return phase >= 27.5 || phase <= 0.5;
 }
 
+export interface MoonWaterBlessing {
+  id: string;
+  date: string;
+  chargingItems: string;
+  intention: string;
+  moonPhase: string;
+  createdAt: number;
+}
+
+const MOON_WATER_KEY = "@mystical_moon_water_blessings";
+
+export async function loadMoonWaterBlessings(): Promise<MoonWaterBlessing[]> {
+  try {
+    const raw = await AsyncStorage.getItem(MOON_WATER_KEY);
+    if (!raw) return [];
+    return (JSON.parse(raw) as MoonWaterBlessing[]).sort((a, b) => b.createdAt - a.createdAt);
+  } catch { return []; }
+}
+
+export async function saveMoonWaterBlessing(entry: MoonWaterBlessing): Promise<void> {
+  const existing = await loadMoonWaterBlessings();
+  const idx = existing.findIndex((e) => e.id === entry.id);
+  if (idx >= 0) existing[idx] = entry;
+  else existing.push(entry);
+  await AsyncStorage.setItem(MOON_WATER_KEY, JSON.stringify(existing));
+}
+
+export async function deleteMoonWaterBlessing(id: string): Promise<void> {
+  const existing = await loadMoonWaterBlessings();
+  await AsyncStorage.setItem(MOON_WATER_KEY, JSON.stringify(existing.filter((e) => e.id !== id)));
+}
+
+export function isInFullMoonWindow(date: Date): boolean {
+  const moon = getMoonPhaseDataSync(date);
+  if (moon.isMajorPhase && moon.eventType === "full-moon") return true;
+  for (let offset = -2; offset <= 2; offset++) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + offset);
+    const m = getMoonPhaseDataSync(d);
+    if (m.isMajorPhase && m.eventType === "full-moon") return true;
+  }
+  return false;
+}
+
 export async function loadFreezes(): Promise<string[]> {
   try {
     const raw = await AsyncStorage.getItem(FREEZE_KEY);

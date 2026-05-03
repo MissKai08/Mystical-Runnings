@@ -32,6 +32,11 @@ import {
   loadShieldTokens,
   spendShieldToken,
   checkAndGrantLunarShield,
+  MoonWaterBlessing,
+  loadMoonWaterBlessings,
+  saveMoonWaterBlessing,
+  deleteMoonWaterBlessing,
+  isInFullMoonWindow,
   MOODS,
   ENTRY_TAGS,
 } from "@/utils/journalStorage";
@@ -623,6 +628,12 @@ export default function JournalScreen() {
   const [freezes, setFreezes] = useState<Set<string>>(new Set());
   const [shieldTokens, setShieldTokens] = useState(0);
   const [shieldGranted, setShieldGranted] = useState<{ phase: "full" | "new" | null } | null>(null);
+  const [moonWaterBlessings, setMoonWaterBlessings] = useState<MoonWaterBlessing[]>([]);
+  const [moonWaterModalOpen, setMoonWaterModalOpen] = useState(false);
+  const [moonWaterChargingItems, setMoonWaterChargingItems] = useState("");
+  const [moonWaterIntention, setMoonWaterIntention] = useState("");
+  const [moonWaterEditId, setMoonWaterEditId] = useState<string | null>(null);
+  const inFullMoonWindow = useMemo(() => isInFullMoonWindow(new Date()), []);
   const [lunarLetterOpen, setLunarLetterOpen] = useState(false);
   const [lunarLetterData, setLunarLetterData] = useState<LunarLetterData | null>(null);
   const [intentionsOpen, setIntentionsOpen] = useState(false);
@@ -646,6 +657,7 @@ export default function JournalScreen() {
     loadEntries().then(setEntries);
     loadFreezes().then((arr) => setFreezes(new Set(arr)));
     loadShieldTokens().then(setShieldTokens);
+    loadMoonWaterBlessings().then(setMoonWaterBlessings);
     const today = new Date();
     checkAndGrantLunarShield(today).then((result) => {
       if (result.granted) {
@@ -653,6 +665,55 @@ export default function JournalScreen() {
         setShieldTokens((prev) => Math.min(prev + 1, 9));
       }
     });
+  }, []);
+
+  const openMoonWaterComposer = useCallback((editEntry?: MoonWaterBlessing) => {
+    if (editEntry) {
+      setMoonWaterEditId(editEntry.id);
+      setMoonWaterChargingItems(editEntry.chargingItems);
+      setMoonWaterIntention(editEntry.intention);
+    } else {
+      setMoonWaterEditId(null);
+      setMoonWaterChargingItems("");
+      setMoonWaterIntention("");
+    }
+    setMoonWaterModalOpen(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, []);
+
+  const saveMoonWaterEntry = useCallback(async () => {
+    if (!moonWaterChargingItems.trim() && !moonWaterIntention.trim()) return;
+    const today = new Date();
+    const phase = getMoonPhaseData(today).name;
+    const entry: MoonWaterBlessing = {
+      id: moonWaterEditId ?? generateId(),
+      date: todayKey(),
+      chargingItems: moonWaterChargingItems.trim(),
+      intention: moonWaterIntention.trim(),
+      moonPhase: phase,
+      createdAt: Date.now(),
+    };
+    await saveMoonWaterBlessing(entry);
+    setMoonWaterBlessings(await loadMoonWaterBlessings());
+    setMoonWaterModalOpen(false);
+    setMoonWaterChargingItems("");
+    setMoonWaterIntention("");
+    setMoonWaterEditId(null);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [moonWaterEditId, moonWaterChargingItems, moonWaterIntention]);
+
+  const deleteMoonWaterEntry = useCallback((id: string) => {
+    Alert.alert("Remove Blessing", "Remove this moon water blessing log?", [
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: async () => {
+          await deleteMoonWaterBlessing(id);
+          setMoonWaterBlessings(await loadMoonWaterBlessings());
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
   }, []);
 
   const openComposer = () => {
@@ -1239,6 +1300,78 @@ export default function JournalScreen() {
         {/* Sacred Altar */}
         {!searchQuery.trim() && <SacredAltar collapsed />}
 
+        {/* Moon Water Blessing Log */}
+        {!searchQuery.trim() && (inFullMoonWindow || moonWaterBlessings.length > 0) && (
+          <View style={[styles.moonWaterCard, { backgroundColor: "#0A1620", borderColor: inFullMoonWindow ? "#C8D4FF66" : "#38BDF822" }]}>
+            <View style={styles.moonWaterHeader}>
+              <View style={styles.moonWaterTitleRow}>
+                <Text style={styles.moonWaterIcon}>🌕</Text>
+                <View>
+                  <Text style={[styles.moonWaterTitle, { color: "#C8D4FF" }]}>Moon Water Blessing Log</Text>
+                  <Text style={[styles.moonWaterSub, { color: "#64748B" }]}>
+                    {inFullMoonWindow ? "Full moon window — set your water out to charge" : "Past blessings"}
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => openMoonWaterComposer()}
+                style={({ pressed }) => [styles.moonWaterAddBtn, { opacity: pressed ? 0.75 : 1, backgroundColor: "#1A2A3F", borderColor: "#C8D4FF33" }]}
+              >
+                <Feather name="plus" size={14} color="#C8D4FF" />
+              </Pressable>
+            </View>
+
+            {inFullMoonWindow && (
+              <View style={[styles.moonWaterTip, { backgroundColor: "#C8D4FF0D" }]}>
+                <Text style={[styles.moonWaterTipText, { color: "#94A3B8" }]}>
+                  Place water, crystals, or sacred objects under the moon tonight. Record what you're charging and your intention — the moon will seal it.
+                </Text>
+              </View>
+            )}
+
+            {moonWaterBlessings.length > 0 && (
+              <View style={styles.moonWaterList}>
+                {moonWaterBlessings.slice(0, 3).map((b) => (
+                  <View key={b.id} style={[styles.moonWaterItem, { borderTopColor: "#C8D4FF11" }]}>
+                    <View style={styles.moonWaterItemHeader}>
+                      <Text style={[styles.moonWaterItemDate, { color: "#64748B" }]}>
+                        {new Date(b.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} · {b.moonPhase}
+                      </Text>
+                      <View style={styles.moonWaterItemActions}>
+                        <Pressable onPress={() => openMoonWaterComposer(b)} style={{ padding: 4 }}>
+                          <Feather name="edit-2" size={11} color="#64748B" />
+                        </Pressable>
+                        <Pressable onPress={() => deleteMoonWaterEntry(b.id)} style={{ padding: 4 }}>
+                          <Feather name="trash-2" size={11} color="#64748B" />
+                        </Pressable>
+                      </View>
+                    </View>
+                    {b.chargingItems ? (
+                      <Text style={[styles.moonWaterItemLabel, { color: "#C8D4FF" }]}>
+                        <Text style={{ color: "#64748B" }}>Charging: </Text>{b.chargingItems}
+                      </Text>
+                    ) : null}
+                    {b.intention ? (
+                      <Text style={[styles.moonWaterItemLabel, { color: "#A8B8CC" }]}>
+                        <Text style={{ color: "#64748B" }}>Intention: </Text>{b.intention}
+                      </Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {moonWaterBlessings.length === 0 && inFullMoonWindow && (
+              <Pressable
+                onPress={() => openMoonWaterComposer()}
+                style={({ pressed }) => [styles.moonWaterRecordBtn, { opacity: pressed ? 0.75 : 1 }]}
+              >
+                <Text style={styles.moonWaterRecordBtnText}>✦ Record a Blessing</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+
         {/* Sacred Streak Shield */}
         {!searchQuery.trim() && (shieldTokens > 0 || shieldGranted) && (
           <View style={[styles.shieldCard, { backgroundColor: "#0D1A2A", borderColor: shieldGranted ? "#D4A84366" : "#38BDF844" }]}>
@@ -1414,6 +1547,58 @@ export default function JournalScreen() {
         onSave={handleSaveLunarLetter}
         onClose={() => setLunarLetterOpen(false)}
       />
+
+      {/* Moon Water Blessing Modal */}
+      <Modal visible={moonWaterModalOpen} animationType="slide" transparent onRequestClose={() => setMoonWaterModalOpen(false)}>
+        <KeyboardAvoidingView
+          style={styles.moonWaterModalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={[styles.moonWaterModalSheet, { backgroundColor: colors.card }]}>
+            <Text style={[styles.moonWaterModalTitle, { color: colors.foreground }]}>
+              🌕 Moon Water Blessing
+            </Text>
+            <Text style={[styles.moonWaterModalSub, { color: colors.mutedForeground }]}>
+              Record what you're charging under the moon and your sacred intention
+            </Text>
+
+            <Text style={[styles.moonWaterFieldLabel, { color: "#94A3B8" }]}>WHAT ARE YOU CHARGING?</Text>
+            <TextInput
+              style={[styles.moonWaterInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]}
+              placeholder="Water, crystals, selenite, oracle cards…"
+              placeholderTextColor={colors.mutedForeground}
+              value={moonWaterChargingItems}
+              onChangeText={setMoonWaterChargingItems}
+              multiline
+              numberOfLines={2}
+            />
+
+            <Text style={[styles.moonWaterFieldLabel, { color: "#94A3B8" }]}>YOUR INTENTION</Text>
+            <TextInput
+              style={[styles.moonWaterInput, { backgroundColor: colors.background, borderColor: colors.border, color: colors.foreground }]}
+              placeholder="What are you calling in? What are you releasing?"
+              placeholderTextColor={colors.mutedForeground}
+              value={moonWaterIntention}
+              onChangeText={setMoonWaterIntention}
+              multiline
+              numberOfLines={3}
+            />
+
+            <Pressable
+              onPress={saveMoonWaterEntry}
+              style={({ pressed }) => [styles.moonWaterSaveBtn, { backgroundColor: "#1A3050", opacity: pressed ? 0.8 : 1 }]}
+            >
+              <Text style={[styles.moonWaterSaveBtnText, { color: "#C8D4FF" }]}>
+                {moonWaterEditId ? "Update Blessing" : "Seal the Blessing ✦"}
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={() => setMoonWaterModalOpen(false)} style={styles.moonWaterCancelBtn}>
+              <Text style={[styles.moonWaterCancelBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* Composer Modal */}
       <Modal visible={composerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeComposer}>
@@ -2699,5 +2884,153 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#93C5FD",
     letterSpacing: 0.3,
+  },
+  moonWaterCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  moonWaterHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  moonWaterTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  moonWaterIcon: {
+    fontSize: 24,
+  },
+  moonWaterTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  moonWaterSub: {
+    fontSize: 11,
+    marginTop: 1,
+    letterSpacing: 0.1,
+  },
+  moonWaterAddBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  moonWaterTip: {
+    marginHorizontal: 14,
+    marginBottom: 10,
+    borderRadius: 8,
+    padding: 10,
+  },
+  moonWaterTipText: {
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  moonWaterList: {
+    marginHorizontal: 14,
+    marginBottom: 12,
+  },
+  moonWaterItem: {
+    paddingTop: 10,
+    marginTop: 8,
+    borderTopWidth: 1,
+  },
+  moonWaterItemHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  moonWaterItemDate: {
+    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  moonWaterItemActions: {
+    flexDirection: "row",
+    gap: 4,
+  },
+  moonWaterItemLabel: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  moonWaterRecordBtn: {
+    marginHorizontal: 14,
+    marginBottom: 14,
+    backgroundColor: "#142030",
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#C8D4FF22",
+  },
+  moonWaterRecordBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#C8D4FF",
+    letterSpacing: 0.3,
+  },
+  moonWaterModalOverlay: {
+    flex: 1,
+    backgroundColor: "#000000CC",
+    justifyContent: "flex-end",
+  },
+  moonWaterModalSheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  moonWaterModalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 4,
+    letterSpacing: 0.2,
+  },
+  moonWaterModalSub: {
+    fontSize: 12,
+    marginBottom: 20,
+  },
+  moonWaterFieldLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  moonWaterInput: {
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  moonWaterSaveBtn: {
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  moonWaterSaveBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  moonWaterCancelBtn: {
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  moonWaterCancelBtnText: {
+    fontSize: 14,
   },
 });
