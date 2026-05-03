@@ -108,8 +108,10 @@ export default function HomeScreen() {
       const events: string[] = [];
 
       if (nm) events.push(nm.name);
-      else if (dm) events.push("Dark Moon — " + (dm.sign ?? ""));
-      else if (m.isMajorPhase) events.push(m.name);
+      else if (dm) {
+        events.push("Dark Moon — " + (dm.sign ?? ""));
+        if (m.isMajorPhase && m.eventType === "new-moon") events.push("New Moon");
+      } else if (m.isMajorPhase) events.push(m.name);
 
       if (ec) events.push(ec.name);
       if (s) events.push(s.name.split(" —")[0]);

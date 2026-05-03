@@ -3,7 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
 
-export type CalendarView = "month" | "week" | "day" | "schedule";
+export type CalendarView = "month" | "week" | "day" | "schedule" | "almanac";
 
 interface Props {
   mode: CalendarView;
@@ -15,6 +15,7 @@ const VIEWS: { key: CalendarView; label: string }[] = [
   { key: "week", label: "Week" },
   { key: "day", label: "Day" },
   { key: "schedule", label: "Schedule" },
+  { key: "almanac", label: "Almanac" },
 ];
 
 export function ViewSwitcher({ mode, onModeChange }: Props) {

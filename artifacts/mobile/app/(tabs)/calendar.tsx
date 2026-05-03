@@ -15,6 +15,7 @@ import { MonthView } from "@/components/MonthView";
 import { WeekView } from "@/components/WeekView";
 import { DayView } from "@/components/DayView";
 import { ScheduleView } from "@/components/ScheduleView";
+import { AlmanacView } from "@/components/AlmanacView";
 import { SearchBar } from "@/components/SearchBar";
 import {
   getStartOfWeek,
@@ -336,6 +337,7 @@ export default function CalendarScreen() {
             )}
             {calView === "day" && <DayView date={selectedDate} />}
             {calView === "schedule" && <ScheduleView startDate={displayDate} />}
+            {calView === "almanac" && <AlmanacView />}
           </View>
 
           {/* Legend */}
