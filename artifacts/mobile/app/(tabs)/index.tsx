@@ -286,6 +286,11 @@ export default function HomeScreen() {
       contentContainerStyle={[styles.content, { paddingTop: topPad + 8, paddingBottom: bottomPad + 40 }]}
       showsVerticalScrollIndicator={false}
     >
+      <View style={styles.brandHeader}>
+        <Text style={[styles.brandTitle, { color: colors.foreground }]}>Mystical Rumning</Text>
+        <Text style={[styles.brandSubtitle, { color: colors.mutedForeground }]}>curated by MissKai</Text>
+      </View>
+
       {/* Greeting */}
       <View style={styles.greetingRow}>
         <View style={{ flex: 1 }}>
@@ -968,6 +973,23 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingHorizontal: 16 },
+  brandHeader: {
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  brandTitle: {
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+    textAlign: "center",
+  },
+  brandSubtitle: {
+    fontSize: 11,
+    marginTop: 2,
+    letterSpacing: 1.2,
+    textTransform: "lowercase",
+    textAlign: "center",
+  },
   greetingRow: {
     flexDirection: "row",
     justifyContent: "space-between",
