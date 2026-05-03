@@ -227,10 +227,10 @@ const styles = StyleSheet.create({
   },
   titleLine: {
     fontFamily: "Beasigne",
-    fontSize: 52,
+    fontSize: 36,
     color: "#D4A843",
-    letterSpacing: 6,
-    lineHeight: 60,
+    letterSpacing: 3,
+    lineHeight: 46,
     textAlign: "center",
     textShadowColor: "#D4A843",
     textShadowOffset: { width: 0, height: 0 },

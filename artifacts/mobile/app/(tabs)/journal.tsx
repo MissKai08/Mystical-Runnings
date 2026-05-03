@@ -29,6 +29,9 @@ import {
   loadFreezes,
   addFreeze,
   removeFreeze,
+  loadShieldTokens,
+  spendShieldToken,
+  checkAndGrantLunarShield,
   MOODS,
   ENTRY_TAGS,
 } from "@/utils/journalStorage";
@@ -618,6 +621,8 @@ export default function JournalScreen() {
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState(() => new Date().getMonth());
   const [freezes, setFreezes] = useState<Set<string>>(new Set());
+  const [shieldTokens, setShieldTokens] = useState(0);
+  const [shieldGranted, setShieldGranted] = useState<{ phase: "full" | "new" | null } | null>(null);
   const [lunarLetterOpen, setLunarLetterOpen] = useState(false);
   const [lunarLetterData, setLunarLetterData] = useState<LunarLetterData | null>(null);
   const [intentionsOpen, setIntentionsOpen] = useState(false);
@@ -640,6 +645,14 @@ export default function JournalScreen() {
   useEffect(() => {
     loadEntries().then(setEntries);
     loadFreezes().then((arr) => setFreezes(new Set(arr)));
+    loadShieldTokens().then(setShieldTokens);
+    const today = new Date();
+    checkAndGrantLunarShield(today).then((result) => {
+      if (result.granted) {
+        setShieldGranted({ phase: result.phase });
+        setShieldTokens((prev) => Math.min(prev + 1, 9));
+      }
+    });
   }, []);
 
   const openComposer = () => {
@@ -825,6 +838,48 @@ export default function JournalScreen() {
       );
     }
   }, [freezes]);
+
+  const handleUseShield = useCallback(async () => {
+    if (shieldTokens <= 0) return;
+    const writtenDates = new Set(entries.map((e) => e.date));
+    // Find most recent unwritten, unfrozen day in the last 7 days (excluding today)
+    const today = new Date();
+    let targetDate: string | null = null;
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (!writtenDates.has(k) && !freezes.has(k)) {
+        targetDate = k;
+        break;
+      }
+    }
+    if (!targetDate) {
+      Alert.alert("No Gap to Protect", "Your recent days are already covered by entries or shields.");
+      return;
+    }
+    const [y, m, d] = targetDate.split("-").map(Number);
+    const label = new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+    Alert.alert(
+      "🛡 Use Sacred Streak Shield",
+      `Protect ${label} from breaking your streak?`,
+      [
+        {
+          text: "Protect It",
+          onPress: async () => {
+            const spent = await spendShieldToken();
+            if (spent) {
+              await addFreeze(targetDate!);
+              setFreezes((prev) => new Set([...prev, targetDate!]));
+              setShieldTokens((prev) => Math.max(0, prev - 1));
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+          },
+        },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  }, [shieldTokens, entries, freezes]);
 
   const handleDayPress = useCallback((date: string) => {
     const offset = offsetMap.current.get(date);
@@ -1183,6 +1238,49 @@ export default function JournalScreen() {
 
         {/* Sacred Altar */}
         {!searchQuery.trim() && <SacredAltar collapsed />}
+
+        {/* Sacred Streak Shield */}
+        {!searchQuery.trim() && (shieldTokens > 0 || shieldGranted) && (
+          <View style={[styles.shieldCard, { backgroundColor: "#0D1A2A", borderColor: shieldGranted ? "#D4A84366" : "#38BDF844" }]}>
+            {shieldGranted && (
+              <View style={[styles.shieldBanner, { backgroundColor: shieldGranted.phase === "full" ? "#D4A84318" : "#38BDF818" }]}>
+                <Text style={[styles.shieldBannerText, { color: shieldGranted.phase === "full" ? "#D4A843" : "#38BDF8" }]}>
+                  {shieldGranted.phase === "full" ? "🌕 Full Moon Gift" : "🌑 New Moon Gift"} — a shield was granted to your streak
+                </Text>
+              </View>
+            )}
+            <View style={styles.shieldHeader}>
+              <View style={styles.shieldTitleRow}>
+                <Text style={styles.shieldIcon}>🛡</Text>
+                <View>
+                  <Text style={[styles.shieldTitle, { color: "#93C5FD" }]}>Sacred Streak Shield</Text>
+                  <Text style={[styles.shieldSub, { color: "#64748B" }]}>Earned on full &amp; new moons</Text>
+                </View>
+              </View>
+              <View style={styles.shieldTokensWrap}>
+                {Array.from({ length: Math.min(shieldTokens, 5) }).map((_, i) => (
+                  <View key={i} style={[styles.shieldPip, { backgroundColor: "#38BDF8" }]} />
+                ))}
+                {shieldTokens > 5 && (
+                  <Text style={[styles.shieldOverflow, { color: "#38BDF8" }]}>+{shieldTokens - 5}</Text>
+                )}
+              </View>
+            </View>
+            <Text style={[styles.shieldDesc, { color: "#94A3B8" }]}>
+              {shieldTokens === 0
+                ? "No shields available. Write on a full or new moon to earn one."
+                : `${shieldTokens} shield${shieldTokens === 1 ? "" : "s"} available — protect a missed day from breaking your streak.`}
+            </Text>
+            {shieldTokens > 0 && (
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleUseShield(); }}
+                style={({ pressed }) => [styles.shieldBtn, { opacity: pressed ? 0.75 : 1 }]}
+              >
+                <Text style={styles.shieldBtnText}>🛡 Use a Shield</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
 
         {/* Spiritual Year in Review */}
         {!searchQuery.trim() && entries.length >= 3 && (
@@ -2522,5 +2620,84 @@ const styles = StyleSheet.create({
     width: 1,
     height: 28,
     marginHorizontal: 4,
+  },
+  shieldCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  shieldBanner: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  shieldBannerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  shieldHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  shieldTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  shieldIcon: {
+    fontSize: 26,
+  },
+  shieldTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  shieldSub: {
+    fontSize: 11,
+    letterSpacing: 0.2,
+    marginTop: 1,
+  },
+  shieldTokensWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  shieldPip: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    opacity: 0.9,
+  },
+  shieldOverflow: {
+    fontSize: 11,
+    fontWeight: "700",
+    marginLeft: 2,
+  },
+  shieldDesc: {
+    fontSize: 12,
+    lineHeight: 18,
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+  shieldBtn: {
+    margin: 14,
+    marginTop: 0,
+    backgroundColor: "#1E3A5F",
+    borderRadius: 10,
+    paddingVertical: 11,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#38BDF844",
+  },
+  shieldBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#93C5FD",
+    letterSpacing: 0.3,
   },
 });

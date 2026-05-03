@@ -2,6 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "@mystical_journal_entries";
 const FREEZE_KEY = "@mystical_streak_freezes";
+const SHIELD_TOKENS_KEY = "@mystical_shield_tokens";
+const SHIELD_GRANT_DATE_KEY = "@mystical_shield_grant_date";
 
 export interface DrawingData {
   paths: string[];
@@ -108,6 +110,76 @@ export function formatEntryDate(dateStr: string): string {
 
 function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export async function loadShieldTokens(): Promise<number> {
+  try {
+    const raw = await AsyncStorage.getItem(SHIELD_TOKENS_KEY);
+    if (!raw) return 0;
+    const n = parseInt(raw, 10);
+    return isNaN(n) ? 0 : Math.max(0, n);
+  } catch {
+    return 0;
+  }
+}
+
+export async function addShieldToken(): Promise<number> {
+  const current = await loadShieldTokens();
+  const next = Math.min(current + 1, 9);
+  await AsyncStorage.setItem(SHIELD_TOKENS_KEY, String(next));
+  return next;
+}
+
+export async function spendShieldToken(): Promise<boolean> {
+  const current = await loadShieldTokens();
+  if (current <= 0) return false;
+  await AsyncStorage.setItem(SHIELD_TOKENS_KEY, String(current - 1));
+  return true;
+}
+
+async function getLastShieldGrantDate(): Promise<string | null> {
+  try { return await AsyncStorage.getItem(SHIELD_GRANT_DATE_KEY); }
+  catch { return null; }
+}
+
+async function setLastShieldGrantDate(date: string): Promise<void> {
+  await AsyncStorage.setItem(SHIELD_GRANT_DATE_KEY, date);
+}
+
+export async function checkAndGrantLunarShield(today: Date): Promise<{ granted: boolean; phase: "full" | "new" | null }> {
+  const key = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const last = await getLastShieldGrantDate();
+  if (last === key) return { granted: false, phase: null };
+
+  const moon = getMoonPhaseDataSync(today);
+  const isFullMoon = moon.isMajorPhase && moon.eventType === "full-moon";
+  const isNewMoon = moon.isMajorPhase && moon.eventType === "new-moon";
+  const isDarkMoon = isDarkMoonDay(today);
+
+  if (isFullMoon || isNewMoon || isDarkMoon) {
+    await addShieldToken();
+    await setLastShieldGrantDate(key);
+    return { granted: true, phase: isFullMoon ? "full" : "new" };
+  }
+  return { granted: false, phase: null };
+}
+
+function getMoonPhaseDataSync(date: Date): { isMajorPhase: boolean; eventType: string } {
+  const LUNAR_CYCLE = 29.53058867;
+  const KNOWN_NEW_MOON = new Date("2000-01-06T18:14:00Z").getTime();
+  const elapsed = (date.getTime() - KNOWN_NEW_MOON) / (1000 * 60 * 60 * 24);
+  const phase = ((elapsed % LUNAR_CYCLE) + LUNAR_CYCLE) % LUNAR_CYCLE;
+  const isMajorPhase = phase <= 1.5 || (phase >= 14.25 && phase <= 15.75);
+  const eventType = phase <= 1.5 ? "new-moon" : "full-moon";
+  return { isMajorPhase, eventType };
+}
+
+function isDarkMoonDay(date: Date): boolean {
+  const LUNAR_CYCLE = 29.53058867;
+  const KNOWN_NEW_MOON = new Date("2000-01-06T18:14:00Z").getTime();
+  const elapsed = (date.getTime() - KNOWN_NEW_MOON) / (1000 * 60 * 60 * 24);
+  const phase = ((elapsed % LUNAR_CYCLE) + LUNAR_CYCLE) % LUNAR_CYCLE;
+  return phase >= 27.5 || phase <= 0.5;
 }
 
 export async function loadFreezes(): Promise<string[]> {
