@@ -125,7 +125,7 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
     name = "Full Moon";     isMajorPhase = true; eventType = "full-moon";
   } else if (closest(Q3)) {
     name = "Last Quarter";  isMajorPhase = true; eventType = "last-quarter";
-  } else if (phase < Q1 || distToQ(phase, 0) < Q1) {
+  } else if (phase < Q1) {
     name = "Waxing Crescent"; eventType = "waxing-crescent";
   } else if (phase < Q2) {
     name = "Waxing Gibbous";  eventType = "waxing-gibbous";

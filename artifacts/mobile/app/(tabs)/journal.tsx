@@ -69,6 +69,38 @@ function getSpiritualContextForDate(date: Date): { moonPhase: string; context: s
   return { moonPhase: nm?.name ?? moon.name, context };
 }
 
+function lunarPhaseStreak(entries: JournalEntry[]): number {
+  if (entries.length === 0) return 0;
+  const written = new Set(entries.map((e) => e.date));
+  const keyOf = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const hasNear = (d: Date) => {
+    for (let offset = -1; offset <= 1; offset++) {
+      const c = new Date(d);
+      c.setDate(c.getDate() + offset);
+      if (written.has(keyOf(c))) return true;
+    }
+    return false;
+  };
+  const today = new Date();
+  const cursor = new Date(today);
+  cursor.setHours(12, 0, 0, 0);
+  let streak = 0;
+  let scanned = 0;
+  while (scanned < 300) {
+    if (cursor.getTime() <= today.getTime()) {
+      const m = getMoonPhaseData(cursor);
+      if (m.isMajorPhase) {
+        if (hasNear(cursor)) streak++;
+        else break;
+      }
+    }
+    cursor.setDate(cursor.getDate() - 1);
+    scanned++;
+  }
+  return streak;
+}
+
 function groupEntriesByDate(entries: JournalEntry[]): { date: string; entries: JournalEntry[] }[] {
   const map = new Map<string, JournalEntry[]>();
   for (const e of entries) {
@@ -566,6 +598,7 @@ export default function JournalScreen() {
   const streak = useMemo(() => calculateStreak(entries), [entries]);
   const best = useMemo(() => longestStreak(entries), [entries]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
+  const lunarStreak = useMemo(() => lunarPhaseStreak(entries), [entries]);
 
   const currentPrompts = useMemo(() => {
     const type = getMoonPromptType(entryDate);
@@ -604,20 +637,33 @@ export default function JournalScreen() {
       <View style={[styles.header, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
         <View style={styles.headerTopRow}>
           <Text style={[styles.screenTitle, { color: colors.foreground }]}>Sacred Journal</Text>
-          {streak > 0 && (
-            <View style={[styles.streakBadge, {
-              backgroundColor: wroteToday ? "#D4A84322" : "#D4A84314",
-              borderColor: wroteToday ? "#D4A84366" : "#D4A84333",
-            }]}>
-              <Text style={styles.streakFlame}>{wroteToday ? "🔥" : "✦"}</Text>
-              <Text style={[styles.streakCount, { color: wroteToday ? "#D4A843" : "#A08030" }]}>
-                {streak}
-              </Text>
-              <Text style={[styles.streakDayLabel, { color: wroteToday ? "#D4A843" : "#A08030" }]}>
-                {streak === 1 ? "day" : "days"}
-              </Text>
-            </View>
-          )}
+          <View style={styles.badgeRow}>
+            {streak > 0 && (
+              <View style={[styles.streakBadge, {
+                backgroundColor: wroteToday ? "#D4A84322" : "#D4A84314",
+                borderColor: wroteToday ? "#D4A84366" : "#D4A84333",
+              }]}>
+                <Text style={styles.streakFlame}>{wroteToday ? "🔥" : "✦"}</Text>
+                <Text style={[styles.streakCount, { color: wroteToday ? "#D4A843" : "#A08030" }]}>
+                  {streak}
+                </Text>
+                <Text style={[styles.streakDayLabel, { color: wroteToday ? "#D4A843" : "#A08030" }]}>
+                  {streak === 1 ? "day" : "days"}
+                </Text>
+              </View>
+            )}
+            {lunarStreak >= 2 && (
+              <View style={[styles.lunarStreakBadge, { backgroundColor: "#7C3AED18", borderColor: "#7C3AED55" }]}>
+                <Text style={styles.streakFlame}>
+                  {lunarStreak >= 12 ? "🌕" : lunarStreak >= 8 ? "🌖" : lunarStreak >= 5 ? "🌓" : lunarStreak >= 3 ? "🌒" : "🌑"}
+                </Text>
+                <Text style={[styles.streakCount, { color: "#A78BFA" }]}>{lunarStreak}</Text>
+                <Text style={[styles.streakDayLabel, { color: "#A78BFA" }]}>
+                  {lunarStreak === 1 ? "phase" : "phases"}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.headerBottomRow}>
@@ -1111,7 +1157,21 @@ const styles = StyleSheet.create({
   screenSub: {
     fontSize: 13,
   },
+  badgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  lunarStreakBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
