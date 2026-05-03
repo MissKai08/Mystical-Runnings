@@ -136,6 +136,14 @@ const RESOURCES: Resource[] = [
     color: "#7C3AED",
   },
   {
+    title: "The Quantum Field - Manifestation Meditation",
+    source: "Matt Cooke",
+    category: "Meditation",
+    url: "https://share.google/UNjuWC1JNGpy0ZUod",
+    emoji: "🪐",
+    color: "#A78BFA",
+  },
+  {
     title: "Chani Nicholas",
     source: "Astrology · Linktree",
     category: "Astrology",

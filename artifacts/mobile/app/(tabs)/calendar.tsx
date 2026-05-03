@@ -39,6 +39,8 @@ import {
 import * as Haptics from "expo-haptics";
 import { useUserProfile } from "@/contexts/UserProfileContext";
 import { loadEntries, type JournalEntry } from "@/utils/journalStorage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Modal, TextInput, Alert } from "react-native";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -132,6 +134,30 @@ const REGION_LABEL: Record<HolidayRegion, string> = {
   us: "US", mexico: "Mexico", india: "India", jewish: "Jewish",
 };
 
+interface SpecialCalendarEntry {
+  id: string;
+  title: string;
+  date: string;
+  category: string;
+  note?: string;
+}
+
+const SPECIAL_CALENDAR_KEY = "@mystical_special_calendar_entries";
+
+async function loadSpecialCalendarEntries(): Promise<SpecialCalendarEntry[]> {
+  try {
+    const raw = await AsyncStorage.getItem(SPECIAL_CALENDAR_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as SpecialCalendarEntry[];
+  } catch {
+    return [];
+  }
+}
+
+async function saveSpecialCalendarEntries(entries: SpecialCalendarEntry[]): Promise<void> {
+  await AsyncStorage.setItem(SPECIAL_CALENDAR_KEY, JSON.stringify(entries));
+}
+
 export default function CalendarScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -142,6 +168,15 @@ export default function CalendarScreen() {
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [specialEntries, setSpecialEntries] = useState<SpecialCalendarEntry[]>([]);
+  const [specialModalOpen, setSpecialModalOpen] = useState(false);
+  const [specialTitle, setSpecialTitle] = useState("");
+  const [specialNote, setSpecialNote] = useState("");
+  const [specialDate, setSpecialDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+  const [specialCategory, setSpecialCategory] = useState("Loved One");
   const [enabledRegions, setEnabledRegions] = useState<Set<HolidayRegion>>(
     new Set(ALL_REGIONS)
   );
@@ -162,6 +197,7 @@ export default function CalendarScreen() {
 
   useEffect(() => {
     loadEntries().then(setJournalEntries);
+    loadSpecialCalendarEntries().then(setSpecialEntries);
   }, []);
 
   const journaledDates = useMemo(() => {
@@ -263,6 +299,26 @@ export default function CalendarScreen() {
     setSearchQuery("");
   };
 
+  const handleSaveSpecialEntry = async () => {
+    if (!specialTitle.trim()) {
+      Alert.alert("Missing title", "Add a name or special occasion.");
+      return;
+    }
+    const entry: SpecialCalendarEntry = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title: specialTitle.trim(),
+      date: specialDate,
+      category: specialCategory.trim() || "Loved One",
+      note: specialNote.trim() || undefined,
+    };
+    const next = [entry, ...specialEntries].sort((a, b) => a.date.localeCompare(b.date));
+    setSpecialEntries(next);
+    await saveSpecialCalendarEntries(next);
+    setSpecialModalOpen(false);
+    setSpecialTitle("");
+    setSpecialNote("");
+  };
+
   const openSearch = () => {
     Haptics.selectionAsync();
     setSearchMode(true);
@@ -321,6 +377,9 @@ export default function CalendarScreen() {
             </Pressable>
             <Pressable onPress={handleNext} style={styles.navBtn} hitSlop={8}>
               <Feather name="chevron-right" size={22} color={colors.foreground} />
+            </Pressable>
+            <Pressable onPress={() => setSpecialModalOpen(true)} style={styles.navBtn} hitSlop={8}>
+              <Feather name="plus" size={20} color={colors.foreground} />
             </Pressable>
           </View>
         )}
@@ -437,7 +496,41 @@ export default function CalendarScreen() {
             {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} />}
             {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} />}
             {calView === "almanac" && <AlmanacView />}
+          {specialEntries.length > 0 && calView !== "almanac" && (
+            <View style={styles.specialSection}>
+              <Text style={[styles.specialHeading, { color: colors.mutedForeground }]}>SPECIAL DAYS</Text>
+              {specialEntries.filter((e) => {
+                const [y, m, d] = e.date.split("-").map(Number);
+                const target = new Date(y, m - 1, d);
+                return calView === "month"
+                  ? target.getMonth() === month && target.getFullYear() === year
+                  : calView === "week"
+                    ? target >= weekStart && target <= new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
+                    : calView === "day"
+                      ? target.toDateString() === selectedDate.toDateString()
+                      : true;
+              }).map((e) => (
+                <View key={e.id} style={[styles.specialCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <Text style={[styles.specialDate, { color: "#D4A843" }]}>{e.date}</Text>
+                  <Text style={[styles.specialTitle, { color: colors.foreground }]}>{e.title}</Text>
+                  <Text style={[styles.specialCategory, { color: colors.mutedForeground }]}>{e.category}{e.note ? ` · ${e.note}` : ""}</Text>
+                </View>
+              ))}
+            </View>
+          )}
           </View>
+      <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => setSpecialModalOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Calendar Entry</Text>
+            <TextInput value={specialTitle} onChangeText={setSpecialTitle} placeholder="Birthday, anniversary, transition date..." placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} />
+            <TextInput value={specialCategory} onChangeText={setSpecialCategory} placeholder="Loved One / Ancestor / Family" placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} />
+            <TextInput value={specialNote} onChangeText={setSpecialNote} placeholder="Optional note" placeholderTextColor={colors.mutedForeground} style={[styles.input, { color: colors.foreground, borderColor: colors.border }]} />
+            <Pressable onPress={handleSaveSpecialEntry} style={styles.saveSpecialBtn}><Text style={styles.saveSpecialText}>Save</Text></Pressable>
+            <Pressable onPress={() => setSpecialModalOpen(false)} style={styles.cancelSpecialBtn}><Text style={[styles.cancelSpecialText, { color: colors.mutedForeground }]}>Cancel</Text></Pressable>
+          </View>
+        </View>
+      </Modal>
 
           {/* Legend */}
           <Legend bottomPad={Platform.OS === "web" ? 34 : insets.bottom + 8} />
@@ -561,6 +654,56 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  specialSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    gap: 10,
+  },
+  specialHeading: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  specialCard: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 12,
+    gap: 4,
+  },
+  specialDate: { fontSize: 11, fontWeight: "700" },
+  specialTitle: { fontSize: 15, fontWeight: "700" },
+  specialCategory: { fontSize: 12 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    padding: 20,
+  },
+  modalCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+    gap: 10,
+  },
+  modalTitle: { fontSize: 18, fontWeight: "800" },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  saveSpecialBtn: {
+    backgroundColor: "#D4A843",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  saveSpecialText: { color: "#080714", fontWeight: "800" },
+  cancelSpecialBtn: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  cancelSpecialText: { fontWeight: "700" },
   searchRow: {
     flexDirection: "row",
     alignItems: "center",
