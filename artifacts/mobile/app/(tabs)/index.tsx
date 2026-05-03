@@ -125,6 +125,22 @@ const RESOURCES: Resource[] = [
     emoji: "🌕",
     color: "#A78BFA",
   },
+  {
+    title: "Ifá — A Universal Concept of All Life",
+    source: "True Ifá · Amazon",
+    category: "Book",
+    url: "https://a.co/d/02MUDmOk",
+    emoji: "📖",
+    color: "#D4A843",
+  },
+  {
+    title: "True Ifa Community",
+    source: "Facebook Group",
+    category: "Community",
+    url: "https://www.facebook.com/share/1FfjvAHELn/",
+    emoji: "🌟",
+    color: "#22D3EE",
+  },
 ];
 
 export default function HomeScreen() {

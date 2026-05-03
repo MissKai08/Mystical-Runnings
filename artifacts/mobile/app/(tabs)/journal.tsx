@@ -46,6 +46,7 @@ import {
 import { getDailyWisdom } from "@/constants/dailyWisdom";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
 import { SearchBar } from "@/components/SearchBar";
+import SacredAltar from "@/components/SacredAltar";
 import Svg, { Path } from "react-native-svg";
 
 type InputMode = "text" | "drawing";
@@ -1029,6 +1030,9 @@ export default function JournalScreen() {
           <Text style={[styles.listSeedSource, { color: colors.mutedForeground }]}>— {todayWisdom.source}</Text>
         </View>
       )}
+
+      {/* Sacred Altar */}
+      {!searchQuery.trim() && <SacredAltar />}
 
       {/* Entry list */}
       {entries.length === 0 ? (
