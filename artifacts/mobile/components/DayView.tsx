@@ -14,6 +14,12 @@ import {
   formatDateLong,
   EVENT_COLORS,
 } from "@/constants/spiritualData";
+import {
+  getHolidaysForDate,
+  HOLIDAY_REGION_COLOR,
+  HOLIDAY_REGION_LABEL,
+  HOLIDAY_REGION_FLAG,
+} from "@/constants/religiousHolidays";
 import { MoonPhaseCircle } from "./MoonPhaseCircle";
 import { OseDetailModal } from "./OseDetailModal";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
@@ -34,6 +40,7 @@ export function DayView({ date }: Props) {
   const darkMoon = getDarkMoonForDate(date);
   const eclipse = getEclipseForDate(date);
   const oseDay = getOseDay(date);
+  const holidays = getHolidaysForDate(date);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
 
@@ -323,6 +330,48 @@ export function DayView({ date }: Props) {
           </Text>
         </Pressable>
       )}
+
+      {/* Religious Holidays */}
+      {holidays.map((h, i) => (
+        <Pressable
+          key={`holiday-${i}`}
+          onPress={() => setSelectedEvent({
+            title: h.name,
+            category: HOLIDAY_REGION_LABEL[h.region],
+            color: HOLIDAY_REGION_COLOR[h.region],
+            description: h.description,
+            guidance: h.region === "us"
+              ? "Honor this day with awareness of community, history, and shared purpose."
+              : h.region === "mexico"
+              ? "Celebrate Mexico's living spiritual heritage — a sacred weaving of indigenous, Catholic, and ancestral traditions."
+              : h.region === "india"
+              ? "India's festivals are invitations to align with the divine — through color, fire, prayer, and community."
+              : "Jewish sacred days are portals of memory, renewal, and covenant — a cycle of return and recommitment.",
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            {
+              backgroundColor: colors.card,
+              borderColor: HOLIDAY_REGION_COLOR[h.region] + "44",
+              opacity: pressed ? 0.85 : 1,
+            },
+          ]}
+        >
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>
+              {HOLIDAY_REGION_LABEL[h.region]}
+            </Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+            {HOLIDAY_REGION_FLAG[h.region]} {h.emoji} {h.name}
+          </Text>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]} numberOfLines={3}>
+            {h.description}
+          </Text>
+        </Pressable>
+      ))}
 
       {/* Ose Calendar — always present, the eternal 4-day Yoruba sacred week */}
       <Pressable

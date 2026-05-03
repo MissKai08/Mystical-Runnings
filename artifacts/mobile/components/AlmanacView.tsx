@@ -13,6 +13,12 @@ import {
   EVENT_COLORS,
   EventType,
 } from "@/constants/spiritualData";
+import {
+  RELIGIOUS_HOLIDAYS,
+  HOLIDAY_REGION_COLOR,
+  HOLIDAY_REGION_LABEL,
+  HOLIDAY_REGION_FLAG,
+} from "@/constants/religiousHolidays";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
 
 const MONTH_NAMES = [
@@ -34,9 +40,17 @@ const CATEGORY_LABEL: Record<string, string> = {
   retrograde: "PLANETARY",
   "ifa-festival": "IFA FESTIVAL",
   "ifa-prayer": "IFA PRAYER",
+  us: "U.S. HOLIDAY",
+  mexico: "MEXICAN HOLIDAY",
+  india: "INDIAN HOLIDAY",
+  jewish: "JEWISH HOLIDAY",
 };
 
 const GUIDANCE: Record<string, string> = {
+  us: "Honor this day with awareness of community, history, and shared purpose.",
+  mexico: "Celebrate Mexico's living spiritual heritage — a sacred weaving of indigenous, Catholic, and ancestral traditions.",
+  india: "India's festivals are invitations to align with the divine — through color, fire, prayer, and community.",
+  jewish: "Jewish sacred days are portals of memory, renewal, and covenant — a cycle of return and recommitment.",
   "new-moon":
     "Plant seeds of intention. The new moon is a time for new beginnings, fresh starts, and setting powerful intentions for the cycle ahead.",
   "dark-moon":
@@ -233,6 +247,21 @@ function buildYearEntries(year: number, today: Date): AlmanacEntry[] {
       type: "ifa-festival",
       description: f.description,
       isToday: isSameDay(f.date, today),
+    });
+  }
+
+  // Religious Holidays
+  for (const h of RELIGIOUS_HOLIDAYS) {
+    if (h.date.getFullYear() !== year) continue;
+    entries.push({
+      date: h.date,
+      label: h.name,
+      category: HOLIDAY_REGION_LABEL[h.region],
+      color: HOLIDAY_REGION_COLOR[h.region],
+      emoji: `${HOLIDAY_REGION_FLAG[h.region]} ${h.emoji}`,
+      type: h.region,
+      description: h.description,
+      isToday: isSameDay(h.date, today),
     });
   }
 

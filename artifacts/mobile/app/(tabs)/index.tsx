@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,9 @@ import {
   StyleSheet,
   Platform,
   Pressable,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -26,6 +29,13 @@ import {
   formatDateShort,
 } from "@/constants/spiritualData";
 import { getDailyWisdom } from "@/constants/dailyWisdom";
+import {
+  getHolidaysForDate,
+  HOLIDAY_REGION_COLOR,
+  HOLIDAY_REGION_LABEL,
+  HOLIDAY_REGION_FLAG,
+} from "@/constants/religiousHolidays";
+import { saveIntention, loadIntention } from "@/utils/intentionsStorage";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
@@ -55,11 +65,46 @@ export default function HomeScreen() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [oseModalGroup, setOseModalGroup] = useState<import("@/constants/spiritualData").OseGroup | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
+  const [intentionModalOpen, setIntentionModalOpen] = useState(false);
+  const [intentionDraft, setIntentionDraft] = useState("");
+  const [currentIntention, setCurrentIntention] = useState<string | null>(null);
+
+  const lastNewMoonDate = useMemo(() => {
+    for (let i = 0; i <= 32; i++) {
+      const d = addDays(today, -i);
+      const dm = getDarkMoonForDate(d);
+      const m = getMoonPhaseData(d);
+      if (dm || (m.isMajorPhase && m.eventType === "new-moon")) return d;
+    }
+    return null;
+  }, [today]);
+
+  const isNewMoonWindow = useMemo(() => {
+    if (darkMoon || (moon.isMajorPhase && moon.eventType === "new-moon")) return true;
+    const yesterday = addDays(today, -1);
+    const tomorrow = addDays(today, 1);
+    const dm0 = getDarkMoonForDate(yesterday);
+    const dm1 = getDarkMoonForDate(tomorrow);
+    const m0 = getMoonPhaseData(yesterday);
+    const m1 = getMoonPhaseData(tomorrow);
+    return !!(dm0 || dm1 || (m0.isMajorPhase && m0.eventType === "new-moon") || (m1.isMajorPhase && m1.eventType === "new-moon"));
+  }, [today, darkMoon, moon]);
+
+  const isFullMoonWindow = useMemo(() => {
+    return !!(namedMoon || (moon.isMajorPhase && moon.eventType === "full-moon"));
+  }, [today, namedMoon, moon]);
+
+  useEffect(() => {
+    if (lastNewMoonDate) {
+      loadIntention(lastNewMoonDate).then(setCurrentIntention);
+    }
+  }, [lastNewMoonDate]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const hasAnyAlert = !!(retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse);
+  const todayHolidays = useMemo(() => getHolidaysForDate(today), [today]);
+  const hasAnyAlert = !!(retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || todayHolidays.length > 0);
 
   const weekStrip = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -166,7 +211,7 @@ export default function HomeScreen() {
   const dailyWisdom = useMemo(() => getDailyWisdom(today), [today]);
 
   const upcomingDays = useMemo(() => {
-    const result: { date: Date; events: string[] }[] = [];
+    const result: { date: Date; events: { label: string; dotColor: string }[] }[] = [];
     for (let i = 1; i <= 21; i++) {
       const d = addDays(today, i);
       const m = getMoonPhaseData(d);
@@ -177,26 +222,31 @@ export default function HomeScreen() {
       const nm = getNamedFullMoonForDate(d);
       const dm = getDarkMoonForDate(d);
       const ec = getEclipseForDate(d);
-      const events: string[] = [];
+      const holidays = getHolidaysForDate(d);
+      const events: { label: string; dotColor: string }[] = [];
 
-      if (nm) events.push(nm.name);
+      if (nm) events.push({ label: nm.name, dotColor: EVENT_COLORS["named-moon"] });
       else if (dm) {
-        events.push("Dark Moon — " + (dm.sign ?? ""));
-        if (m.isMajorPhase && m.eventType === "new-moon") events.push("New Moon");
-      } else if (m.isMajorPhase) events.push(m.name);
+        events.push({ label: "Dark Moon" + (dm.sign ? ` — ${dm.sign}` : ""), dotColor: EVENT_COLORS["dark-moon"] });
+        if (m.isMajorPhase && m.eventType === "new-moon") events.push({ label: "New Moon", dotColor: EVENT_COLORS["new-moon"] });
+      } else if (m.isMajorPhase) events.push({ label: m.name, dotColor: EVENT_COLORS["full-moon"] });
 
-      if (ec) events.push(ec.name);
-      if (s) events.push(s.name.split(" —")[0]);
-      if (r && !getMercuryRetrogradeInfo(addDays(today, i - 1))) events.push("Mercury Retrograde begins");
-      if (p) events.push("Ifa Prayer Day");
-      if (f) events.push(f.name);
+      if (ec) events.push({ label: ec.name, dotColor: EVENT_COLORS[ec.type] });
+      if (s) events.push({ label: s.name.split(" —")[0], dotColor: EVENT_COLORS.sabbat });
+      if (r && !getMercuryRetrogradeInfo(addDays(today, i - 1))) events.push({ label: "Mercury Retrograde begins", dotColor: EVENT_COLORS.retrograde });
+      if (p) events.push({ label: "Ifa Prayer Day", dotColor: EVENT_COLORS["ifa-prayer"] });
+      if (f) events.push({ label: f.name, dotColor: EVENT_COLORS["ifa-festival"] });
+      for (const h of holidays) {
+        events.push({ label: `${HOLIDAY_REGION_FLAG[h.region]} ${h.name}`, dotColor: HOLIDAY_REGION_COLOR[h.region] });
+      }
 
       if (events.length > 0) result.push({ date: d, events });
     }
-    return result.slice(0, 7);
+    return result.slice(0, 10);
   }, [today]);
 
   return (
+    <>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={[styles.content, { paddingTop: topPad + 8, paddingBottom: bottomPad + 40 }]}
@@ -296,6 +346,75 @@ export default function HomeScreen() {
         </View>
         <Text style={[styles.weekAheadText, { color: colors.foreground }]}>{weekAheadNarrative}</Text>
       </View>
+
+      {/* Lunar Intention */}
+      {(isNewMoonWindow || isFullMoonWindow || currentIntention) && (
+        <View style={[styles.intentionCard, {
+          backgroundColor: isNewMoonWindow ? "#4C1D9520" : "#A78BFA12",
+          borderColor: isNewMoonWindow ? "#6D28D966" : "#A78BFA55",
+        }]}>
+          <View style={styles.intentionHeader}>
+            <Text style={styles.intentionIcon}>
+              {isNewMoonWindow ? "🌑" : isFullMoonWindow ? "🌕" : "✦"}
+            </Text>
+            <Text style={[styles.intentionLabel, { color: isNewMoonWindow ? "#A78BFA" : "#C4B5FD" }]}>
+              {isNewMoonWindow ? "NEW MOON INTENTION" : isFullMoonWindow ? "FULL MOON REFLECTION" : "LUNAR INTENTION"}
+            </Text>
+          </View>
+
+          {isNewMoonWindow && !currentIntention && (
+            <>
+              <Text style={[styles.intentionPrompt, { color: colors.foreground }]}>
+                What do you wish to call into being this lunar cycle?
+              </Text>
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setIntentionDraft(""); setIntentionModalOpen(true); }}
+                style={styles.intentionBtn}
+              >
+                <Text style={styles.intentionBtnText}>🌱 Plant My Intention</Text>
+              </Pressable>
+            </>
+          )}
+
+          {isNewMoonWindow && currentIntention && (
+            <>
+              <Text style={[styles.intentionText, { color: colors.foreground }]}>"{currentIntention}"</Text>
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setIntentionDraft(currentIntention); setIntentionModalOpen(true); }}
+                style={styles.intentionEditRow}
+              >
+                <Feather name="edit-2" size={11} color="#A78BFA" />
+                <Text style={[styles.intentionEditText, { color: "#A78BFA" }]}>Edit intention</Text>
+              </Pressable>
+            </>
+          )}
+
+          {isFullMoonWindow && !isNewMoonWindow && (
+            <>
+              {currentIntention ? (
+                <>
+                  <Text style={[styles.intentionPromptSub, { color: colors.mutedForeground }]}>Your intention for this cycle:</Text>
+                  <Text style={[styles.intentionText, { color: colors.foreground }]}>"{currentIntention}"</Text>
+                  <Text style={[styles.intentionPrompt, { color: colors.mutedForeground, marginTop: 8 }]}>
+                    The full moon illuminates what has blossomed. How has this intention unfolded?
+                  </Text>
+                </>
+              ) : (
+                <Text style={[styles.intentionPrompt, { color: colors.foreground }]}>
+                  No intention was set for this cycle. The full moon still illuminates — what has emerged in you?
+                </Text>
+              )}
+            </>
+          )}
+
+          {!isNewMoonWindow && !isFullMoonWindow && currentIntention && (
+            <>
+              <Text style={[styles.intentionText, { color: colors.foreground }]}>"{currentIntention}"</Text>
+              <Text style={[styles.intentionPromptSub, { color: colors.mutedForeground }]}>Active intention for this lunar cycle</Text>
+            </>
+          )}
+        </View>
+      )}
 
       {/* This Day in Spirit */}
       <View style={[styles.wisdomCard, { backgroundColor: colors.card, borderColor: "#D4A84333" }]}>
@@ -473,6 +592,40 @@ export default function HomeScreen() {
         </Pressable>
       )}
 
+      {todayHolidays.map((h, i) => (
+        <Pressable
+          key={`h-${i}`}
+          onPress={() => setSelectedEvent({
+            title: h.name,
+            category: HOLIDAY_REGION_LABEL[h.region],
+            color: HOLIDAY_REGION_COLOR[h.region],
+            description: h.description,
+            guidance: h.region === "us"
+              ? "Honor this day with awareness of community, history, and shared purpose."
+              : h.region === "mexico"
+              ? "Celebrate Mexico's living spiritual heritage — a sacred weaving of indigenous, Catholic, and ancestral traditions."
+              : h.region === "india"
+              ? "India's festivals are invitations to align with the divine — through color, fire, prayer, and community."
+              : "Jewish sacred days are portals of memory, renewal, and covenant — a cycle of return and recommitment.",
+          })}
+          style={({ pressed }) => [styles.alertCard, {
+            backgroundColor: HOLIDAY_REGION_COLOR[h.region] + "15",
+            borderColor: HOLIDAY_REGION_COLOR[h.region] + "44",
+            opacity: pressed ? 0.85 : 1,
+          }]}
+        >
+          <View style={[styles.alertDot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]} />
+          <View style={styles.alertText}>
+            <Text style={[styles.alertTitle, { color: colors.foreground }]}>
+              {HOLIDAY_REGION_FLAG[h.region]} {h.emoji} {h.name}
+            </Text>
+            <Text style={[styles.alertDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+              {h.description}
+            </Text>
+          </View>
+        </Pressable>
+      ))}
+
       {!hasAnyAlert && (
         <View style={[styles.alertCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={[styles.alertDot, { backgroundColor: colors.mutedForeground }]} />
@@ -541,30 +694,79 @@ export default function HomeScreen() {
                 <Text style={[styles.upcomingNum, { color: colors.foreground }]}>{date.getDate()}</Text>
               </View>
               <View style={styles.upcomingEvents}>
-                {events.map((e, ei) => {
-                  const isSabbat = SABBATS_CHECK.some((s) => e.startsWith(s));
-                  const isEclipse = e.includes("Eclipse");
-                  const isMoon = e.includes("Moon");
-                  const isRetro = e.includes("Retrograde");
-                  const isPrayer = e.includes("Prayer");
-                  const dotColor = isSabbat ? "#34D399" : isEclipse ? "#F59E0B" : isMoon ? "#A78BFA" : isRetro ? "#F97316" : isPrayer ? "#D4A843" : "#22D3EE";
-                  return (
-                    <View key={ei} style={styles.upcomingEventRow}>
-                      <View style={[styles.upcomingDot, { backgroundColor: dotColor }]} />
-                      <Text style={[styles.upcomingEventText, { color: colors.foreground }]}>{e}</Text>
-                    </View>
-                  );
-                })}
+                {events.map((e, ei) => (
+                  <View key={ei} style={styles.upcomingEventRow}>
+                    <View style={[styles.upcomingDot, { backgroundColor: e.dotColor }]} />
+                    <Text style={[styles.upcomingEventText, { color: colors.foreground }]}>{e.label}</Text>
+                  </View>
+                ))}
               </View>
             </View>
           ))}
         </>
       )}
     </ScrollView>
+
+    {/* Lunar Intention Modal */}
+    <Modal
+      visible={intentionModalOpen}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setIntentionModalOpen(false)}
+    >
+      <Pressable style={styles.intentionOverlay} onPress={() => setIntentionModalOpen(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ width: "100%" }}
+        >
+          <Pressable
+            style={styles.intentionModalSheet}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={styles.intentionModalHandle} />
+            <Text style={styles.intentionModalTitle}>🌑 Lunar Intention</Text>
+            <Text style={styles.intentionModalSub}>
+              Speak what you wish to call into being this lunar cycle.
+            </Text>
+            <TextInput
+              style={styles.intentionInput}
+              value={intentionDraft}
+              onChangeText={setIntentionDraft}
+              placeholder="Write your intention here..."
+              placeholderTextColor="#6D6A8A"
+              multiline
+              autoFocus
+              maxLength={300}
+            />
+            <Text style={styles.intentionCharCount}>{intentionDraft.length}/300</Text>
+            <View style={styles.intentionModalBtns}>
+              <Pressable
+                style={styles.intentionModalCancel}
+                onPress={() => setIntentionModalOpen(false)}
+              >
+                <Text style={styles.intentionModalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.intentionModalSave, { opacity: intentionDraft.trim() ? 1 : 0.5 }]}
+                onPress={async () => {
+                  if (lastNewMoonDate && intentionDraft.trim()) {
+                    await saveIntention(lastNewMoonDate, intentionDraft.trim());
+                    setCurrentIntention(intentionDraft.trim());
+                    setIntentionModalOpen(false);
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  }
+                }}
+              >
+                <Text style={styles.intentionModalSaveText}>✦ Plant Intention</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
+    </>
   );
 }
-
-const SABBATS_CHECK = ["Yule", "Imbolc", "Ostara", "Beltane", "Litha", "Lammas", "Mabon", "Samhain"];
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
@@ -844,5 +1046,151 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     fontStyle: "italic",
+  },
+  intentionCard: {
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  intentionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  intentionIcon: {
+    fontSize: 18,
+  },
+  intentionLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.3,
+  },
+  intentionPrompt: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: "italic",
+    marginBottom: 12,
+  },
+  intentionPromptSub: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    marginBottom: 6,
+  },
+  intentionText: {
+    fontSize: 15,
+    lineHeight: 24,
+    fontStyle: "italic",
+    fontWeight: "500",
+    marginBottom: 10,
+  },
+  intentionBtn: {
+    backgroundColor: "#6D28D9",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  intentionBtnText: {
+    color: "#E9D5FF",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  intentionEditRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  intentionEditText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  intentionOverlay: {
+    flex: 1,
+    backgroundColor: "#00000088",
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  intentionModalSheet: {
+    backgroundColor: "#0F0C24",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: "#6D28D966",
+    width: "100%",
+  },
+  intentionModalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#3D3A5A",
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  intentionModalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#E9D5FF",
+    marginBottom: 6,
+  },
+  intentionModalSub: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    lineHeight: 20,
+    marginBottom: 16,
+    fontStyle: "italic",
+  },
+  intentionInput: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    lineHeight: 24,
+    minHeight: 120,
+    textAlignVertical: "top",
+    backgroundColor: "#6D28D911",
+    borderColor: "#6D28D955",
+    color: "#E9D5FF",
+  },
+  intentionCharCount: {
+    fontSize: 11,
+    color: "#6D6A8A",
+    textAlign: "right",
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  intentionModalBtns: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  intentionModalCancel: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#3D3A5A",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  intentionModalCancelText: {
+    color: "#9CA3AF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  intentionModalSave: {
+    flex: 2,
+    backgroundColor: "#6D28D9",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  intentionModalSaveText: {
+    color: "#E9D5FF",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });
