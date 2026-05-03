@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import {
   addDays,
   getEventsForDate,
@@ -101,11 +103,14 @@ function buildHolidayDetail(h: ReligiousHoliday): EventDetail {
   };
 }
 
+const LOAD_CHUNK = 30;
+
 export function ScheduleView({ startDate, enabledRegions }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
+  const [pastDays, setPastDays] = useState(0);
 
   const schedule = useMemo(() => {
     const entries: {
@@ -113,8 +118,9 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
       events: SpiritualEvent[];
       holidays: ReligiousHoliday[];
       oseDay: OseGroup;
+      isPast: boolean;
     }[] = [];
-    for (let i = 0; i < 60; i++) {
+    for (let i = -pastDays; i < 60; i++) {
       const date = addDays(startDate, i);
       const events = getEventsForDate(date);
       const notable = events.filter(
@@ -126,11 +132,19 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
       );
       const holidays = getHolidaysForDate(date).filter((h) => enabledRegions.has(h.region));
       if (notable.length > 0 || holidays.length > 0) {
-        entries.push({ date, events: notable, holidays, oseDay: getOseDay(date) });
+        entries.push({
+          date,
+          events: notable,
+          holidays,
+          oseDay: getOseDay(date),
+          isPast: date < today && !isSameDay(date, today),
+        });
       }
     }
     return entries;
-  }, [startDate, enabledRegions]);
+  }, [startDate, enabledRegions, pastDays, today]);
+
+  const canLoadMore = pastDays < 180;
 
   return (
     <>
@@ -139,21 +153,47 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {schedule.map(({ date, events, holidays, oseDay }, i) => {
+        {/* Load Earlier button */}
+        {canLoadMore && (
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setPastDays((p) => Math.min(p + LOAD_CHUNK, 180));
+            }}
+            style={({ pressed }) => [
+              styles.loadEarlierBtn,
+              { borderColor: colors.border, opacity: pressed ? 0.6 : 1 },
+            ]}
+          >
+            <Feather name="chevron-up" size={13} color={colors.mutedForeground} />
+            <Text style={[styles.loadEarlierText, { color: colors.mutedForeground }]}>
+              {pastDays === 0 ? "Load earlier dates" : `Load ${LOAD_CHUNK} more days earlier`}
+            </Text>
+          </Pressable>
+        )}
+
+        {schedule.map(({ date, events, holidays, oseDay, isPast }, i) => {
           const isToday = isSameDay(date, today);
           return (
-            <View key={i} style={styles.entry}>
+            <View
+              key={i}
+              style={[styles.entry, isPast && styles.entryPast]}
+            >
               <View style={styles.dateCol}>
-                <Text style={[styles.dateLabel, { color: isToday ? colors.primary : colors.mutedForeground }]}>
+                {isPast && (
+                  <Text style={[styles.pastLabel, { color: colors.mutedForeground }]}>PAST</Text>
+                )}
+                <Text style={[styles.dateLabel, { color: isToday ? colors.primary : isPast ? colors.mutedForeground : colors.mutedForeground }]}>
                   {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
                 </Text>
                 <View
                   style={[
                     styles.dateCircle,
                     isToday && { backgroundColor: colors.primary },
+                    isPast && styles.dateCirclePast,
                   ]}
                 >
-                  <Text style={[styles.dateNumber, { color: isToday ? colors.primaryForeground : colors.foreground }]}>
+                  <Text style={[styles.dateNumber, { color: isToday ? colors.primaryForeground : isPast ? colors.mutedForeground : colors.foreground }]}>
                     {date.getDate()}
                   </Text>
                 </View>
@@ -161,18 +201,18 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
                   {date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </View>
-              <View style={styles.eventsCol}>
+              <View style={[styles.eventsCol, isPast && styles.eventsColPast]}>
                 {events.map((event, ei) => (
                   <Pressable
                     key={ei}
                     onPress={() => setSelectedEvent(buildEventDetail(event))}
                     style={({ pressed }) => [
                       styles.eventCard,
-                      { backgroundColor: colors.card, borderLeftColor: event.color, opacity: pressed ? 0.82 : 1 },
+                      { backgroundColor: colors.card, borderLeftColor: isPast ? colors.border : event.color, opacity: pressed ? 0.82 : 1 },
                     ]}
                   >
                     <View style={styles.eventCardHeader}>
-                      <Text style={[styles.eventName, { color: colors.foreground }]}>{event.name}</Text>
+                      <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>{event.name}</Text>
                       <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
                     </View>
                     <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
@@ -190,18 +230,18 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
                       styles.holidayCard,
                       {
                         backgroundColor: colors.card,
-                        borderLeftColor: HOLIDAY_REGION_COLOR[h.region],
+                        borderLeftColor: isPast ? colors.border : HOLIDAY_REGION_COLOR[h.region],
                         opacity: pressed ? 0.82 : 1,
                       },
                     ]}
                   >
                     <View style={styles.eventCardHeader}>
-                      <Text style={[styles.holidayRegionLabel, { color: HOLIDAY_REGION_COLOR[h.region] }]}>
+                      <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : HOLIDAY_REGION_COLOR[h.region] }]}>
                         {HOLIDAY_REGION_FLAG[h.region]} {HOLIDAY_REGION_LABEL[h.region]}
                       </Text>
                       <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
                     </View>
-                    <Text style={[styles.eventName, { color: colors.foreground }]}>
+                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>
                       {h.emoji} {h.name}
                     </Text>
                     <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
@@ -216,12 +256,12 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
                   style={({ pressed }) => [
                     styles.eventCard,
                     styles.oseCard,
-                    { backgroundColor: colors.card, borderLeftColor: oseDay.color, opacity: pressed ? 0.82 : 1 },
+                    { backgroundColor: colors.card, borderLeftColor: isPast ? colors.border : oseDay.color, opacity: pressed ? 0.82 : 1 },
                   ]}
                 >
                   <View style={styles.eventCardHeader}>
-                    <View style={[styles.oseDot, { backgroundColor: oseDay.color }]} />
-                    <Text style={[styles.eventName, { color: colors.foreground }]}>{oseDay.name}</Text>
+                    <View style={[styles.oseDot, { backgroundColor: isPast ? colors.mutedForeground : oseDay.color }]} />
+                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>{oseDay.name}</Text>
                     <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
                   </View>
                   <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
@@ -247,16 +287,41 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 16,
     paddingBottom: 40,
+    paddingTop: 8,
+  },
+  loadEarlierBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  loadEarlierText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.2,
   },
   entry: {
     flexDirection: "row",
     marginBottom: 12,
     gap: 12,
   },
+  entryPast: {
+    opacity: 0.55,
+  },
   dateCol: {
     width: 44,
     alignItems: "center",
     paddingTop: 4,
+  },
+  pastLabel: {
+    fontSize: 7,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+    marginBottom: 1,
   },
   dateLabel: {
     fontSize: 9,
@@ -271,6 +336,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  dateCirclePast: {
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
+  },
   dateNumber: {
     fontSize: 14,
     fontWeight: "700",
@@ -283,6 +352,9 @@ const styles = StyleSheet.create({
   eventsCol: {
     flex: 1,
     gap: 6,
+  },
+  eventsColPast: {
+    gap: 5,
   },
   eventCard: {
     borderRadius: 10,

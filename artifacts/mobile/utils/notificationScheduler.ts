@@ -159,6 +159,72 @@ function moonEmojiForType(type: string): string {
   return "🌙";
 }
 
+const JOURNAL_PROMPTS: Record<string, string> = {
+  "new-moon": "What seeds of intention are you planting as this new cycle begins?",
+  "first-quarter": "What obstacle is asking you to push through it right now?",
+  "full-moon": "What is illuminated in your life right now that you can no longer look away from?",
+  "named-moon": "What ancestral or seasonal wisdom is available to you in this moment?",
+  "last-quarter": "What habit, belief, or pattern are you truly ready to release before the next cycle?",
+  "waning-crescent": "As this cycle closes, what do you need to rest, restore, or surrender?",
+  "dark-moon": "What lives in your shadow that is asking to be witnessed — not fixed, just seen?",
+};
+
+function getJournalPromptEvents(settings: NotificationSettings): SchedulableEvent[] {
+  if (!settings.types.journalPrompt) return [];
+  const now = new Date();
+  const events: SchedulableEvent[] = [];
+
+  for (const m of NAMED_FULL_MOONS) {
+    if (m.date <= now) continue;
+    const trigger = new Date(m.date);
+    trigger.setHours(8, 0, 0, 0);
+    events.push({
+      name: `🌕 ${m.name} · Journal Prompt`,
+      date: trigger,
+      body: JOURNAL_PROMPTS["named-moon"],
+    });
+  }
+
+  for (const m of DARK_MOONS) {
+    if (m.date <= now) continue;
+    const trigger = new Date(m.date);
+    trigger.setHours(8, 0, 0, 0);
+    events.push({
+      name: `🌑 Dark Moon · Journal Prompt`,
+      date: trigger,
+      body: JOURNAL_PROMPTS["dark-moon"],
+    });
+  }
+
+  const cursor = new Date(now);
+  cursor.setHours(12, 0, 0, 0);
+  const cutoff = new Date(now.getTime() + 120 * MS_PER_DAY);
+  const namedKeys = new Set(NAMED_FULL_MOONS.map((m) => `${m.date.getFullYear()}-${m.date.getMonth()}-${m.date.getDate()}`));
+  const darkKeys = new Set(DARK_MOONS.map((m) => `${m.date.getFullYear()}-${m.date.getMonth()}-${m.date.getDate()}`));
+
+  while (cursor <= cutoff) {
+    const m = getMoonPhaseData(cursor);
+    if (m.isMajorPhase) {
+      const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+      if (!namedKeys.has(k) && !darkKeys.has(k)) {
+        const trigger = new Date(cursor);
+        trigger.setHours(8, 0, 0, 0);
+        if (trigger > now) {
+          const prompt = JOURNAL_PROMPTS[m.eventType] ?? JOURNAL_PROMPTS["full-moon"];
+          events.push({
+            name: `${moonEmojiForType(m.eventType)} ${m.name} · Journal Prompt`,
+            date: trigger,
+            body: prompt,
+          });
+        }
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return events;
+}
+
 function getDailyBriefingItems(date: Date, settings: NotificationSettings): string[] {
   const items: string[] = [];
   const nm = getNamedFullMoonForDate(date);
@@ -341,18 +407,18 @@ export async function scheduleAllNotifications(
   if (!granted) return 0;
 
   const now = new Date();
-  const events = getFutureEvents(settings);
+  const events = [...getFutureEvents(settings), ...getJournalPromptEvents(settings)];
   let scheduled = 0;
 
   // iOS allows max 64 local notifications.
   // Reserve 2 slots for repeating triggers (Ifa prayer day + potential future repeats).
   const sorted = events
     .map((e) => {
-      // Ose transition events already have their exact notify time as `date`;
-      // major phase events already have their date set to midnight of the event day;
-      // for everything else, offset by advanceDays.
+      // Ose transitions and journal prompts already carry their exact notify time;
+      // major phase events have midnight of the event day; everything else offsets by advanceDays.
       const isOse = e.name.startsWith("✦ Ose");
-      const useRaw = isOse;
+      const isPrompt = e.name.includes("· Journal Prompt");
+      const useRaw = isOse || isPrompt;
       return { ...e, trigger: useRaw ? e.date : notifDate(e.date, settings.advanceDays) };
     })
     .filter((e) => e.trigger > now)

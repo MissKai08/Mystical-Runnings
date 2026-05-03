@@ -113,6 +113,13 @@ const BRIEFING_ROWS: TypeRow[] = [
     color: "#D4A843",
     emoji: "🌅",
   },
+  {
+    key: "journalPrompt",
+    label: "Moon Phase Journal Prompt",
+    description: "8 AM writing prompt delivered on every moon phase day",
+    color: "#A78BFA",
+    emoji: "✍️",
+  },
 ];
 
 const HOLIDAY_ROWS: TypeRow[] = [
