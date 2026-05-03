@@ -43,8 +43,16 @@ import { TodayWidget } from "@/components/TodayWidget";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
 import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
+import MoonWaterModal from "@/components/MoonWaterModal";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+
+const PHASE_EMOJI: Record<string, string> = {
+  "dark-moon": "🌑", "new-moon": "🌑", "waxing-crescent": "🌒",
+  "first-quarter": "🌓", "waxing-gibbous": "🌔", "full-moon": "🌕",
+  "named-moon": "🌕", "waning-gibbous": "🌖", "last-quarter": "🌗",
+  "waning-crescent": "🌘",
+};
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
@@ -195,6 +203,7 @@ export default function HomeScreen() {
   const [intentionModalOpen, setIntentionModalOpen] = useState(false);
   const [intentionDraft, setIntentionDraft] = useState("");
   const [currentIntention, setCurrentIntention] = useState<string | null>(null);
+  const [moonWaterOpen, setMoonWaterOpen] = useState(false);
 
   const lastNewMoonDate = useMemo(() => {
     for (let i = 0; i <= 32; i++) {
@@ -419,6 +428,24 @@ export default function HomeScreen() {
           </View>
         )}
         <LunarProgressBar moonData={moon} />
+
+        {/* Moon Water Ritual button */}
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setMoonWaterOpen(true); }}
+          style={[styles.moonWaterBtn, {
+            backgroundColor: (moon.eventType === "full-moon" || moon.eventType === "named-moon") ? "#D4A84318" : "#7C3AED14",
+            borderColor: (moon.eventType === "full-moon" || moon.eventType === "named-moon") ? "#D4A84355" : "#7C3AED44",
+          }]}
+        >
+          <Text style={styles.moonWaterBtnEmoji}>💧</Text>
+          <View style={styles.moonWaterBtnCenter}>
+            <Text style={[styles.moonWaterBtnLabel, {
+              color: (moon.eventType === "full-moon" || moon.eventType === "named-moon") ? "#D4A843" : "#A78BFA",
+            }]}>MOON WATER RITUAL</Text>
+            <Text style={[styles.moonWaterBtnPhase, { color: colors.foreground }]}>{moon.name}</Text>
+          </View>
+          <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+        </Pressable>
       </View>
 
       {/* This Week at a Glance */}
@@ -805,6 +832,13 @@ export default function HomeScreen() {
       </View>
       <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
       <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      <MoonWaterModal
+        visible={moonWaterOpen}
+        onClose={() => setMoonWaterOpen(false)}
+        phase={moon.eventType}
+        phaseName={moon.name}
+        phaseEmoji={PHASE_EMOJI[moon.eventType] ?? "🌕"}
+      />
 
       {/* Upcoming */}
       {upcomingDays.length > 0 && (
@@ -1403,4 +1437,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
   },
+  moonWaterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 12,
+  },
+  moonWaterBtnEmoji: { fontSize: 22 },
+  moonWaterBtnCenter: { flex: 1, gap: 2 },
+  moonWaterBtnLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  moonWaterBtnPhase: { fontSize: 15, fontWeight: "700" },
 });
