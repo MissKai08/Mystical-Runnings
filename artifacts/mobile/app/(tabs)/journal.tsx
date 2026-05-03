@@ -42,6 +42,7 @@ import {
   getIfaFestivalForDate,
   getDailyOdu,
   getOseDay,
+  ODU_REFLECTIONS,
 } from "@/constants/spiritualData";
 import { getDailyWisdom } from "@/constants/dailyWisdom";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
@@ -858,6 +859,12 @@ export default function JournalScreen() {
     [oseDay]
   );
 
+  const entryOdu = useMemo(() => getDailyOdu(entryDate), [entryDate]);
+  const oduReflection = useMemo(
+    () => ODU_REFLECTIONS[entryOdu.name] ?? "How does the energy of this Odu show up in your life today?",
+    [entryOdu]
+  );
+
   const filteredEntries = entries.filter((e) => {
     if (moodFilter && !e.mood?.includes(moodFilter)) return false;
     if (!searchQuery.trim()) return true;
@@ -1238,6 +1245,41 @@ export default function JournalScreen() {
                 <Feather name="edit-3" size={12} color="#D4A843" />
                 <Text style={[styles.promptUseBtnText, { color: "#D4A843" }]}>
                   {textValue.trim().length > 0 ? "Prompt used" : "Use this prompt"}
+                </Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* Odu Reflection Prompt */}
+          {inputMode === "text" && (
+            <View style={[styles.oduPromptCard, { backgroundColor: "#D4A84309", borderColor: "#D4A84344" }]}>
+              <View style={styles.oduPromptHeader}>
+                <View style={styles.oduPromptTitleRow}>
+                  <Text style={[styles.oduPromptLabel, { color: "#D4A843" }]}>✦ IFA CONSULTATION</Text>
+                  <Text style={[styles.oduPromptOduName, { color: colors.mutedForeground }]}>
+                    {entryOdu.symbol} · {entryOdu.name}
+                  </Text>
+                </View>
+              </View>
+              <Text style={[styles.oduPromptText, { color: colors.foreground }]}>
+                {oduReflection}
+              </Text>
+              <Text style={[styles.oduPromptOrisha, { color: colors.mutedForeground }]}>
+                {entryOdu.orisha} · {entryOdu.element}
+              </Text>
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  if (textValue.trim().length === 0)
+                    setTextValue(oduReflection + "\n\n");
+                }}
+                style={[
+                  styles.oduPromptUseBtn,
+                  { borderColor: "#D4A84344", opacity: textValue.trim().length > 0 ? 0.4 : 1 },
+                ]}
+              >
+                <Text style={[styles.oduPromptUseBtnText, { color: "#D4A843" }]}>
+                  {textValue.trim().length > 0 ? "Used as prompt" : "Begin with this question"}
                 </Text>
               </Pressable>
             </View>
@@ -2012,6 +2054,58 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   seedUseBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  oduPromptCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 2,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 6,
+  },
+  oduPromptHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+  },
+  oduPromptTitleRow: {
+    gap: 2,
+    flex: 1,
+  },
+  oduPromptLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  oduPromptOduName: {
+    fontSize: 11,
+    fontFamily: "monospace",
+    letterSpacing: 0.3,
+  },
+  oduPromptText: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontStyle: "italic",
+    fontWeight: "500",
+  },
+  oduPromptOrisha: {
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+  oduPromptUseBtn: {
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  oduPromptUseBtnText: {
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.2,

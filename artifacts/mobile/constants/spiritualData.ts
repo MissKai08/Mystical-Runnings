@@ -617,6 +617,25 @@ export function getDailyOdu(date: Date): OduEntry {
   return ODU_LIST[(dayOfYear - 1) % 16];
 }
 
+export const ODU_REFLECTIONS: Record<string, string> = {
+  "Eji Ogbe":     "Where in your life are you being called to begin again with full clarity and trust?",
+  "Oyeku Meji":   "What must end today so something greater can be born? What are you being invited to release?",
+  "Iwori Meji":   "What truth is your inner voice whispering that you have not yet fully heeded?",
+  "Odi Meji":     "What is quietly forming beneath the surface of your life right now that you cannot yet see?",
+  "Irosun Meji":  "Where are you pouring your vital energy, and is it returning to you tenfold?",
+  "Owonrin Meji": "Where is the unexpected showing up in your life, and what blessing might it be carrying?",
+  "Obara Meji":   "How can you lead with greater generosity today — in thought, word, or action?",
+  "Okanran Meji": "What challenge are you being tempered by, and what strength is it forging in you?",
+  "Ogunda Meji":  "What path needs clearing? What one decisive action would move you forward today?",
+  "Osa Meji":     "Where do you need to trust your instincts right now, even without full certainty?",
+  "Ika Meji":     "Where in your life might your actions be out of alignment with your deepest values?",
+  "Oturupon Meji":"What are you willing to release or sacrifice to receive the blessing waiting on the other side?",
+  "Otura Meji":   "Which relationship or commitment in your life most needs your intentional care today?",
+  "Irete Meji":   "Where are you rushing something that needs the long, patient view of your ancestors?",
+  "Ose Meji":     "What are you refusing to receive? Where are you blocking the flow of abundance into your life?",
+  "Ofun Meji":    "What cycle in your life is completing? What would it look like to give thanks for the whole arc?",
+};
+
 export function getMonthGrid(year: number, month: number): (Date | null)[][] {
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
