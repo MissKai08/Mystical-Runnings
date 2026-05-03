@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
-  Linking,
   Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -39,6 +38,8 @@ import {
   HOLIDAY_REGION_FLAG,
 } from "@/constants/religiousHolidays";
 import { saveIntention, loadIntention } from "@/utils/intentionsStorage";
+import { loadUserProfile, saveUserProfile, isTodayBirthday, UserProfile } from "@/utils/userProfile";
+import { loadFontScaleIndex, saveFontScaleIndex, fontScaleFromIndex, MAX_SCALE_INDEX, DEFAULT_SCALE_INDEX } from "@/utils/fontScale";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { LunarProgressBar } from "@/components/LunarProgressBar";
 import { TodayWidget } from "@/components/TodayWidget";
@@ -61,129 +62,6 @@ const MONTH_NAMES = [
   "July","August","September","October","November","December",
 ];
 
-interface Resource {
-  title: string;
-  source: string;
-  category: string;
-  url: string;
-  emoji: string;
-  color: string;
-}
-
-const RESOURCES: Resource[] = [
-  {
-    title: "Yoruba Culture",
-    source: "256 Healing Arts",
-    category: "Education",
-    url: "https://www.256healingarts.com/yoruba-culture",
-    emoji: "📚",
-    color: "#D4A843",
-  },
-  {
-    title: "Open Educational Resources for Ifa",
-    source: "ATLA LibGuides",
-    category: "Academic",
-    url: "https://atla.libguides.com/OER_Ifa",
-    emoji: "🎓",
-    color: "#7C3AED",
-  },
-  {
-    title: "Orisha Journey",
-    source: "Daydream Alston",
-    category: "Community",
-    url: "https://www.daydreamalston.com/orisha-journey",
-    emoji: "✨",
-    color: "#22D3EE",
-  },
-  {
-    title: "Got2B Oshun",
-    source: "got2boshun.org",
-    category: "Organization",
-    url: "https://www.got2boshun.org/",
-    emoji: "🌊",
-    color: "#F59E0B",
-  },
-  {
-    title: "Got2B Oshun — Tools & Supplies",
-    source: "Amazon Shop",
-    category: "Shop",
-    url: "https://www.amazon.com/shop/got2boshun/list/P4NS1RBG4TH6?ref_=cm_sw_r_apann_aipsflist_aipsfgot2boshun_K507X0QXMZWQ33BBQ998",
-    emoji: "🛒",
-    color: "#F59E0B",
-  },
-  {
-    title: "Creating an Orisha Altar",
-    source: "Original Botanica",
-    category: "Guide",
-    url: "https://originalbotanica.com/blog/creating-an-orisha-altar-",
-    emoji: "🕯️",
-    color: "#34D399",
-  },
-  {
-    title: "2026 Wheel of the Year Calendar",
-    source: "Witch on Fire · Patheos",
-    category: "Paganism",
-    url: "https://www.patheos.com/blogs/witchonfire/2025/08/2026-wheel-of-the-year-astrological-calendar-for-witches/",
-    emoji: "🌿",
-    color: "#34D399",
-  },
-  {
-    title: "Moon Phases 2026 — Lunar Calendar",
-    source: "Google Calendar",
-    category: "Moon",
-    url: "https://share.google/m8xoPWktS3Tdrzmnz",
-    emoji: "🌕",
-    color: "#A78BFA",
-  },
-  {
-    title: "Ifá — A Universal Concept of All Life",
-    source: "True Ifá · Amazon",
-    category: "Book",
-    url: "https://a.co/d/02MUDmOk",
-    emoji: "📖",
-    color: "#D4A843",
-  },
-  {
-    title: "True Ifa Community",
-    source: "Facebook Group",
-    category: "Community",
-    url: "https://www.facebook.com/share/1FfjvAHELn/",
-    emoji: "🌟",
-    color: "#22D3EE",
-  },
-  {
-    title: "Ose Calendar — Sacred Ifa Days",
-    source: "Ashe Soul",
-    category: "Calendar",
-    url: "https://www.ashesoul.com/osecalendar",
-    emoji: "📅",
-    color: "#F59E0B",
-  },
-  {
-    title: "The Old Farmer's Almanac",
-    source: "Gardening · Weather · Moon · Calendar",
-    category: "Calendar",
-    url: "https://share.google/vXQaMUABYeyaFhQVQ",
-    emoji: "🌾",
-    color: "#22C55E",
-  },
-  {
-    title: "The Witches' Almanac",
-    source: "Witches' Almanac Ltd.",
-    category: "Reference",
-    url: "https://share.google/1Fz3hZ0zBkQJiacxy",
-    emoji: "🧙",
-    color: "#7C3AED",
-  },
-  {
-    title: "Chani Nicholas",
-    source: "Astrology · Linktree",
-    category: "Astrology",
-    url: "https://linktr.ee/chaninicholas",
-    emoji: "⭐",
-    color: "#A78BFA",
-  },
-];
 
 export default function HomeScreen() {
   const colors = useColors();
@@ -206,6 +84,13 @@ export default function HomeScreen() {
   const [intentionDraft, setIntentionDraft] = useState("");
   const [currentIntention, setCurrentIntention] = useState<string | null>(null);
   const [moonWaterOpen, setMoonWaterOpen] = useState(false);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileDraft, setProfileDraft] = useState({ firstName: "", birthMonth: "", birthDay: "" });
+  const [scaleIdx, setScaleIdx] = useState(DEFAULT_SCALE_INDEX);
+  const fontScale = useMemo(() => fontScaleFromIndex(scaleIdx), [scaleIdx]);
+  const fs = useCallback((n: number) => Math.round(n * fontScale), [fontScale]);
+  const isBirthday = useMemo(() => profile ? isTodayBirthday(profile, today) : false, [profile, today]);
 
   const lastNewMoonDate = useMemo(() => {
     for (let i = 0; i <= 32; i++) {
@@ -237,6 +122,30 @@ export default function HomeScreen() {
       loadIntention(lastNewMoonDate).then(setCurrentIntention);
     }
   }, [lastNewMoonDate]);
+
+  useEffect(() => {
+    loadUserProfile().then(setProfile);
+    loadFontScaleIndex().then(setScaleIdx);
+  }, []);
+
+  const handleScaleChange = useCallback((delta: number) => {
+    setScaleIdx((prev) => {
+      const next = Math.max(0, Math.min(MAX_SCALE_INDEX, prev + delta));
+      saveFontScaleIndex(next);
+      return next;
+    });
+    Haptics.selectionAsync();
+  }, []);
+
+  const handleSaveProfile = useCallback(async () => {
+    const month = parseInt(profileDraft.birthMonth, 10);
+    const day = parseInt(profileDraft.birthDay, 10);
+    if (!profileDraft.firstName.trim() || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) return;
+    const p: UserProfile = { firstName: profileDraft.firstName.trim(), birthMonth: month, birthDay: day };
+    await saveUserProfile(p);
+    setProfile(p);
+    setProfileOpen(false);
+  }, [profileDraft]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -397,15 +306,56 @@ export default function HomeScreen() {
           <Text style={[styles.greeting, { color: colors.mutedForeground }]}>
             {MONTH_NAMES[today.getMonth()]} {today.getDate()}, {today.getFullYear()}
           </Text>
-          <Text style={[styles.appName, { color: colors.foreground }]}>Mystical Runnings</Text>
+          {isBirthday && profile ? (
+            <Text style={[styles.appName, { color: "#D4A843", fontSize: fs(22) }]}>
+              🎂 Happy Birthday, {profile.firstName}!
+            </Text>
+          ) : (
+            <Text style={[styles.appName, { color: colors.foreground, fontSize: fs(26) }]}>
+              {profile ? `Welcome, ${profile.firstName}` : "Mystical Runnings"}
+            </Text>
+          )}
         </View>
-        <Pressable
-          onPress={() => { Haptics.selectionAsync(); setNotifOpen(true); }}
-          style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-          hitSlop={8}
-        >
-          <Feather name="bell" size={24} color="#D4A843" />
-        </Pressable>
+        <View style={styles.headerBtns}>
+          <Pressable
+            onPress={() => handleScaleChange(-1)}
+            disabled={scaleIdx === 0}
+            style={[styles.scaleBtn, { backgroundColor: colors.card, borderColor: colors.border, opacity: scaleIdx === 0 ? 0.35 : 1 }]}
+            hitSlop={6}
+          >
+            <Text style={[styles.scaleBtnText, { color: colors.mutedForeground }]}>A−</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => handleScaleChange(1)}
+            disabled={scaleIdx === MAX_SCALE_INDEX}
+            style={[styles.scaleBtn, { backgroundColor: colors.card, borderColor: colors.border, opacity: scaleIdx === MAX_SCALE_INDEX ? 0.35 : 1 }]}
+            hitSlop={6}
+          >
+            <Text style={[styles.scaleBtnText, { color: colors.mutedForeground }]}>A+</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setProfileDraft({
+                firstName: profile?.firstName ?? "",
+                birthMonth: profile ? String(profile.birthMonth) : "",
+                birthDay: profile ? String(profile.birthDay) : "",
+              });
+              setProfileOpen(true);
+            }}
+            style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            hitSlop={8}
+          >
+            <Feather name="user" size={20} color={colors.mutedForeground} />
+          </Pressable>
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setNotifOpen(true); }}
+            style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: "#D4A84366" }]}
+            hitSlop={8}
+          >
+            <Feather name="bell" size={20} color="#D4A843" />
+          </Pressable>
+        </View>
       </View>
 
       <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
@@ -895,37 +845,6 @@ export default function HomeScreen() {
           ))}
         </>
       )}
-      {/* Resources */}
-      <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 8 }]}>Resources</Text>
-      {RESOURCES.map((r, i) => (
-        <Pressable
-          key={i}
-          onPress={() => { Haptics.selectionAsync(); Linking.openURL(r.url); }}
-          style={({ pressed }) => [
-            styles.resourceCard,
-            {
-              backgroundColor: colors.card,
-              borderColor: colors.border,
-              opacity: pressed ? 0.78 : 1,
-            },
-          ]}
-        >
-          <View style={[styles.resourceEmojiBadge, { backgroundColor: r.color + "1A" }]}>
-            <Text style={styles.resourceEmoji}>{r.emoji}</Text>
-          </View>
-          <View style={styles.resourceText}>
-            <View style={styles.resourceTitleRow}>
-              <Text style={[styles.resourceTitle, { color: colors.foreground }]} numberOfLines={2}>{r.title}</Text>
-              <View style={[styles.resourceCategoryBadge, { backgroundColor: r.color + "22" }]}>
-                <Text style={[styles.resourceCategory, { color: r.color }]}>{r.category}</Text>
-              </View>
-            </View>
-            <Text style={[styles.resourceSource, { color: colors.mutedForeground }]}>{r.source}</Text>
-          </View>
-          <Feather name="external-link" size={14} color={colors.mutedForeground} style={{ alignSelf: "center" }} />
-        </Pressable>
-      ))}
-
     </ScrollView>
 
     {/* Lunar Intention Modal */}
@@ -985,6 +904,77 @@ export default function HomeScreen() {
         </KeyboardAvoidingView>
       </Pressable>
     </Modal>
+
+    {/* Profile / Personalization Modal */}
+    <Modal
+      visible={profileOpen}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setProfileOpen(false)}
+    >
+      <Pressable style={styles.intentionOverlay} onPress={() => setProfileOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
+          <Pressable style={styles.intentionModalSheet} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.intentionModalHandle} />
+            <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
+            <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
+              Personalize your experience. Enter your first name and birthday so the app can greet you on your special day.
+            </Text>
+
+            <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>First Name</Text>
+            <TextInput
+              style={[styles.intentionInput, { height: 44, marginBottom: 12 }]}
+              value={profileDraft.firstName}
+              onChangeText={(v) => setProfileDraft((d) => ({ ...d, firstName: v }))}
+              placeholder="Your first name"
+              placeholderTextColor="#6D6A8A"
+              autoCapitalize="words"
+              autoCorrect={false}
+              maxLength={40}
+            />
+
+            <View style={styles.profileBirthRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Month (1–12)</Text>
+                <TextInput
+                  style={[styles.intentionInput, { height: 44 }]}
+                  value={profileDraft.birthMonth}
+                  onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthMonth: v.replace(/[^0-9]/g, "") }))}
+                  placeholder="e.g. 7"
+                  placeholderTextColor="#6D6A8A"
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Day (1–31)</Text>
+                <TextInput
+                  style={[styles.intentionInput, { height: 44 }]}
+                  value={profileDraft.birthDay}
+                  onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthDay: v.replace(/[^0-9]/g, "") }))}
+                  placeholder="e.g. 14"
+                  placeholderTextColor="#6D6A8A"
+                  keyboardType="number-pad"
+                  maxLength={2}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.intentionModalBtns, { marginTop: 16 }]}>
+              <Pressable style={styles.intentionModalCancel} onPress={() => setProfileOpen(false)}>
+                <Text style={styles.intentionModalCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.intentionModalSave, { opacity: profileDraft.firstName.trim() ? 1 : 0.5 }]}
+                onPress={handleSaveProfile}
+              >
+                <Text style={styles.intentionModalSaveText}>✦ Save Profile</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </KeyboardAvoidingView>
+      </Pressable>
+    </Modal>
     </>
   );
 }
@@ -998,15 +988,45 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginBottom: 20,
   },
-  bellBtn: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    borderWidth: 1.5,
-    borderColor: "#D4A84366",
+  headerBtns: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 4,
+    flexShrink: 0,
+  },
+  scaleBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+    minWidth: 34,
+  },
+  scaleBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  profileLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.4,
+    marginBottom: 6,
+    textTransform: "uppercase",
+  },
+  profileBirthRow: {
+    flexDirection: "row",
+    gap: 12,
   },
   greeting: {
     fontSize: 13,
@@ -1479,59 +1499,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
-  },
-  resourceCard: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 12,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-  },
-  resourceEmojiBadge: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  },
-  resourceEmoji: {
-    fontSize: 22,
-  },
-  resourceText: {
-    flex: 1,
-    gap: 3,
-  },
-  resourceTitleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  resourceTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    flex: 1,
-    lineHeight: 19,
-  },
-  resourceCategoryBadge: {
-    borderRadius: 5,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: "flex-start",
-    marginTop: 2,
-  },
-  resourceCategory: {
-    fontSize: 9,
-    fontWeight: "700",
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-  },
-  resourceSource: {
-    fontSize: 12,
-    fontWeight: "500",
   },
   moonWaterBtn: {
     flexDirection: "row",

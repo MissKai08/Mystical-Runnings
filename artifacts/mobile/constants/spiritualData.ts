@@ -76,9 +76,71 @@ export const EVENT_COLORS: Record<EventType, string> = {
   "ose-day": "#D4A843",
 };
 
-const KNOWN_NEW_MOON_MS = new Date(Date.UTC(2000, 0, 6, 18, 14, 0)).getTime();
 const LUNAR_CYCLE_DAYS = 29.53058867;
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const KNOWN_NEW_MOON_MS = new Date(Date.UTC(2000, 0, 6, 18, 14, 0)).getTime();
+
+// Authoritative major-phase dates sourced from USNO Astronomical Applications.
+// Key: "YYYY-M-D" (local calendar date, UTC). Value: major EventType.
+// This lookup takes priority over the mathematical formula for 2024–2027.
+const PHASE_LOOKUP: Record<string, "new-moon" | "first-quarter" | "full-moon" | "last-quarter"> = {
+  // ── 2024 ──────────────────────────────────────────────────────────────────
+  "2024-1-4":"last-quarter", "2024-1-11":"new-moon", "2024-1-17":"first-quarter", "2024-1-25":"full-moon",
+  "2024-2-2":"last-quarter", "2024-2-9":"new-moon",  "2024-2-16":"first-quarter","2024-2-24":"full-moon",
+  "2024-3-3":"last-quarter", "2024-3-10":"new-moon", "2024-3-17":"first-quarter","2024-3-25":"full-moon",
+  "2024-4-1":"last-quarter", "2024-4-8":"new-moon",  "2024-4-15":"first-quarter","2024-4-23":"full-moon",
+  "2024-4-30":"last-quarter","2024-5-7":"new-moon",  "2024-5-15":"first-quarter","2024-5-23":"full-moon",
+  "2024-5-30":"last-quarter","2024-6-6":"new-moon",  "2024-6-14":"first-quarter","2024-6-21":"full-moon",
+  "2024-6-28":"last-quarter","2024-7-5":"new-moon",  "2024-7-13":"first-quarter","2024-7-21":"full-moon",
+  "2024-7-27":"last-quarter","2024-8-4":"new-moon",  "2024-8-12":"first-quarter","2024-8-19":"full-moon",
+  "2024-8-26":"last-quarter","2024-9-3":"new-moon",  "2024-9-11":"first-quarter","2024-9-17":"full-moon",
+  "2024-9-24":"last-quarter","2024-10-2":"new-moon", "2024-10-10":"first-quarter","2024-10-17":"full-moon",
+  "2024-10-24":"last-quarter","2024-11-1":"new-moon","2024-11-9":"first-quarter","2024-11-15":"full-moon",
+  "2024-11-22":"last-quarter","2024-12-1":"new-moon","2024-12-8":"first-quarter","2024-12-15":"full-moon",
+  "2024-12-22":"last-quarter","2024-12-30":"new-moon",
+  // ── 2025 ──────────────────────────────────────────────────────────────────
+  "2025-1-6":"first-quarter", "2025-1-13":"full-moon","2025-1-21":"last-quarter","2025-1-29":"new-moon",
+  "2025-2-5":"first-quarter", "2025-2-12":"full-moon","2025-2-20":"last-quarter","2025-2-28":"new-moon",
+  "2025-3-6":"first-quarter", "2025-3-14":"full-moon","2025-3-22":"last-quarter","2025-3-29":"new-moon",
+  "2025-4-5":"first-quarter", "2025-4-13":"full-moon","2025-4-20":"last-quarter","2025-4-27":"new-moon",
+  "2025-5-4":"first-quarter", "2025-5-12":"full-moon","2025-5-20":"last-quarter","2025-5-26":"new-moon",
+  "2025-6-2":"first-quarter", "2025-6-11":"full-moon","2025-6-18":"last-quarter","2025-6-25":"new-moon",
+  "2025-7-2":"first-quarter", "2025-7-10":"full-moon","2025-7-17":"last-quarter","2025-7-24":"new-moon",
+  "2025-7-31":"first-quarter","2025-8-9":"full-moon", "2025-8-16":"last-quarter","2025-8-23":"new-moon",
+  "2025-8-31":"first-quarter","2025-9-7":"full-moon", "2025-9-14":"last-quarter","2025-9-21":"new-moon",
+  "2025-9-29":"first-quarter","2025-10-7":"full-moon","2025-10-13":"last-quarter","2025-10-21":"new-moon",
+  "2025-10-29":"first-quarter","2025-11-5":"full-moon","2025-11-11":"last-quarter","2025-11-20":"new-moon",
+  "2025-11-28":"first-quarter","2025-12-4":"full-moon","2025-12-11":"last-quarter","2025-12-20":"new-moon",
+  "2025-12-27":"first-quarter",
+  // ── 2026 ──────────────────────────────────────────────────────────────────
+  "2026-1-4":"full-moon",  "2026-1-11":"last-quarter","2026-1-18":"new-moon","2026-1-25":"first-quarter",
+  "2026-2-1":"full-moon",  "2026-2-9":"last-quarter", "2026-2-17":"new-moon","2026-2-24":"first-quarter",
+  "2026-3-3":"full-moon",  "2026-3-9":"last-quarter", "2026-3-18":"new-moon","2026-3-25":"first-quarter",
+  "2026-4-2":"full-moon",  "2026-4-8":"last-quarter", "2026-4-17":"new-moon","2026-4-24":"first-quarter",
+  "2026-5-1":"full-moon",  "2026-5-8":"last-quarter", "2026-5-16":"new-moon","2026-5-23":"first-quarter",
+  "2026-5-31":"full-moon", "2026-6-6":"last-quarter", "2026-6-15":"new-moon","2026-6-22":"first-quarter",
+  "2026-6-30":"full-moon", "2026-7-6":"last-quarter", "2026-7-14":"new-moon","2026-7-21":"first-quarter",
+  "2026-7-29":"full-moon", "2026-8-5":"last-quarter", "2026-8-12":"new-moon","2026-8-19":"first-quarter",
+  "2026-8-28":"full-moon", "2026-9-3":"last-quarter", "2026-9-11":"new-moon","2026-9-18":"first-quarter",
+  "2026-9-26":"full-moon", "2026-10-3":"last-quarter","2026-10-10":"new-moon","2026-10-17":"first-quarter",
+  "2026-10-26":"full-moon","2026-11-1":"last-quarter","2026-11-8":"new-moon", "2026-11-16":"first-quarter",
+  "2026-11-24":"full-moon","2026-11-30":"last-quarter","2026-12-8":"new-moon","2026-12-15":"first-quarter",
+  "2026-12-24":"full-moon","2026-12-30":"last-quarter",
+  // ── 2027 ──────────────────────────────────────────────────────────────────
+  "2027-1-7":"new-moon",  "2027-1-14":"first-quarter","2027-1-22":"full-moon","2027-1-29":"last-quarter",
+  "2027-2-5":"new-moon",  "2027-2-12":"first-quarter","2027-2-20":"full-moon","2027-2-27":"last-quarter",
+  "2027-3-7":"new-moon",  "2027-3-14":"first-quarter","2027-3-22":"full-moon","2027-3-29":"last-quarter",
+  "2027-4-6":"new-moon",  "2027-4-12":"first-quarter","2027-4-20":"full-moon","2027-4-28":"last-quarter",
+  "2027-5-5":"new-moon",  "2027-5-12":"first-quarter","2027-5-20":"full-moon","2027-5-27":"last-quarter",
+  "2027-6-3":"new-moon",  "2027-6-10":"first-quarter","2027-6-18":"full-moon","2027-6-26":"last-quarter",
+  "2027-7-3":"new-moon",  "2027-7-10":"first-quarter","2027-7-18":"full-moon","2027-7-25":"last-quarter",
+  "2027-8-1":"new-moon",  "2027-8-9":"first-quarter", "2027-8-17":"full-moon","2027-8-23":"last-quarter",
+  "2027-8-31":"new-moon", "2027-9-7":"first-quarter", "2027-9-15":"full-moon","2027-9-21":"last-quarter",
+  "2027-9-30":"new-moon", "2027-10-6":"first-quarter","2027-10-14":"full-moon","2027-10-21":"last-quarter",
+  "2027-10-29":"new-moon","2027-11-5":"first-quarter","2027-11-12":"full-moon","2027-11-19":"last-quarter",
+  "2027-11-28":"new-moon","2027-12-5":"first-quarter","2027-12-12":"full-moon","2027-12-20":"last-quarter",
+  "2027-12-28":"new-moon",
+};
 
 function moonAge(date: Date): number {
   const noon = new Date(date);
@@ -87,29 +149,39 @@ function moonAge(date: Date): number {
   return ((diff % LUNAR_CYCLE_DAYS) + LUNAR_CYCLE_DAYS) % LUNAR_CYCLE_DAYS;
 }
 
-// Angular distance from a phase age to a quarter-point, handling the New Moon wrap.
 function distToQ(age: number, q: number): number {
   if (q === 0) return Math.min(age, LUNAR_CYCLE_DAYS - age);
   return Math.abs(age - q);
 }
 
 export function getMoonPhaseData(date: Date): MoonPhaseData {
-  const Q1 = LUNAR_CYCLE_DAYS / 4;       // ≈  7.38
-  const Q2 = LUNAR_CYCLE_DAYS / 2;       // ≈ 14.77
-  const Q3 = (3 * LUNAR_CYCLE_DAYS) / 4; // ≈ 22.15
+  const Q1 = LUNAR_CYCLE_DAYS / 4;
+  const Q2 = LUNAR_CYCLE_DAYS / 2;
+  const Q3 = (3 * LUNAR_CYCLE_DAYS) / 4;
 
   const phase = moonAge(date);
+  const phaseFraction = phase / LUNAR_CYCLE_DAYS;
+  const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
 
+  // Check hardcoded USNO lookup table first (covers 2024–2027).
+  const lookupKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  const hardcoded = PHASE_LOOKUP[lookupKey];
+  if (hardcoded) {
+    const nameMap: Record<string, string> = {
+      "new-moon": "New Moon",
+      "first-quarter": "First Quarter",
+      "full-moon": "Full Moon",
+      "last-quarter": "Last Quarter",
+    };
+    return { phase, phaseFraction, name: nameMap[hardcoded]!, illumination, isMajorPhase: true, eventType: hardcoded };
+  }
+
+  // Fallback: mathematical closest-day formula for years outside the table.
   const dPrev = new Date(date); dPrev.setDate(dPrev.getDate() - 1);
   const dNext = new Date(date); dNext.setDate(dNext.getDate() + 1);
   const prev = moonAge(dPrev);
   const next = moonAge(dNext);
 
-  const phaseFraction = phase / LUNAR_CYCLE_DAYS;
-  const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
-
-  // A major phase fires on the one day whose noon is closest to the true astronomical event.
-  // Comparing against both neighbours guarantees exactly one day fires per quarter phase.
   const closest = (q: number) =>
     distToQ(phase, q) < distToQ(prev, q) && distToQ(phase, q) <= distToQ(next, q);
 
@@ -118,13 +190,13 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
   let eventType: EventType;
 
   if (closest(0)) {
-    name = "New Moon";      isMajorPhase = true; eventType = "new-moon";
+    name = "New Moon";        isMajorPhase = true; eventType = "new-moon";
   } else if (closest(Q1)) {
-    name = "First Quarter"; isMajorPhase = true; eventType = "first-quarter";
+    name = "First Quarter";   isMajorPhase = true; eventType = "first-quarter";
   } else if (closest(Q2)) {
-    name = "Full Moon";     isMajorPhase = true; eventType = "full-moon";
+    name = "Full Moon";       isMajorPhase = true; eventType = "full-moon";
   } else if (closest(Q3)) {
-    name = "Last Quarter";  isMajorPhase = true; eventType = "last-quarter";
+    name = "Last Quarter";    isMajorPhase = true; eventType = "last-quarter";
   } else if (phase < Q1) {
     name = "Waxing Crescent"; eventType = "waxing-crescent";
   } else if (phase < Q2) {

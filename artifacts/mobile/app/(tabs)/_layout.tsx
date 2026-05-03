@@ -28,6 +28,10 @@ function NativeTabLayout() {
         <Icon sf={{ default: "book", selected: "book.fill" }} />
         <Label>Journal</Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="resources">
+        <Icon sf={{ default: "link", selected: "link" }} />
+        <Label>Resources</Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
@@ -115,6 +119,18 @@ function ClassicTabLayout() {
               <SymbolView name="book" tintColor={color} size={24} />
             ) : (
               <Feather name="book-open" size={22} color={color} />
+            ),
+        }}
+      />
+      <Tabs.Screen
+        name="resources"
+        options={{
+          title: "Resources",
+          tabBarIcon: ({ color }) =>
+            isIOS ? (
+              <SymbolView name="link" tintColor={color} size={24} />
+            ) : (
+              <Feather name="link" size={22} color={color} />
             ),
         }}
       />

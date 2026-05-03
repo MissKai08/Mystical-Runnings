@@ -1160,7 +1160,7 @@ export default function JournalScreen() {
         )}
 
         {/* Sacred Altar */}
-        {!searchQuery.trim() && <SacredAltar />}
+        {!searchQuery.trim() && <SacredAltar collapsed />}
 
         {/* Entry list */}
         {entries.length === 0 ? (
