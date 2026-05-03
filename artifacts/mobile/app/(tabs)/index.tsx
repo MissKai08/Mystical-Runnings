@@ -93,6 +93,75 @@ export default function HomeScreen() {
     });
   }, [today]);
 
+  const weekAheadNarrative = useMemo(() => {
+    const parts: string[] = [];
+    let moonMentioned = false;
+
+    for (let i = 1; i <= 7; i++) {
+      const d = addDays(today, i);
+      const m = getMoonPhaseData(d);
+      const nm = getNamedFullMoonForDate(d);
+      const dm = getDarkMoonForDate(d);
+      const ec = getEclipseForDate(d);
+      const s = getSabbatForDate(d);
+      const f = getIfaFestivalForDate(d);
+      const r = getMercuryRetrogradeInfo(d);
+      const rPrev = getMercuryRetrogradeInfo(addDays(today, i - 1));
+      const dayLabel = d.toLocaleDateString("en-US", { weekday: "long" });
+
+      if (!moonMentioned) {
+        if (nm) {
+          parts.push(
+            `The ${nm.name} rises on ${dayLabel}${nm.sign ? ` in ${nm.sign}` : ""} — a sacred time for illumination, release, and gratitude.`
+          );
+          moonMentioned = true;
+        } else if (dm) {
+          parts.push(
+            `The Dark Moon${dm.sign ? ` in ${dm.sign}` : ""} falls on ${dayLabel}, drawing a veil of stillness before the new cycle ignites.`
+          );
+          moonMentioned = true;
+        } else if (m.isMajorPhase) {
+          const phaseLines: Record<string, string> = {
+            "new-moon": `The New Moon on ${dayLabel} opens a portal for fresh intentions — plant your seeds with clarity and conviction.`,
+            "first-quarter": `The First Quarter Moon on ${dayLabel} calls for decisive action — push past resistance and tend what is growing.`,
+            "last-quarter": `The Last Quarter Moon on ${dayLabel} invites release — forgive, let go, and clear space before the next cycle begins.`,
+            "full-moon": `The Full Moon peaks on ${dayLabel} — illuminate what was hidden and release what no longer serves.`,
+          };
+          const line = phaseLines[m.eventType ?? ""];
+          if (line) { parts.push(line); moonMentioned = true; }
+        }
+      }
+
+      if (ec) {
+        parts.push(
+          `A ${ec.type === "solar-eclipse" ? "solar" : "lunar"} eclipse on ${dayLabel} accelerates transformation — what is ready to emerge cannot be held back.`
+        );
+      }
+      if (s && parts.length < 2) {
+        parts.push(`${s.name.split(" —")[0]} on ${dayLabel} marks a sacred turning of the Wheel of the Year.`);
+      }
+      if (r && !rPrev && parts.length < 2) {
+        parts.push(`Mercury turns retrograde on ${dayLabel} — slow down, review, and speak with extra care.`);
+      }
+      if (f && parts.length < 2) {
+        parts.push(`The ${f.name} arrives on ${dayLabel} — honor the Orisa through prayer and celebration.`);
+      }
+    }
+
+    if (parts.length === 0) {
+      const phase = getMoonPhaseData(today);
+      const quiet: Record<string, string> = {
+        "waxing-crescent": "The waxing crescent builds this week — tend your intentions and let momentum gather.",
+        "waxing-gibbous": "The moon swells toward fullness this week — refine your work and prepare for completion.",
+        "waning-gibbous": "The waning gibbous invites gratitude and integration — harvest the wisdom of the recent full moon.",
+        "waning-crescent": "The waning crescent deepens the call to rest — surrender, reflect, and prepare for what comes next.",
+      };
+      return quiet[phase.eventType ?? ""] ?? "A steady week of alignment and flow. Move with the natural rhythms of the cosmos.";
+    }
+
+    return parts.slice(0, 2).join(" ");
+  }, [today]);
+
   const upcomingDays = useMemo(() => {
     const result: { date: Date; events: string[] }[] = [];
     for (let i = 1; i <= 21; i++) {
@@ -214,6 +283,15 @@ export default function HomeScreen() {
             </View>
           );
         })}
+      </View>
+
+      {/* Week Ahead */}
+      <View style={[styles.weekAheadCard, { backgroundColor: colors.card, borderColor: "#7C3AED33" }]}>
+        <View style={styles.weekAheadHeader}>
+          <View style={[styles.weekAheadDot, { backgroundColor: "#7C3AED" }]} />
+          <Text style={[styles.weekAheadLabel, { color: colors.mutedForeground }]}>WEEK AHEAD</Text>
+        </View>
+        <Text style={[styles.weekAheadText, { color: colors.foreground }]}>{weekAheadNarrative}</Text>
       </View>
 
       {/* Today's Energies */}
@@ -701,5 +779,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     flex: 1,
+  },
+  weekAheadCard: {
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+  },
+  weekAheadHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 10,
+  },
+  weekAheadDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  weekAheadLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+  },
+  weekAheadText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: "italic",
   },
 });
