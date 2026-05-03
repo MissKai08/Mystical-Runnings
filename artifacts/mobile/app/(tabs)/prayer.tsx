@@ -13,9 +13,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
-import { getDailyOdu, type OduEntry } from "@/constants/spiritualData";
+import { getDailyOdu, ODU_LIST, type OduEntry } from "@/constants/spiritualData";
 
-type Tab = "guide" | "prayers";
+type Tab = "guide" | "prayers" | "divination";
 
 interface IbaItem {
   word: string;
@@ -142,6 +142,25 @@ const PRAYERS: Prayer[] = [
   },
 ];
 
+const ODU_REFLECTIONS: Record<string, string> = {
+  "Eji Ogbe":     "Where in your life are you being called to begin again with full clarity and trust?",
+  "Oyeku Meji":   "What must end today so something greater can be born? What are you being invited to release?",
+  "Iwori Meji":   "What truth is your inner voice whispering that you have not yet fully heeded?",
+  "Odi Meji":     "What is quietly forming beneath the surface of your life right now that you cannot yet see?",
+  "Irosun Meji":  "Where are you pouring your vital energy, and is it returning to you tenfold?",
+  "Owonrin Meji": "Where is the unexpected showing up in your life, and what blessing might it be carrying?",
+  "Obara Meji":   "How can you lead with greater generosity today — in thought, word, or action?",
+  "Okanran Meji": "What challenge are you being tempered by, and what strength is it forging in you?",
+  "Ogunda Meji":  "What path needs clearing? What one decisive action would move you forward today?",
+  "Osa Meji":     "Where do you need to trust your instincts right now, even without full certainty?",
+  "Ika Meji":     "Where in your life might your actions be out of alignment with your deepest values?",
+  "Oturupon Meji":"What are you willing to release or sacrifice to receive the blessing waiting on the other side?",
+  "Otura Meji":   "Which relationship or commitment in your life most needs your intentional care today?",
+  "Irete Meji":   "Where are you rushing something that needs the long, patient view of your ancestors?",
+  "Ose Meji":     "What are you refusing to receive? Where are you blocking the flow of abundance into your life?",
+  "Ofun Meji":    "What cycle in your life is completing? What would it look like to give thanks for the whole arc?",
+};
+
 const CATEGORIES = [
   { key: "all", label: "All" },
   { key: "daily", label: "Daily" },
@@ -164,6 +183,8 @@ export default function PrayerScreen() {
   const [oriExpanded, setOriExpanded] = useState(false);
   const [guardianExpanded, setGuardianExpanded] = useState(false);
   const [oduExpanded, setOduExpanded] = useState(false);
+  const [castRevealed, setCastRevealed] = useState(false);
+  const [expandedOdu, setExpandedOdu] = useState<number | null>(null);
 
   const dailyOdu: OduEntry = useMemo(() => getDailyOdu(new Date()), []);
 
@@ -217,6 +238,14 @@ export default function PrayerScreen() {
           >
             <Text style={[styles.tabLabel, { color: activeTab === "prayers" ? colors.primaryForeground : colors.mutedForeground }]}>
               Prayers
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.tabBtn, activeTab === "divination" && { backgroundColor: "#7C3AED" }]}
+            onPress={() => { Haptics.selectionAsync(); setActiveTab("divination"); }}
+          >
+            <Text style={[styles.tabLabel, { color: activeTab === "divination" ? "#fff" : colors.mutedForeground }]}>
+              Odu
             </Text>
           </Pressable>
         </View>
@@ -472,6 +501,171 @@ export default function PrayerScreen() {
             </View>
             <Feather name="external-link" size={16} color="#A78BFA" />
           </Pressable>
+        </ScrollView>
+      ) : activeTab === "divination" ? (
+        <ScrollView
+          contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 60 }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Intro */}
+          <View style={[styles.divinationIntro, { backgroundColor: "#7C3AED10", borderColor: "#7C3AED33" }]}>
+            <Text style={[styles.divinationIntroTitle, { color: "#A78BFA" }]}>✦ IFA DIVINATION</Text>
+            <Text style={[styles.divinationIntroText, { color: colors.mutedForeground }]}>
+              In Ifa tradition, Orunmila reveals the Odu — the sacred sign — for each day. The 16 principal Odu (Meji) are the mother signs of the full 256-corpus. Today's Odu speaks to what the cosmos has opened for reflection.
+            </Text>
+          </View>
+
+          {/* Cast / Reveal */}
+          {!castRevealed ? (
+            <Pressable
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                setCastRevealed(true);
+              }}
+              style={({ pressed }) => [
+                styles.castBtn,
+                { backgroundColor: "#4C1D95", borderColor: "#7C3AED", opacity: pressed ? 0.82 : 1 },
+              ]}
+            >
+              <Text style={styles.castEmoji}>🔮</Text>
+              <Text style={styles.castTitle}>Consult Ifa</Text>
+              <Text style={[styles.castSub, { color: "#A78BFA" }]}>Tap to reveal today's Odu</Text>
+            </Pressable>
+          ) : (
+            <View style={[styles.oduRevealCard, { backgroundColor: "#7C3AED12", borderColor: "#7C3AED66" }]}>
+              <Text style={[styles.oduRevealSymbol, { color: "#7C3AED" }]}>{dailyOdu.symbol}</Text>
+              <Text style={[styles.oduRevealName, { color: colors.foreground }]}>{dailyOdu.name}</Text>
+              <Text style={[styles.oduRevealYoruba, { color: "#A78BFA" }]}>{dailyOdu.yoruba}</Text>
+              <Text style={[styles.oduRevealIndex, { color: colors.mutedForeground }]}>
+                Odu #{dailyOdu.index} of 16 · {dailyOdu.element}
+              </Text>
+
+              <View style={styles.oduEnergyRow}>
+                {dailyOdu.energy.map((tag) => (
+                  <View key={tag} style={[styles.oduChip, { backgroundColor: "#7C3AED22", borderColor: "#7C3AED55" }]}>
+                    <Text style={[styles.oduChipText, { color: "#A78BFA" }]}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={styles.oduMetaRow}>
+                <View style={styles.oduMetaItem}>
+                  <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ORISHA</Text>
+                  <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{dailyOdu.orisha}</Text>
+                </View>
+                <View style={styles.oduMetaDivider} />
+                <View style={styles.oduMetaItem}>
+                  <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ELEMENT</Text>
+                  <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{dailyOdu.element}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.oduGuidanceBox, { backgroundColor: "#7C3AED0A", borderColor: "#7C3AED33" }]}>
+                <Text style={[styles.oduGuidanceText, { color: colors.foreground }]}>{dailyOdu.guidance}</Text>
+              </View>
+
+              <View style={[styles.reflectionBox, { backgroundColor: "#D4A84310", borderColor: "#D4A84344" }]}>
+                <Text style={[styles.reflectionLabel, { color: "#D4A843" }]}>✦ REFLECTION FOR TODAY</Text>
+                <Text style={[styles.reflectionText, { color: colors.foreground }]}>
+                  {ODU_REFLECTIONS[dailyOdu.name] ?? "How does the energy of this Odu show up in your life today?"}
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setCastRevealed(false); }}
+                style={styles.recastBtn}
+              >
+                <Text style={[styles.recastText, { color: colors.mutedForeground }]}>✕ Dismiss</Text>
+              </Pressable>
+            </View>
+          )}
+
+          {/* 16 Principal Odu reference */}
+          <Text style={[styles.divinationSectionTitle, { color: colors.foreground }]}>The 16 Principal Odu</Text>
+          <Text style={[styles.divinationSectionSub, { color: colors.mutedForeground }]}>
+            The Meji signs are the mother Odu — each a universe of wisdom. Tap to explore.
+          </Text>
+
+          {ODU_LIST.map((odu) => {
+            const isExpanded = expandedOdu === odu.index;
+            const isToday = odu.index === dailyOdu.index;
+            return (
+              <Pressable
+                key={odu.index}
+                onPress={() => { Haptics.selectionAsync(); setExpandedOdu(isExpanded ? null : odu.index); }}
+                style={({ pressed }) => [
+                  styles.oduListCard,
+                  {
+                    backgroundColor: isToday ? "#7C3AED16" : colors.card,
+                    borderColor: isToday ? "#7C3AED88" : isExpanded ? "#7C3AED55" : colors.border,
+                    opacity: pressed ? 0.82 : 1,
+                  },
+                ]}
+              >
+                <View style={styles.oduListHeader}>
+                  <View style={styles.oduListLeft}>
+                    <Text style={[styles.oduListSymbol, { color: isToday ? "#A78BFA" : colors.mutedForeground }]}>
+                      {odu.symbol}
+                    </Text>
+                    <View>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Text style={[styles.oduListName, { color: colors.foreground }]}>{odu.name}</Text>
+                        {isToday && (
+                          <View style={[styles.todayBadge, { backgroundColor: "#7C3AED33" }]}>
+                            <Text style={[styles.todayBadgeText, { color: "#A78BFA" }]}>Today</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.oduListYoruba, { color: colors.mutedForeground }]}>{odu.yoruba}</Text>
+                    </View>
+                  </View>
+                  <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
+                </View>
+
+                {!isExpanded && (
+                  <View style={styles.oduListChips}>
+                    {odu.energy.slice(0, 2).map((tag) => (
+                      <View key={tag} style={[styles.oduChipSmall, { backgroundColor: "#7C3AED14" }]}>
+                        <Text style={[styles.oduChipSmallText, { color: colors.mutedForeground }]}>{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {isExpanded && (
+                  <View style={[styles.oduListBody, { borderTopColor: colors.border }]}>
+                    <View style={styles.oduEnergyRow}>
+                      {odu.energy.map((tag) => (
+                        <View key={tag} style={[styles.oduChip, { backgroundColor: "#7C3AED22", borderColor: "#7C3AED55" }]}>
+                          <Text style={[styles.oduChipText, { color: "#A78BFA" }]}>{tag}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    <View style={styles.oduMetaRow}>
+                      <View style={styles.oduMetaItem}>
+                        <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ORISHA</Text>
+                        <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{odu.orisha}</Text>
+                      </View>
+                      <View style={styles.oduMetaDivider} />
+                      <View style={styles.oduMetaItem}>
+                        <Text style={[styles.oduMetaLabel, { color: colors.mutedForeground }]}>ELEMENT</Text>
+                        <Text style={[styles.oduMetaValue, { color: "#D4A843" }]}>{odu.element}</Text>
+                      </View>
+                    </View>
+                    <View style={[styles.oduGuidanceBox, { backgroundColor: "#7C3AED0A", borderColor: "#7C3AED33" }]}>
+                      <Text style={[styles.oduGuidanceText, { color: colors.foreground }]}>{odu.guidance}</Text>
+                    </View>
+                    <View style={[styles.reflectionBox, { backgroundColor: "#D4A84308", borderColor: "#D4A84333" }]}>
+                      <Text style={[styles.reflectionLabel, { color: "#D4A843" }]}>✦ REFLECTION</Text>
+                      <Text style={[styles.reflectionText, { color: colors.foreground }]}>
+                        {ODU_REFLECTIONS[odu.name] ?? "How does this Odu's energy show up in your life?"}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </Pressable>
+            );
+          })}
         </ScrollView>
       ) : (
         <ScrollView
@@ -916,5 +1110,177 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: "center",
     letterSpacing: 0.3,
+  },
+  divinationIntro: {
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    gap: 8,
+  },
+  divinationIntroTitle: {
+    fontSize: 11,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  divinationIntroText: {
+    fontSize: 13,
+    lineHeight: 20,
+  },
+  castBtn: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    paddingVertical: 36,
+    alignItems: "center",
+    marginBottom: 24,
+    gap: 8,
+  },
+  castEmoji: {
+    fontSize: 48,
+  },
+  castTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#E9D5FF",
+    letterSpacing: 0.3,
+  },
+  castSub: {
+    fontSize: 13,
+    fontWeight: "500",
+    letterSpacing: 0.3,
+  },
+  oduRevealCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+    marginBottom: 24,
+    gap: 12,
+    alignItems: "center",
+  },
+  oduRevealSymbol: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: 8,
+    fontFamily: "monospace",
+    marginBottom: 4,
+  },
+  oduRevealName: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+    textAlign: "center",
+  },
+  oduRevealYoruba: {
+    fontSize: 13,
+    fontStyle: "italic",
+    textAlign: "center",
+  },
+  oduRevealIndex: {
+    fontSize: 11,
+    letterSpacing: 0.5,
+    textAlign: "center",
+  },
+  reflectionBox: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    gap: 8,
+    width: "100%",
+  },
+  reflectionLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  reflectionText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: "italic",
+  },
+  recastBtn: {
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  recastText: {
+    fontSize: 12,
+    fontWeight: "600",
+    letterSpacing: 0.5,
+  },
+  divinationSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 4,
+    marginTop: 4,
+  },
+  divinationSectionSub: {
+    fontSize: 12,
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  oduListCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 8,
+  },
+  oduListHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  oduListLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  oduListSymbol: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 3,
+    fontFamily: "monospace",
+    width: 52,
+  },
+  oduListName: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  oduListYoruba: {
+    fontSize: 11,
+    fontStyle: "italic",
+    marginTop: 1,
+  },
+  todayBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  todayBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  oduListChips: {
+    flexDirection: "row",
+    gap: 6,
+    marginTop: 8,
+    marginLeft: 64,
+  },
+  oduChipSmall: {
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  oduChipSmallText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  oduListBody: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    gap: 12,
   },
 });
