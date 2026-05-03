@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEY = "@mystical_journal_entries";
+const FREEZE_KEY = "@mystical_streak_freezes";
 
 export interface DrawingData {
   paths: string[];
@@ -85,9 +86,33 @@ function dateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function calculateStreak(entries: JournalEntry[]): number {
-  if (entries.length === 0) return 0;
-  const written = new Set(entries.map((e) => e.date));
+export async function loadFreezes(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(FREEZE_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as string[];
+  } catch {
+    return [];
+  }
+}
+
+export async function addFreeze(date: string): Promise<void> {
+  const existing = await loadFreezes();
+  if (!existing.includes(date)) {
+    existing.push(date);
+    await AsyncStorage.setItem(FREEZE_KEY, JSON.stringify(existing));
+  }
+}
+
+export async function removeFreeze(date: string): Promise<void> {
+  const existing = await loadFreezes();
+  const filtered = existing.filter((d) => d !== date);
+  await AsyncStorage.setItem(FREEZE_KEY, JSON.stringify(filtered));
+}
+
+export function calculateStreak(entries: JournalEntry[], freezes: string[] = []): number {
+  const written = new Set([...entries.map((e) => e.date), ...freezes]);
+  if (written.size === 0) return 0;
   const today = new Date();
   const cursor = new Date(today);
   if (!written.has(dateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
@@ -99,9 +124,9 @@ export function calculateStreak(entries: JournalEntry[]): number {
   return streak;
 }
 
-export function longestStreak(entries: JournalEntry[]): number {
-  if (entries.length === 0) return 0;
-  const days = [...new Set(entries.map((e) => e.date))].sort();
+export function longestStreak(entries: JournalEntry[], freezes: string[] = []): number {
+  const days = [...new Set([...entries.map((e) => e.date), ...freezes])].sort();
+  if (days.length === 0) return 0;
   let best = 1;
   let run = 1;
   for (let i = 1; i < days.length; i++) {

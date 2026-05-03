@@ -26,6 +26,9 @@ import {
   formatEntryDate,
   calculateStreak,
   longestStreak,
+  loadFreezes,
+  addFreeze,
+  removeFreeze,
   MOODS,
 } from "@/utils/journalStorage";
 import {
@@ -116,7 +119,7 @@ function groupEntriesByDate(entries: JournalEntry[]): { date: string; entries: J
 
 const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
 
-function WeekStrip({ entries, colors }: { entries: JournalEntry[]; colors: ReturnType<typeof useColors> }) {
+function WeekStrip({ entries, freezes, colors }: { entries: JournalEntry[]; freezes: Set<string>; colors: ReturnType<typeof useColors> }) {
   const written = new Set(entries.map((e) => e.date));
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
@@ -135,6 +138,7 @@ function WeekStrip({ entries, colors }: { entries: JournalEntry[]; colors: Retur
       isToday: key === todayStr,
       isFuture: d > today && key !== todayStr,
       hasEntry: written.has(key),
+      isFrozen: !written.has(key) && freezes.has(key),
     };
   });
 
@@ -144,7 +148,7 @@ function WeekStrip({ entries, colors }: { entries: JournalEntry[]; colors: Retur
         <View key={i} style={stripStyles.col}>
           <Text style={[
             stripStyles.letter,
-            { color: day.isToday ? "#D4A843" : colors.mutedForeground,
+            { color: day.isToday ? "#D4A843" : day.isFrozen ? "#93C5FD" : colors.mutedForeground,
               opacity: day.isFuture ? 0.3 : 1 }
           ]}>
             {day.letter}
@@ -153,17 +157,22 @@ function WeekStrip({ entries, colors }: { entries: JournalEntry[]; colors: Retur
             stripStyles.dot,
             day.hasEntry
               ? { backgroundColor: "#D4A843", borderColor: "#D4A843" }
+              : day.isFrozen
+              ? { backgroundColor: "#1D4ED822", borderColor: "#93C5FD", borderWidth: 1.5 }
               : day.isToday
               ? { backgroundColor: "transparent", borderColor: "#D4A843", borderWidth: 1.5 }
               : { backgroundColor: "transparent", borderColor: day.isFuture ? "#1E1A3A" : "#2D2650", opacity: day.isFuture ? 0.3 : 1 },
           ]}>
-            {day.isToday && !day.hasEntry && (
-              <View style={stripStyles.todayCore} />
-            )}
+            {day.isFrozen
+              ? <Text style={stripStyles.freezeGlyph}>❄</Text>
+              : day.isToday && !day.hasEntry
+              ? <View style={stripStyles.todayCore} />
+              : null
+            }
           </View>
           <Text style={[
             stripStyles.dateNum,
-            { color: day.isToday ? "#D4A843" : colors.mutedForeground,
+            { color: day.isToday ? "#D4A843" : day.isFrozen ? "#93C5FD" : colors.mutedForeground,
               fontWeight: day.isToday ? "700" : "400",
               opacity: day.isFuture ? 0.35 : 1 }
           ]}>
@@ -206,6 +215,10 @@ const stripStyles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: "#D4A843",
+  },
+  freezeGlyph: {
+    fontSize: 6,
+    color: "#93C5FD",
   },
   dateNum: {
     fontSize: 9,
@@ -286,9 +299,10 @@ function getMoonPromptType(date: Date): string {
 }
 
 function MonthHeatmap({
-  entries, year, month, onPrev, onNext, onDayPress, onEmptyDayPress, colors,
+  entries, freezes, year, month, onPrev, onNext, onDayPress, onEmptyDayPress, colors,
 }: {
   entries: JournalEntry[];
+  freezes: Set<string>;
   year: number;
   month: number;
   onPrev: () => void;
@@ -345,10 +359,14 @@ function MonthHeatmap({
         <View key={row} style={heatStyles.gridRow}>
           {cells.slice(row * 7, row * 7 + 7).map((day, col) => {
             const count = day ? (countMap.get(dayKey(day)) ?? 0) : 0;
-            const bg = day ? ENTRY_COLORS[Math.min(count, ENTRY_COLORS.length - 1)] : "transparent";
-            const isToday = day ? dayKey(day) === todayStr : false;
-            const textColor = count > 0 ? "#D4A843" : colors.mutedForeground;
-            const isPast = day !== null && (() => { const dk = dayKey(day); return dk <= todayStr; })();
+            const dk = day ? dayKey(day) : "";
+            const isFrozen = day !== null && count === 0 && freezes.has(dk);
+            const bg = isFrozen
+              ? "#1D4ED818"
+              : day ? ENTRY_COLORS[Math.min(count, ENTRY_COLORS.length - 1)] : "transparent";
+            const isToday = day ? dk === todayStr : false;
+            const textColor = count > 0 ? "#D4A843" : isFrozen ? "#93C5FD" : colors.mutedForeground;
+            const isPast = day !== null && dk <= todayStr;
             const tappable = day !== null && count > 0;
             const emptyTappable = day !== null && count === 0 && isPast && !isToday;
             return (
@@ -364,17 +382,22 @@ function MonthHeatmap({
                   heatStyles.cell,
                   { backgroundColor: bg },
                   isToday && { borderWidth: 1.5, borderColor: "#D4A843" },
+                  isFrozen && { borderWidth: 1, borderColor: "#93C5FD55" },
                   (tappable || emptyTappable) && pressed && { opacity: 0.55 },
-                  emptyTappable && { borderColor: "#2D2650", borderWidth: 1 },
+                  !isFrozen && emptyTappable && { borderColor: "#2D2650", borderWidth: 1 },
                 ]}
               >
                 {day !== null && (
-                  <Text style={[
-                    heatStyles.cellText,
-                    { color: textColor, fontWeight: isToday ? "800" : "400" },
-                  ]}>
-                    {day}
-                  </Text>
+                  isFrozen ? (
+                    <Text style={heatStyles.freezeGlyph}>❄</Text>
+                  ) : (
+                    <Text style={[
+                      heatStyles.cellText,
+                      { color: textColor, fontWeight: isToday ? "800" : "400" },
+                    ]}>
+                      {day}
+                    </Text>
+                  )
                 )}
               </Pressable>
             );
@@ -413,6 +436,7 @@ const heatStyles = StyleSheet.create({
     justifyContent: "center",
   },
   cellText: { fontSize: 9 },
+  freezeGlyph: { fontSize: 8, color: "#93C5FD" },
 });
 
 function DrawingThumbnail({ data, size = 80 }: { data: { paths: string[]; width: number; height: number }; size?: number }) {
@@ -583,6 +607,7 @@ export default function JournalScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState(() => new Date().getMonth());
+  const [freezes, setFreezes] = useState<Set<string>>(new Set());
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -601,6 +626,7 @@ export default function JournalScreen() {
 
   useEffect(() => {
     loadEntries().then(setEntries);
+    loadFreezes().then((arr) => setFreezes(new Set(arr)));
   }, []);
 
   const openComposer = () => {
@@ -744,6 +770,45 @@ export default function JournalScreen() {
     setPromptIdx((parsedDate.getDate() + parsedDate.getMonth() * 31) % 3);
   }, []);
 
+  const handleEmptyDayPress = useCallback((date: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (freezes.has(date)) {
+      Alert.alert(
+        "❄️ Streak Freeze",
+        `${formatEntryDate(date)}\n\nThis day is frozen — it won't break your streak.`,
+        [
+          {
+            text: "Remove Freeze",
+            style: "destructive",
+            onPress: async () => {
+              await removeFreeze(date);
+              setFreezes((prev) => { const next = new Set(prev); next.delete(date); return next; });
+            },
+          },
+          { text: "Write Entry Instead", onPress: () => openComposerForDate(date) },
+          { text: "Keep Freeze", style: "cancel" },
+        ]
+      );
+    } else {
+      Alert.alert(
+        formatEntryDate(date),
+        "What would you like to do?",
+        [
+          { text: "Write Entry", onPress: () => openComposerForDate(date) },
+          {
+            text: "❄️ Freeze This Day",
+            onPress: async () => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              await addFreeze(date);
+              setFreezes((prev) => new Set([...prev, date]));
+            },
+          },
+          { text: "Cancel", style: "cancel" },
+        ]
+      );
+    }
+  }, [freezes]);
+
   const handleDayPress = useCallback((date: string) => {
     const offset = offsetMap.current.get(date);
     if (offset !== undefined) {
@@ -755,8 +820,9 @@ export default function JournalScreen() {
     }
   }, []);
 
-  const streak = useMemo(() => calculateStreak(entries), [entries]);
-  const best = useMemo(() => longestStreak(entries), [entries]);
+  const freezeArr = useMemo(() => [...freezes], [freezes]);
+  const streak = useMemo(() => calculateStreak(entries, freezeArr), [entries, freezeArr]);
+  const best = useMemo(() => longestStreak(entries, freezeArr), [entries, freezeArr]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
   const lunarStreak = useMemo(() => lunarPhaseStreak(entries), [entries]);
 
@@ -874,15 +940,16 @@ export default function JournalScreen() {
         </View>
 
         {calMode === "week"
-          ? <WeekStrip entries={entries} colors={colors} />
+          ? <WeekStrip entries={entries} freezes={freezes} colors={colors} />
           : <MonthHeatmap
               entries={entries}
+              freezes={freezes}
               year={viewYear}
               month={viewMonth}
               onPrev={handlePrevMonth}
               onNext={handleNextMonth}
               onDayPress={handleDayPress}
-              onEmptyDayPress={openComposerForDate}
+              onEmptyDayPress={handleEmptyDayPress}
               colors={colors}
             />
         }
