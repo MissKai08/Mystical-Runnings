@@ -4,6 +4,7 @@ const KEY = "@mystical_notif_settings";
 
 export interface NotifTypeSettings {
   dailyBriefing: boolean;
+  oduReflection: boolean;
   journalPrompt: boolean;
   namedMoons: boolean;
   darkMoons: boolean;
@@ -31,6 +32,7 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
   advanceDays: 1,
   types: {
     dailyBriefing: false,
+    oduReflection: true,
     journalPrompt: false,
     namedMoons: true,
     darkMoons: true,

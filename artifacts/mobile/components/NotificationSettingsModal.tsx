@@ -114,6 +114,13 @@ const BRIEFING_ROWS: TypeRow[] = [
     emoji: "🌅",
   },
   {
+    key: "oduReflection",
+    label: "Daily Odu Reflection",
+    description: "7:30 AM — today's Odu name and its reflection question",
+    color: "#D4A843",
+    emoji: "✦",
+  },
+  {
     key: "journalPrompt",
     label: "Moon Phase Journal Prompt",
     description: "8 AM writing prompt delivered on every moon phase day",

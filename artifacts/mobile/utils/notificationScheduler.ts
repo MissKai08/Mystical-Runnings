@@ -15,8 +15,10 @@ import {
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
+  getDailyOdu,
   addDays,
 } from "@/constants/spiritualData";
+import { ODU_REFLECTIONS } from "@/constants/spiritualData";
 import {
   RELIGIOUS_HOLIDAYS,
   getHolidaysForDate,
@@ -441,6 +443,35 @@ export async function scheduleAllNotifications(
       scheduled++;
     } catch {
       // skip if individual scheduling fails
+    }
+  }
+
+  // Daily Odu Reflection — pre-schedule 30 days at 7:30 AM
+  if (settings.types.oduReflection) {
+    for (let i = 0; i < 30 && scheduled < 62; i++) {
+      const date = addDays(now, i + 1);
+      date.setHours(0, 0, 0, 0);
+      const odu = getDailyOdu(date);
+      const reflection = ODU_REFLECTIONS[odu.name] ?? odu.guidance;
+      const trigger = new Date(date);
+      trigger.setHours(7, 30, 0, 0);
+      if (trigger <= now) continue;
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `✦ ${odu.name} · Daily Odu`,
+            body: reflection,
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: trigger,
+          },
+        });
+        scheduled++;
+      } catch {
+        // skip
+      }
     }
   }
 

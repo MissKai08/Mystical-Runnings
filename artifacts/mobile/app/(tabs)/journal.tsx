@@ -1253,6 +1253,12 @@ export default function JournalScreen() {
             </Pressable>
           </View>
 
+          <ScrollView
+            style={{ flex: 1 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 32 }}
+          >
           {/* Entry date selector row */}
           <Pressable
             onPress={() => { Haptics.selectionAsync(); setShowDatePicker((v) => !v); }}
@@ -1484,11 +1490,12 @@ export default function JournalScreen() {
           {/* Input area */}
           {inputMode === "text" ? (
             <TextInput
-              style={[styles.textInput, { color: colors.foreground, borderColor: colors.border }]}
+              style={[styles.textInput, { color: colors.foreground }]}
               placeholder="Write your reflection, intention, or insight…"
               placeholderTextColor={colors.mutedForeground}
               multiline
               autoFocus
+              scrollEnabled={false}
               value={textValue}
               onChangeText={setTextValue}
               textAlignVertical="top"
@@ -1506,6 +1513,7 @@ export default function JournalScreen() {
               )}
             </View>
           )}
+          </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -2139,15 +2147,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   textInput: {
-    flex: 1,
+    minHeight: 240,
     padding: 16,
     fontSize: 16,
     lineHeight: 26,
     borderTopWidth: 0,
     borderWidth: 0,
+    borderRadius: 0,
   },
   drawingArea: {
-    flex: 1,
+    height: 380,
   },
   listSeedCard: {
     marginHorizontal: 16,
