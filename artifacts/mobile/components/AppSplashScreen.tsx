@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -147,37 +147,46 @@ export function AppSplashScreen({ onComplete }: Props) {
   const moonScale       = useRef(new Animated.Value(0.75)).current;
   const glowScale       = useRef(new Animated.Value(1)).current;
 
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glowScale, { toValue: 1.12, duration: 1600, useNativeDriver: true }),
-          Animated.timing(glowScale, { toValue: 1,    duration: 1600, useNativeDriver: true }),
-        ])
-      ).start();
+  // Do NOT mount the title Text nodes until fonts are fully in the native
+  // rendering pipeline. Mounting them at opacity:0 still causes a flash on
+  // Android if the font switches from system-default → custom mid-frame.
+  const [titleMounted, setTitleMounted] = useState(false);
 
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(moonOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-          Animated.spring(moonScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(titleOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
-          Animated.timing(titleY,       { toValue: 0, duration: 550, useNativeDriver: true }),
-        ]),
-        Animated.timing(progressAnim, {
-          toValue: 1,
-          duration: 1600,
-          useNativeDriver: false,
-        }),
-        Animated.delay(350),
-        Animated.timing(containerOpacity, { toValue: 0, duration: 550, useNativeDriver: true }),
-      ]).start(() => {
-        onComplete();
-      });
-    });
-    return () => cancelAnimationFrame(raf);
+  useEffect(() => {
+    // Give React Native two frames (~32 ms) to flush the Beasigne font into
+    // the Skia/Harfbuzz text pipeline before we create any Text nodes.
+    const mountTimer = setTimeout(() => setTitleMounted(true), 32);
+    return () => clearTimeout(mountTimer);
   }, []);
+
+  useEffect(() => {
+    if (!titleMounted) return;
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glowScale, { toValue: 1.12, duration: 1600, useNativeDriver: true }),
+        Animated.timing(glowScale, { toValue: 1,    duration: 1600, useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(moonOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.spring(moonScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
+      ]),
+      Animated.parallel([
+        Animated.timing(titleOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
+        Animated.timing(titleY,       { toValue: 0, duration: 550, useNativeDriver: true }),
+      ]),
+      Animated.timing(progressAnim, {
+        toValue: 1,
+        duration: 1600,
+        useNativeDriver: false,
+      }),
+      Animated.delay(350),
+      Animated.timing(containerOpacity, { toValue: 0, duration: 550, useNativeDriver: true }),
+    ]).start(() => onComplete());
+  }, [titleMounted]);
 
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
@@ -212,26 +221,28 @@ export function AppSplashScreen({ onComplete }: Props) {
         <RealisticMoon />
       </Animated.View>
 
-      <Animated.View
-        style={[
-          styles.titleBlock,
-          {
-            opacity:   titleOpacity,
-            transform: [{ translateY: titleY }],
-          },
-        ]}
-      >
-        <Text style={styles.titleLine}>MYSTICAL</Text>
-        <Text style={styles.titleLine}>RUNNINGS</Text>
+      {titleMounted && (
+        <Animated.View
+          style={[
+            styles.titleBlock,
+            {
+              opacity:   titleOpacity,
+              transform: [{ translateY: titleY }],
+            },
+          ]}
+        >
+          <Text style={styles.titleLine}>MYSTICAL</Text>
+          <Text style={styles.titleLine}>RUNNINGS</Text>
 
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerStar}>✦</Text>
-          <View style={styles.dividerLine} />
-        </View>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerStar}>✦</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-        <Text style={styles.subtitle}>ALIGN WITH THE COSMOS</Text>
-      </Animated.View>
+          <Text style={styles.subtitle}>ALIGN WITH THE COSMOS</Text>
+        </Animated.View>
+      )}
 
       <View style={styles.progressSection}>
         <View style={styles.progressTrack}>
