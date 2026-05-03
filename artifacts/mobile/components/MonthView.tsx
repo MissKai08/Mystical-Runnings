@@ -9,13 +9,17 @@ import {
 import { useColors } from "@/hooks/useColors";
 import {
   getMonthGrid,
-  getEventsForDate,
   isSameDay,
   getMoonPhaseData,
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
 } from "@/constants/spiritualData";
+import {
+  getHolidaysForDate,
+  HOLIDAY_REGION_COLOR,
+  type HolidayRegion,
+} from "@/constants/religiousHolidays";
 import { EventDot } from "./EventDot";
 import * as Haptics from "expo-haptics";
 
@@ -24,11 +28,12 @@ interface Props {
   month: number;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
+  enabledRegions: Set<HolidayRegion>;
 }
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function MonthView({ year, month, selectedDate, onSelectDate }: Props) {
+export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
@@ -59,6 +64,9 @@ export function MonthView({ year, month, selectedDate, onSelectDate }: Props) {
             const retrograde = getMercuryRetrogradeInfo(day);
             const prayerDay = isIfaPrayerDay(day);
             const festival = getIfaFestivalForDate(day);
+            const holidays = enabledRegions.size > 0
+              ? getHolidaysForDate(day).filter((h) => enabledRegions.has(h.region))
+              : [];
 
             const isCurrentMonth = day.getMonth() === month;
 
@@ -90,6 +98,12 @@ export function MonthView({ year, month, selectedDate, onSelectDate }: Props) {
                   {retrograde && <EventDot type="retrograde" size={4} />}
                   {prayerDay && <EventDot type="ifa-prayer" size={4} />}
                   {festival && <EventDot type="ifa-festival" size={4} />}
+                  {holidays.slice(0, 2).map((h, hi) => (
+                    <View
+                      key={hi}
+                      style={[styles.holidayDot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]}
+                    />
+                  ))}
                 </View>
               </Pressable>
             );
@@ -142,5 +156,11 @@ const styles = StyleSheet.create({
     height: 5,
     alignItems: "center",
     justifyContent: "center",
+    gap: 2,
+  },
+  holidayDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
 });

@@ -11,11 +11,20 @@ import {
   OseGroup,
   EVENT_COLORS,
 } from "@/constants/spiritualData";
+import {
+  getHolidaysForDate,
+  HOLIDAY_REGION_COLOR,
+  HOLIDAY_REGION_LABEL,
+  HOLIDAY_REGION_FLAG,
+  type HolidayRegion,
+  type ReligiousHoliday,
+} from "@/constants/religiousHolidays";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
 import { OseDetailModal } from "./OseDetailModal";
 
 interface Props {
   startDate: Date;
+  enabledRegions: Set<HolidayRegion>;
 }
 
 const CATEGORY_LABELS: Partial<Record<EventType, string>> = {
@@ -65,6 +74,13 @@ const GUIDANCE: Partial<Record<EventType, string>> = {
     "Deep illumination and release. What the eclipse reveals cannot be unseen. Trust the profound process of transformation.",
 };
 
+const HOLIDAY_GUIDANCE: Record<HolidayRegion, string> = {
+  us: "Honor this day with awareness of community, history, and shared purpose.",
+  mexico: "Celebrate Mexico's living spiritual heritage — a sacred weaving of indigenous, Catholic, and ancestral traditions.",
+  india: "India's festivals are invitations to align with the divine — through color, fire, prayer, and community.",
+  jewish: "Jewish sacred days are portals of memory, renewal, and covenant — a cycle of return and recommitment.",
+};
+
 function buildEventDetail(event: SpiritualEvent): EventDetail {
   return {
     title: event.name,
@@ -75,14 +91,29 @@ function buildEventDetail(event: SpiritualEvent): EventDetail {
   };
 }
 
-export function ScheduleView({ startDate }: Props) {
+function buildHolidayDetail(h: ReligiousHoliday): EventDetail {
+  return {
+    title: h.name,
+    category: HOLIDAY_REGION_LABEL[h.region],
+    color: HOLIDAY_REGION_COLOR[h.region],
+    description: h.description,
+    guidance: HOLIDAY_GUIDANCE[h.region],
+  };
+}
+
+export function ScheduleView({ startDate, enabledRegions }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
 
   const schedule = useMemo(() => {
-    const entries: { date: Date; events: SpiritualEvent[]; oseDay: OseGroup }[] = [];
+    const entries: {
+      date: Date;
+      events: SpiritualEvent[];
+      holidays: ReligiousHoliday[];
+      oseDay: OseGroup;
+    }[] = [];
     for (let i = 0; i < 60; i++) {
       const date = addDays(startDate, i);
       const events = getEventsForDate(date);
@@ -93,12 +124,13 @@ export function ScheduleView({ startDate }: Props) {
           e.type !== "waxing-gibbous" &&
           e.type !== "waning-gibbous"
       );
-      if (notable.length > 0) {
-        entries.push({ date, events: notable, oseDay: getOseDay(date) });
+      const holidays = getHolidaysForDate(date).filter((h) => enabledRegions.has(h.region));
+      if (notable.length > 0 || holidays.length > 0) {
+        entries.push({ date, events: notable, holidays, oseDay: getOseDay(date) });
       }
     }
     return entries;
-  }, [startDate]);
+  }, [startDate, enabledRegions]);
 
   return (
     <>
@@ -107,7 +139,7 @@ export function ScheduleView({ startDate }: Props) {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {schedule.map(({ date, events, oseDay }, i) => {
+        {schedule.map(({ date, events, holidays, oseDay }, i) => {
           const isToday = isSameDay(date, today);
           return (
             <View key={i} style={styles.entry}>
@@ -145,6 +177,35 @@ export function ScheduleView({ startDate }: Props) {
                     </View>
                     <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
                       {event.description}
+                    </Text>
+                  </Pressable>
+                ))}
+
+                {holidays.map((h, hi) => (
+                  <Pressable
+                    key={`h-${hi}`}
+                    onPress={() => setSelectedEvent(buildHolidayDetail(h))}
+                    style={({ pressed }) => [
+                      styles.eventCard,
+                      styles.holidayCard,
+                      {
+                        backgroundColor: colors.card,
+                        borderLeftColor: HOLIDAY_REGION_COLOR[h.region],
+                        opacity: pressed ? 0.82 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={styles.eventCardHeader}>
+                      <Text style={[styles.holidayRegionLabel, { color: HOLIDAY_REGION_COLOR[h.region] }]}>
+                        {HOLIDAY_REGION_FLAG[h.region]} {HOLIDAY_REGION_LABEL[h.region]}
+                      </Text>
+                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    </View>
+                    <Text style={[styles.eventName, { color: colors.foreground }]}>
+                      {h.emoji} {h.name}
+                    </Text>
+                    <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                      {h.description}
                     </Text>
                   </Pressable>
                 ))}
@@ -231,6 +292,9 @@ const styles = StyleSheet.create({
   oseCard: {
     borderStyle: "dashed",
   },
+  holidayCard: {
+    borderStyle: "solid",
+  },
   oseDot: {
     width: 6,
     height: 6,
@@ -241,6 +305,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 2,
+  },
+  holidayRegionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    flex: 1,
   },
   eventName: {
     fontSize: 14,

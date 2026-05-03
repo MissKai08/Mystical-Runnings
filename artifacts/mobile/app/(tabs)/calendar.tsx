@@ -29,6 +29,13 @@ import {
   EVENT_COLORS,
   EventType,
 } from "@/constants/spiritualData";
+import {
+  RELIGIOUS_HOLIDAYS,
+  HOLIDAY_REGION_COLOR,
+  HOLIDAY_REGION_LABEL,
+  HOLIDAY_REGION_FLAG,
+  type HolidayRegion,
+} from "@/constants/religiousHolidays";
 import * as Haptics from "expo-haptics";
 
 const MONTH_NAMES = [
@@ -118,6 +125,11 @@ const SEARCH_INDEX: CalSearchResult[] = [
   })(),
 ].sort((a, b) => a.date.getTime() - b.date.getTime());
 
+const ALL_REGIONS: HolidayRegion[] = ["us", "mexico", "india", "jewish"];
+const REGION_LABEL: Record<HolidayRegion, string> = {
+  us: "US", mexico: "Mexico", india: "India", jewish: "Jewish",
+};
+
 export default function CalendarScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -126,6 +138,19 @@ export default function CalendarScreen() {
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [enabledRegions, setEnabledRegions] = useState<Set<HolidayRegion>>(
+    new Set(ALL_REGIONS)
+  );
+
+  const toggleRegion = (region: HolidayRegion) => {
+    Haptics.selectionAsync();
+    setEnabledRegions((prev) => {
+      const next = new Set(prev);
+      if (next.has(region)) next.delete(region);
+      else next.add(region);
+      return next;
+    });
+  };
 
   const year = displayDate.getFullYear();
   const month = displayDate.getMonth();
@@ -316,6 +341,33 @@ export default function CalendarScreen() {
           {/* View Switcher */}
           <ViewSwitcher mode={calView} onModeChange={setCalView} />
 
+          {/* Holiday Region Filter */}
+          {calView !== "almanac" && (
+            <View style={styles.regionFilter}>
+              {ALL_REGIONS.map((region) => {
+                const active = enabledRegions.has(region);
+                return (
+                  <Pressable
+                    key={region}
+                    onPress={() => toggleRegion(region)}
+                    style={[
+                      styles.regionChip,
+                      {
+                        backgroundColor: active ? HOLIDAY_REGION_COLOR[region] + "22" : "transparent",
+                        borderColor: active ? HOLIDAY_REGION_COLOR[region] : colors.border,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.regionChipFlag}>{HOLIDAY_REGION_FLAG[region]}</Text>
+                    <Text style={[styles.regionChipLabel, { color: active ? HOLIDAY_REGION_COLOR[region] : colors.mutedForeground }]}>
+                      {REGION_LABEL[region]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
           {/* Calendar Content */}
           <View style={styles.calendarContent}>
             {calView === "month" && (
@@ -325,6 +377,7 @@ export default function CalendarScreen() {
                   month={month}
                   selectedDate={selectedDate}
                   onSelectDate={handleSelectDate}
+                  enabledRegions={enabledRegions}
                 />
               </View>
             )}
@@ -333,10 +386,11 @@ export default function CalendarScreen() {
                 startDate={weekStart}
                 selectedDate={selectedDate}
                 onSelectDate={(d) => { setSelectedDate(d); setDisplayDate(d); }}
+                enabledRegions={enabledRegions}
               />
             )}
             {calView === "day" && <DayView date={selectedDate} />}
-            {calView === "schedule" && <ScheduleView startDate={displayDate} />}
+            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} />}
             {calView === "almanac" && <AlmanacView />}
           </View>
 
@@ -379,6 +433,15 @@ const LEGEND_GROUPS = [
       { color: "#D4A843", label: "Ose Ifa" },
       { color: "#94A3B8", label: "Ose Ogun" },
       { color: "#EF4444", label: "Ose Sango" },
+    ],
+  },
+  {
+    heading: "Holidays",
+    items: [
+      { color: "#3B82F6", label: "🇺🇸 U.S. Holiday" },
+      { color: "#22C55E", label: "🇲🇽 Mexican Holiday" },
+      { color: "#F97316", label: "🇮🇳 Indian Holiday" },
+      { color: "#60A5FA", label: "✡️ Jewish Holiday" },
     ],
   },
 ];
@@ -469,6 +532,29 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  regionFilter: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingBottom: 8,
+    gap: 6,
+  },
+  regionChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  regionChipFlag: {
+    fontSize: 12,
+  },
+  regionChipLabel: {
+    fontSize: 11,
+    fontWeight: "600",
     letterSpacing: 0.2,
   },
   calendarContent: { flex: 1 },
