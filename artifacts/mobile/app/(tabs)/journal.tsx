@@ -186,6 +186,72 @@ const MONTH_NAMES = [
 
 const ENTRY_COLORS = ["#13102A", "#D4A84330", "#D4A84358", "#D4A84385", "#D4A843AA"];
 
+const MOON_PROMPTS: Record<string, string[]> = {
+  "new-moon": [
+    "What seeds of intention are you planting as this new cycle begins?",
+    "If this moon cycle were a chapter in your life, what title would you give it?",
+    "What do you wish to call into being before the next full moon?",
+  ],
+  "waxing-crescent": [
+    "What small action today moved you closer to your intentions?",
+    "Where do you feel growth stirring — in your body, your heart, your practice?",
+    "What new belief is trying to take root within you right now?",
+  ],
+  "first-quarter": [
+    "What obstacle is asking you to push through it right now?",
+    "Where are you being called to make a decision and fully commit?",
+    "What fear is standing between you and the intention you set at the new moon?",
+  ],
+  "waxing-gibbous": [
+    "What needs to be refined or adjusted to bring your intentions to fruition?",
+    "Where are you almost there — and what final push is being asked of you?",
+    "What would completion feel like in your body? Describe it in detail.",
+  ],
+  "full-moon": [
+    "What is illuminated in your life right now that you can no longer look away from?",
+    "What are you releasing tonight — a pattern, a story, a weight you've been carrying?",
+    "What do you have genuine gratitude for as this cycle reaches its peak?",
+  ],
+  "named-moon": [
+    "What is this moon's name and energy calling forth in you?",
+    "What ancestral or seasonal wisdom is available to you in this moment?",
+    "What do you wish to receive as the moon reaches its fullest expression?",
+  ],
+  "waning-gibbous": [
+    "What wisdom from this cycle are you now called to share or embody?",
+    "How have you changed since the new moon? What has visibly shifted?",
+    "What are you grateful you did — or chose not to do — this cycle?",
+  ],
+  "last-quarter": [
+    "What habit, belief, or pattern are you truly ready to release before the next cycle?",
+    "What forgiveness — of yourself or another — is waiting to be offered right now?",
+    "What no longer belongs in the next chapter of your life?",
+  ],
+  "waning-crescent": [
+    "As this cycle closes, what do you need to rest, restore, or surrender?",
+    "What quiet truth has this moon cycle whispered to you when you were still enough to hear?",
+    "What will you do differently when the new moon rises?",
+  ],
+  "dark-moon": [
+    "What lives in your shadow that is asking to be witnessed — not fixed, just seen?",
+    "In the void before the new cycle, what are you being invited to release completely?",
+    "What does your deepest self need right now — rest, truth, or honest darkness?",
+  ],
+};
+
+const OSE_SUFFIXES: Record<string, string> = {
+  obatala: "Sit in stillness with your answer. Obatala asks for patience and clarity before action.",
+  ifa: "Seek the deeper pattern beneath your words. Ifa reminds you wisdom arrives before speaking.",
+  ogun: "Let your answer lead to one clear action. Ogun moves through purpose, not hesitation.",
+  sango: "Write boldly and without softening. Sango's thunder clears the air for what is real.",
+};
+
+function getMoonPromptType(date: Date): string {
+  if (getNamedFullMoonForDate(date)) return "named-moon";
+  if (getDarkMoonForDate(date)) return "dark-moon";
+  return getMoonPhaseData(date).eventType;
+}
+
 function MonthHeatmap({
   entries, year, month, onPrev, onNext, onDayPress, onEmptyDayPress, colors,
 }: {
@@ -358,6 +424,7 @@ export default function JournalScreen() {
   const [composerDate, setComposerDate] = useState<string | null>(null);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
+  const [promptIdx, setPromptIdx] = useState(0);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -385,6 +452,9 @@ export default function JournalScreen() {
     setTextValue("");
     setInputMode("text");
     drawingRef.current?.clear();
+    // Seed prompt to a deterministic daily index so it varies day-to-day
+    const now = new Date();
+    setPromptIdx((now.getDate() + now.getMonth() * 31) % 3);
     setComposerOpen(true);
   };
 
@@ -395,6 +465,9 @@ export default function JournalScreen() {
     setTextValue("");
     setInputMode("text");
     drawingRef.current?.clear();
+    const [y, m, d] = date.split("-").map(Number);
+    const parsedDate = new Date(y, m - 1, d);
+    setPromptIdx((parsedDate.getDate() + parsedDate.getMonth() * 31) % 3);
     setComposerOpen(true);
   };
 
@@ -493,6 +566,23 @@ export default function JournalScreen() {
   const streak = useMemo(() => calculateStreak(entries), [entries]);
   const best = useMemo(() => longestStreak(entries), [entries]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
+
+  const currentPrompts = useMemo(() => {
+    const type = getMoonPromptType(entryDate);
+    return MOON_PROMPTS[type] ?? MOON_PROMPTS["full-moon"];
+  }, [entryDate]);
+
+  const currentPrompt = useMemo(
+    () => currentPrompts[promptIdx % currentPrompts.length],
+    [currentPrompts, promptIdx]
+  );
+
+  const oseDay = useMemo(() => getOseDay(entryDate), [entryDate]);
+
+  const currentOseSuffix = useMemo(
+    () => OSE_SUFFIXES[oseDay.id] ?? "",
+    [oseDay]
+  );
 
   const filteredEntries = entries.filter((e) => {
     if (moodFilter && !e.mood?.includes(moodFilter)) return false;
@@ -748,6 +838,46 @@ export default function JournalScreen() {
                 </View>
               ))}
             </ScrollView>
+          )}
+
+          {/* Daily Journal Prompt */}
+          {inputMode === "text" && (
+            <View style={[styles.promptCard, { backgroundColor: "#D4A84309", borderColor: "#D4A84333" }]}>
+              <View style={styles.promptHeader}>
+                <Text style={[styles.promptLabel, { color: "#D4A843" }]}>✦ TODAY'S PROMPT</Text>
+                <Pressable
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setPromptIdx((i) => (i + 1) % currentPrompts.length);
+                  }}
+                  hitSlop={10}
+                  style={styles.promptRefreshBtn}
+                >
+                  <Feather name="refresh-cw" size={12} color={colors.mutedForeground} />
+                </Pressable>
+              </View>
+              <Text style={[styles.promptText, { color: colors.foreground }]}>
+                {currentPrompt}
+              </Text>
+              <Text style={[styles.promptSuffix, { color: colors.mutedForeground }]}>
+                {currentOseSuffix}
+              </Text>
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  if (textValue.trim().length === 0) setTextValue(currentPrompt + "\n\n");
+                }}
+                style={[
+                  styles.promptUseBtn,
+                  { borderColor: "#D4A84344", opacity: textValue.trim().length > 0 ? 0.4 : 1 },
+                ]}
+              >
+                <Feather name="edit-3" size={12} color="#D4A843" />
+                <Text style={[styles.promptUseBtnText, { color: "#D4A843" }]}>
+                  {textValue.trim().length > 0 ? "Prompt used" : "Use this prompt"}
+                </Text>
+              </Pressable>
+            </View>
           )}
 
           {/* Mood / energy selector */}
@@ -1330,6 +1460,56 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 11,
     fontWeight: "500",
+  },
+  promptCard: {
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 8,
+  },
+  promptHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  promptLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+  },
+  promptRefreshBtn: {
+    padding: 2,
+  },
+  promptText: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontStyle: "italic",
+    fontWeight: "500",
+  },
+  promptSuffix: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontStyle: "italic",
+  },
+  promptUseBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  promptUseBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
   modeRow: {
     flexDirection: "row",
