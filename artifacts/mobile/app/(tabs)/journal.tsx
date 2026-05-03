@@ -51,6 +51,7 @@ import { SearchBar } from "@/components/SearchBar";
 import SacredAltar from "@/components/SacredAltar";
 import LunarLetterModal from "@/components/LunarLetterModal";
 import { generateLunarLetter, LunarLetterData } from "@/utils/lunarLetter";
+import IntentionsModal from "@/components/IntentionsModal";
 import Svg, { Path } from "react-native-svg";
 
 type InputMode = "text" | "drawing";
@@ -617,6 +618,7 @@ export default function JournalScreen() {
   const [freezes, setFreezes] = useState<Set<string>>(new Set());
   const [lunarLetterOpen, setLunarLetterOpen] = useState(false);
   const [lunarLetterData, setLunarLetterData] = useState<LunarLetterData | null>(null);
+  const [intentionsOpen, setIntentionsOpen] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -986,6 +988,18 @@ export default function JournalScreen() {
           <Feather name="chevron-right" size={14} color="#D4A84388" />
         </Pressable>
 
+        {/* Sacred Intentions button */}
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setIntentionsOpen(true); }}
+          style={[styles.lunarLetterBtn, { backgroundColor: "#7C3AED14", borderColor: "#7C3AED44" }]}
+        >
+          <Text style={[styles.lunarLetterBtnGlyph, { color: "#A78BFA" }]}>○</Text>
+          <Text style={[styles.lunarLetterBtnText, { color: "#A78BFA" }]}>
+            Sacred Intentions
+          </Text>
+          <Feather name="chevron-right" size={14} color="#A78BFA88" />
+        </Pressable>
+
         {/* Calendar mode toggle */}
         <View style={styles.calToggleRow}>
           <Pressable
@@ -1209,6 +1223,12 @@ export default function JournalScreen() {
           <Feather name="edit-3" size={22} color="#080714" />
         </Pressable>
       )}
+
+      {/* Sacred Intentions Modal */}
+      <IntentionsModal
+        visible={intentionsOpen}
+        onClose={() => setIntentionsOpen(false)}
+      />
 
       {/* Lunar Letter Modal */}
       <LunarLetterModal
@@ -1494,7 +1514,6 @@ export default function JournalScreen() {
               placeholder="Write your reflection, intention, or insight…"
               placeholderTextColor={colors.mutedForeground}
               multiline
-              autoFocus
               scrollEnabled={false}
               value={textValue}
               onChangeText={setTextValue}
