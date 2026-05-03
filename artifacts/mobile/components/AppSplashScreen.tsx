@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
+  Platform,
 } from "react-native";
 import Svg, {
   Circle,
@@ -146,27 +147,19 @@ export function AppSplashScreen({ onComplete }: Props) {
   const moonOpacity     = useRef(new Animated.Value(0)).current;
   const moonScale       = useRef(new Animated.Value(0.75)).current;
   const glowScale       = useRef(new Animated.Value(1)).current;
-  const [fontReady, setFontReady] = useState(false);
-
   const [titleMounted, setTitleMounted] = useState(false);
 
   useEffect(() => {
-    let active = true;
     const mountTimer = setTimeout(() => {
-      if (active) setTitleMounted(true);
+      setTitleMounted(true);
     }, 700);
-    const fontTimer = setTimeout(() => {
-      if (active) setFontReady(true);
-    }, 0);
     return () => {
-      active = false;
       clearTimeout(mountTimer);
-      clearTimeout(fontTimer);
     };
   }, []);
 
   useEffect(() => {
-    if (!titleMounted || !fontReady) return;
+    if (!titleMounted) return;
 
     Animated.loop(
       Animated.sequence([
@@ -324,7 +317,11 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: "Beasigne",
+    fontFamily: Platform.select({
+      ios: "Beasigne",
+      android: "Beasigne",
+      default: "Beasigne",
+    }),
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,
