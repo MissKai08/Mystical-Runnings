@@ -634,9 +634,39 @@ export default function JournalScreen() {
   const [moonWaterIntention, setMoonWaterIntention] = useState("");
   const [moonWaterEditId, setMoonWaterEditId] = useState<string | null>(null);
   const inFullMoonWindow = useMemo(() => isInFullMoonWindow(new Date()), []);
+  const [chargingHoursLeft, setChargingHoursLeft] = useState<number | null>(null);
   const [lunarLetterOpen, setLunarLetterOpen] = useState(false);
   const [lunarLetterData, setLunarLetterData] = useState<LunarLetterData | null>(null);
   const [intentionsOpen, setIntentionsOpen] = useState(false);
+
+  // Crystal charging countdown — recompute every minute when in full moon window
+  useEffect(() => {
+    if (!inFullMoonWindow) return;
+
+    function computeHoursLeft(): number {
+      const now = new Date();
+      // Find the nearest full moon by scanning ±3 days at noon
+      let peakFull: Date | null = null;
+      let bestIllum = -1;
+      for (let offset = -3; offset <= 3; offset++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, 12, 0, 0);
+        const info = getMoonPhaseData(d);
+        if (info.illumination > bestIllum) {
+          bestIllum = info.illumination;
+          peakFull = d;
+        }
+      }
+      if (!peakFull) return 0;
+      // Window closes 2 days after peak
+      const windowEnd = new Date(peakFull.getFullYear(), peakFull.getMonth(), peakFull.getDate() + 2, 23, 59, 59);
+      const ms = windowEnd.getTime() - now.getTime();
+      return Math.max(0, ms / (1000 * 3600));
+    }
+
+    setChargingHoursLeft(computeHoursLeft());
+    const interval = setInterval(() => setChargingHoursLeft(computeHoursLeft()), 60_000);
+    return () => clearInterval(interval);
+  }, [inFullMoonWindow]);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -1326,6 +1356,21 @@ export default function JournalScreen() {
                 <Text style={[styles.moonWaterTipText, { color: "#94A3B8" }]}>
                   Place water, crystals, or sacred objects under the moon tonight. Record what you're charging and your intention — the moon will seal it.
                 </Text>
+                {chargingHoursLeft !== null && chargingHoursLeft > 0 && (
+                  <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ backgroundColor: "#7C3AED22", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: "#A78BFA44" }}>
+                      <Text style={{ fontSize: 13 }}>🔮</Text>
+                      <Text style={{ color: "#A78BFA", fontSize: 12, fontWeight: "700", letterSpacing: 0.3 }}>
+                        Crystal Window Closes In
+                      </Text>
+                    </View>
+                    <Text style={{ color: "#C8D4FF", fontSize: 14, fontWeight: "800" }}>
+                      {chargingHoursLeft >= 24
+                        ? `${Math.floor(chargingHoursLeft / 24)}d ${Math.floor(chargingHoursLeft % 24)}h`
+                        : `${Math.floor(chargingHoursLeft)}h ${Math.floor((chargingHoursLeft % 1) * 60)}m`}
+                    </Text>
+                  </View>
+                )}
               </View>
             )}
 

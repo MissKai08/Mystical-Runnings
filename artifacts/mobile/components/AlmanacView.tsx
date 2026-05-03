@@ -135,14 +135,23 @@ function buildYearEntries(year: number, today: Date): AlmanacEntry[] {
     });
   }
 
-  // All computed major phases not covered by named/dark moon lists
+  // All computed major phases not covered by named/dark moon lists.
+  // Track last-added phase type+approximate-date to prevent duplicate entries
+  // when isMajorPhase is true across multiple consecutive days.
   const cursor = new Date(year, 0, 1, 12, 0, 0);
   const yearEnd = new Date(year, 11, 31, 12, 0, 0);
+  const lastAddedPhase: Record<string, number> = {}; // eventType → day-of-year
+
   while (cursor <= yearEnd) {
     const m = getMoonPhaseData(cursor);
     if (m.isMajorPhase) {
       const k = `${cursor.getMonth()}-${cursor.getDate()}`;
-      if (!namedMoonKeys.has(k) && !darkMoonKeys.has(k)) {
+      const dayOfYear = cursor.getMonth() * 31 + cursor.getDate();
+      const lastDay = lastAddedPhase[m.eventType] ?? -99;
+      const tooClose = dayOfYear - lastDay < 4; // same phase within 4 days = duplicate
+
+      if (!namedMoonKeys.has(k) && !darkMoonKeys.has(k) && !tooClose) {
+        lastAddedPhase[m.eventType] = dayOfYear;
         const emoji =
           m.eventType === "new-moon" ? "🌑"
           : m.eventType === "first-quarter" ? "🌓"

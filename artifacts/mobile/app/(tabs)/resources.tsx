@@ -155,7 +155,7 @@ export default function ResourcesScreen() {
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32, paddingHorizontal: 16 }}
+      contentContainerStyle={{ paddingTop: insets.top + 16, paddingBottom: insets.bottom + 110, paddingHorizontal: 16 }}
       showsVerticalScrollIndicator={false}
     >
       <Text style={[styles.screenTitle, { color: colors.foreground }]}>Resources</Text>
