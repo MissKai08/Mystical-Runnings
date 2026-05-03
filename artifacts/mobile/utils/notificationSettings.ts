@@ -3,6 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const KEY = "@mystical_notif_settings";
 
 export interface NotifTypeSettings {
+  dailyBriefing: boolean;
   namedMoons: boolean;
   darkMoons: boolean;
   majorPhases: boolean;
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
   masterEnabled: false,
   advanceDays: 1,
   types: {
+    dailyBriefing: false,
     namedMoons: true,
     darkMoons: true,
     majorPhases: true,

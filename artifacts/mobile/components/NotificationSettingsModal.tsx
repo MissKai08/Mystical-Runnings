@@ -105,6 +105,16 @@ const TYPE_ROWS: TypeRow[] = [
   },
 ];
 
+const BRIEFING_ROWS: TypeRow[] = [
+  {
+    key: "dailyBriefing",
+    label: "Daily Sacred Briefing",
+    description: "7 AM summary of today's moon, holidays & sacred events",
+    color: "#D4A843",
+    emoji: "🌅",
+  },
+];
+
 const HOLIDAY_ROWS: TypeRow[] = [
   {
     key: "holidaysUs",
@@ -384,6 +394,21 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
             <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
               Reminder delivered at 8:00 AM on the selected day before each event.
               Ifa Prayer Days notify at 7:00 AM every Thursday. Ose Calendar transitions notify at 7:00 AM on the day they begin.
+            </Text>
+          </View>
+
+          {/* Daily briefing toggle */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+              MORNING BRIEFING
+            </Text>
+            <View style={[styles.typeList, { borderColor: colors.border }]}>
+              {BRIEFING_ROWS.map((row, idx) =>
+                renderTypeRow(row, idx, true)
+              )}
+            </View>
+            <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
+              Delivers at 7 AM each morning with a summary of the day's sacred energies, moon phases, and holidays.
             </Text>
           </View>
 

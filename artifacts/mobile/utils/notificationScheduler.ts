@@ -8,9 +8,18 @@ import {
   MERCURY_RETROGRADES,
   OSE_GROUPS,
   getMoonPhaseData,
+  getNamedFullMoonForDate,
+  getDarkMoonForDate,
+  getEclipseForDate,
+  getSabbatForDate,
+  getMercuryRetrogradeInfo,
+  isIfaPrayerDay,
+  getIfaFestivalForDate,
+  addDays,
 } from "@/constants/spiritualData";
 import {
   RELIGIOUS_HOLIDAYS,
+  getHolidaysForDate,
   HOLIDAY_REGION_FLAG,
   HOLIDAY_REGION_LABEL,
   type HolidayRegion,
@@ -140,6 +149,41 @@ function getComputedMajorPhaseEvents(windowDays = 120): SchedulableEvent[] {
   }
 
   return events;
+}
+
+function moonEmojiForType(type: string): string {
+  if (type === "new-moon") return "🌑";
+  if (type === "first-quarter") return "🌓";
+  if (type === "full-moon") return "🌕";
+  if (type === "last-quarter") return "🌗";
+  return "🌙";
+}
+
+function getDailyBriefingItems(date: Date, settings: NotificationSettings): string[] {
+  const items: string[] = [];
+  const nm = getNamedFullMoonForDate(date);
+  const dm = getDarkMoonForDate(date);
+  const moon = getMoonPhaseData(date);
+  if (nm) items.push(`🌕 ${nm.name}`);
+  else if (dm) items.push("🌑 Dark Moon");
+  else if (moon.isMajorPhase) items.push(`${moonEmojiForType(moon.eventType)} ${moon.name}`);
+  const ec = getEclipseForDate(date);
+  if (ec) items.push(ec.type === "solar-eclipse" ? `☀️ ${ec.name}` : `🌕 ${ec.name}`);
+  const sb = getSabbatForDate(date);
+  if (sb) items.push(`🌿 ${sb.name.split(" —")[0]}`);
+  const rt = getMercuryRetrogradeInfo(date);
+  if (rt) items.push("☿ Mercury Retrograde");
+  if (isIfaPrayerDay(date)) items.push("🌟 Ifa Prayer Day");
+  const fv = getIfaFestivalForDate(date);
+  if (fv) items.push(`✨ ${fv.name}`);
+  const holidays = getHolidaysForDate(date);
+  for (const h of holidays) {
+    if (h.region === "us" && settings.types.holidaysUs) items.push(`${HOLIDAY_REGION_FLAG["us"]} ${h.name}`);
+    if (h.region === "mexico" && settings.types.holidaysMexico) items.push(`${HOLIDAY_REGION_FLAG["mexico"]} ${h.name}`);
+    if (h.region === "india" && settings.types.holidaysIndia) items.push(`${HOLIDAY_REGION_FLAG["india"]} ${h.name}`);
+    if (h.region === "jewish" && settings.types.holidaysJewish) items.push(`${HOLIDAY_REGION_FLAG["jewish"]} ${h.name}`);
+  }
+  return items;
 }
 
 function getHolidayEvents(region: HolidayRegion, when: string): SchedulableEvent[] {
@@ -331,6 +375,36 @@ export async function scheduleAllNotifications(
       scheduled++;
     } catch {
       // skip if individual scheduling fails
+    }
+  }
+
+  // Daily Sacred Briefing — pre-schedule 30 days of 7 AM morning summaries
+  if (settings.types.dailyBriefing) {
+    const now = new Date();
+    for (let i = 0; i < 30 && scheduled < 62; i++) {
+      const date = addDays(now, i + 1);
+      date.setHours(0, 0, 0, 0);
+      const items = getDailyBriefingItems(date, settings);
+      if (items.length === 0) continue;
+      const trigger = new Date(date);
+      trigger.setHours(7, 0, 0, 0);
+      if (trigger <= now) continue;
+      try {
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: `✦ Sacred Briefing · ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+            body: items.join(" · "),
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: trigger,
+          },
+        });
+        scheduled++;
+      } catch {
+        // skip
+      }
     }
   }
 

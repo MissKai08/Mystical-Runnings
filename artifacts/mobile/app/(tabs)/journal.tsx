@@ -437,6 +437,128 @@ function DrawingThumbnail({ data, size = 80 }: { data: { paths: string[]; width:
   );
 }
 
+function JournalDatePicker({
+  selectedDate,
+  pickerYear,
+  pickerMonth,
+  onPrev,
+  onNext,
+  onSelect,
+  colors,
+}: {
+  selectedDate: string;
+  pickerYear: number;
+  pickerMonth: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelect: (date: string) => void;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
+  const startOffset = new Date(pickerYear, pickerMonth, 1).getDay();
+  const cells: (number | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks = Math.floor(cells.length / 7);
+  const dayKey = (day: number) =>
+    `${pickerYear}-${String(pickerMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  const isNextDisabled =
+    pickerYear > today.getFullYear() ||
+    (pickerYear === today.getFullYear() && pickerMonth >= today.getMonth());
+
+  return (
+    <View style={[dpStyles.container, { borderBottomColor: colors.border }]}>
+      <View style={dpStyles.nav}>
+        <Pressable onPress={onPrev} hitSlop={10} style={dpStyles.navBtn}>
+          <Feather name="chevron-left" size={15} color={colors.mutedForeground} />
+        </Pressable>
+        <Text style={[dpStyles.monthTitle, { color: colors.foreground }]}>
+          {MONTH_NAMES[pickerMonth]} {pickerYear}
+        </Text>
+        <Pressable
+          onPress={isNextDisabled ? undefined : onNext}
+          hitSlop={10}
+          style={[dpStyles.navBtn, { opacity: isNextDisabled ? 0.3 : 1 }]}
+        >
+          <Feather name="chevron-right" size={15} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+      <View style={dpStyles.gridRow}>
+        {DAY_LETTERS.map((l, i) => (
+          <Text key={i} style={[dpStyles.gridLetter, { color: colors.mutedForeground }]}>{l}</Text>
+        ))}
+      </View>
+      {Array.from({ length: weeks }, (_, row) => (
+        <View key={row} style={dpStyles.gridRow}>
+          {cells.slice(row * 7, row * 7 + 7).map((day, col) => {
+            if (!day) return <View key={col} style={dpStyles.cell} />;
+            const dk = dayKey(day);
+            const isSelected = dk === selectedDate;
+            const isToday = dk === todayStr;
+            const isFuture = dk > todayStr;
+            return (
+              <Pressable
+                key={col}
+                disabled={isFuture}
+                onPress={() => onSelect(dk)}
+                style={({ pressed }) => [
+                  dpStyles.cell,
+                  isSelected && { backgroundColor: "#D4A843" },
+                  !isSelected && isToday && { borderWidth: 1.5, borderColor: "#D4A843" },
+                  !isFuture && !isSelected && pressed && { backgroundColor: "#D4A84322" },
+                  isFuture && { opacity: 0.2 },
+                ]}
+              >
+                <Text style={[
+                  dpStyles.cellText,
+                  { color: isSelected ? "#080714" : isToday ? "#D4A843" : colors.foreground },
+                  isSelected && { fontWeight: "800" },
+                ]}>
+                  {day}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const dpStyles = StyleSheet.create({
+  container: { paddingHorizontal: 16, paddingBottom: 12, borderBottomWidth: 1, gap: 2 },
+  nav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 8,
+  },
+  navBtn: { padding: 4 },
+  monthTitle: { fontSize: 13, fontWeight: "700" },
+  gridRow: { flexDirection: "row" },
+  gridLetter: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 9,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    paddingBottom: 4,
+  },
+  cell: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 1.5,
+    borderRadius: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cellText: { fontSize: 11, fontWeight: "500" },
+});
+
 export default function JournalScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -458,6 +580,9 @@ export default function JournalScreen() {
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
   const [promptIdx, setPromptIdx] = useState(0);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
+  const [pickerMonth, setPickerMonth] = useState(() => new Date().getMonth());
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -484,9 +609,12 @@ export default function JournalScreen() {
     setSelectedMoods([]);
     setTextValue("");
     setInputMode("text");
+    setShowDatePicker(false);
     drawingRef.current?.clear();
     // Seed prompt to a deterministic daily index so it varies day-to-day
     const now = new Date();
+    setPickerYear(now.getFullYear());
+    setPickerMonth(now.getMonth());
     setPromptIdx((now.getDate() + now.getMonth() * 31) % 3);
     setComposerOpen(true);
   };
@@ -497,9 +625,12 @@ export default function JournalScreen() {
     setSelectedMoods([]);
     setTextValue("");
     setInputMode("text");
+    setShowDatePicker(false);
     drawingRef.current?.clear();
     const [y, m, d] = date.split("-").map(Number);
     const parsedDate = new Date(y, m - 1, d);
+    setPickerYear(parsedDate.getFullYear());
+    setPickerMonth(parsedDate.getMonth());
     setPromptIdx((parsedDate.getDate() + parsedDate.getMonth() * 31) % 3);
     setComposerOpen(true);
   };
@@ -508,6 +639,7 @@ export default function JournalScreen() {
     setComposerOpen(false);
     setComposerDate(null);
     setSelectedMoods([]);
+    setShowDatePicker(false);
   };
 
   const toggleMood = (id: string) => {
@@ -583,6 +715,33 @@ export default function JournalScreen() {
       if (m === 11) { setViewYear((y) => y + 1); return 0; }
       return m + 1;
     });
+  }, []);
+
+  const handlePickerPrev = useCallback(() => {
+    setPickerMonth((m) => {
+      if (m === 0) { setPickerYear((y) => y - 1); return 11; }
+      return m - 1;
+    });
+  }, []);
+
+  const handlePickerNext = useCallback(() => {
+    const today = new Date();
+    setPickerMonth((m) => {
+      if (pickerYear < today.getFullYear() || (pickerYear === today.getFullYear() && m < today.getMonth())) {
+        if (m === 11) { setPickerYear((y) => y + 1); return 0; }
+        return m + 1;
+      }
+      return m;
+    });
+  }, [pickerYear]);
+
+  const handlePickerSelect = useCallback((date: string) => {
+    Haptics.selectionAsync();
+    setComposerDate(date);
+    setShowDatePicker(false);
+    const [y, m, d] = date.split("-").map(Number);
+    const parsedDate = new Date(y, m - 1, d);
+    setPromptIdx((parsedDate.getDate() + parsedDate.getMonth() * 31) % 3);
   }, []);
 
   const handleDayPress = useCallback((date: string) => {
@@ -902,6 +1061,34 @@ export default function JournalScreen() {
               <Text style={styles.saveBtnText}>{saving ? "Saving…" : "Save"}</Text>
             </Pressable>
           </View>
+
+          {/* Entry date selector row */}
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setShowDatePicker((v) => !v); }}
+            style={[styles.datePickerRow, { borderBottomColor: colors.border, backgroundColor: showDatePicker ? "#D4A84309" : "transparent" }]}
+          >
+            <Feather name="calendar" size={13} color="#D4A843" />
+            <Text style={[styles.datePickerLabel, { color: colors.foreground }]}>
+              {composerDate ? formatEntryDate(composerDate) : formatEntryDate(todayKey())}
+            </Text>
+            <Text style={[styles.datePickerMoon, { color: colors.mutedForeground }]}>
+              {entrySpiritualCtx.moonPhase}
+            </Text>
+            <Feather name={showDatePicker ? "chevron-up" : "chevron-down"} size={13} color={colors.mutedForeground} />
+          </Pressable>
+
+          {/* Inline date picker */}
+          {showDatePicker && (
+            <JournalDatePicker
+              selectedDate={composerDate ?? todayKey()}
+              pickerYear={pickerYear}
+              pickerMonth={pickerMonth}
+              onPrev={handlePickerPrev}
+              onNext={handlePickerNext}
+              onSelect={handlePickerSelect}
+              colors={colors}
+            />
+          )}
 
           {/* Spiritual context chips */}
           {entrySpiritualCtx.context.length > 0 && (
@@ -1285,6 +1472,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.2,
+  },
+  datePickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  datePickerLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    flex: 1,
+  },
+  datePickerMoon: {
+    fontSize: 11,
   },
   moodSelectorRow: {
     borderBottomWidth: 1,
