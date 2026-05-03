@@ -55,6 +55,13 @@ const TYPE_ROWS: TypeRow[] = [
     emoji: "🌑",
   },
   {
+    key: "majorPhases",
+    label: "Major Moon Phases",
+    description: "New Moon, First Quarter, Full Moon, Last Quarter",
+    color: "#7C3AED",
+    emoji: "🌓",
+  },
+  {
     key: "sabbats",
     label: "Sabbats & Solstices",
     description: "Yule, Imbolc, Ostara, Beltane…",

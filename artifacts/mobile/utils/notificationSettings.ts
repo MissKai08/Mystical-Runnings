@@ -5,6 +5,7 @@ const KEY = "@mystical_notif_settings";
 export interface NotifTypeSettings {
   namedMoons: boolean;
   darkMoons: boolean;
+  majorPhases: boolean;
   sabbats: boolean;
   eclipses: boolean;
   mercuryRetrograde: boolean;
@@ -25,6 +26,7 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
   types: {
     namedMoons: true,
     darkMoons: true,
+    majorPhases: true,
     sabbats: true,
     eclipses: true,
     mercuryRetrograde: true,

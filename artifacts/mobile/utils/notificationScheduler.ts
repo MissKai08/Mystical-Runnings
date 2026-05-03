@@ -7,6 +7,7 @@ import {
   IFA_FESTIVALS,
   MERCURY_RETROGRADES,
   OSE_GROUPS,
+  getMoonPhaseData,
 } from "@/constants/spiritualData";
 import type { NotificationSettings } from "./notificationSettings";
 
@@ -30,6 +31,13 @@ interface SchedulableEvent {
   body: string;
 }
 
+// Days ahead language for notification bodies
+function tomorrowOrIn(advanceDays: number): string {
+  if (advanceDays === 1) return "tomorrow";
+  if (advanceDays === 2) return "in two days";
+  return "in three days";
+}
+
 function getOseTransitionEvents(windowDays = 90): SchedulableEvent[] {
   const now = new Date();
   const noon = new Date(now);
@@ -37,9 +45,7 @@ function getOseTransitionEvents(windowDays = 90): SchedulableEvent[] {
 
   const todayDiff = Math.round((noon.getTime() - OSE_ANCHOR_MS) / MS_PER_DAY);
   const todayIdx = ((todayDiff % 4) + 4) % 4;
-  // Day offset where the CURRENT group started
   const currentGroupStart = todayDiff - todayIdx;
-  // First upcoming transition = start of NEXT group
   let nextDiff = currentGroupStart + 4;
 
   const events: SchedulableEvent[] = [];
@@ -68,65 +74,157 @@ function getOseTransitionEvents(windowDays = 90): SchedulableEvent[] {
   return events;
 }
 
-function getFutureEvents(settings: NotificationSettings): SchedulableEvent[] {
+function getComputedMajorPhaseEvents(windowDays = 120): SchedulableEvent[] {
   const now = new Date();
   const events: SchedulableEvent[] = [];
 
+  // Days covered by the curated named/dark moon lists — skip those
+  const namedMoonKeys = new Set(
+    NAMED_FULL_MOONS.map((m) => `${m.date.getFullYear()}-${m.date.getMonth()}-${m.date.getDate()}`)
+  );
+  const darkMoonKeys = new Set(
+    DARK_MOONS.map((m) => `${m.date.getFullYear()}-${m.date.getMonth()}-${m.date.getDate()}`)
+  );
+
+  const cursor = new Date(now);
+  cursor.setHours(12, 0, 0, 0);
+  const cutoff = new Date(now.getTime() + windowDays * MS_PER_DAY);
+
+  while (cursor <= cutoff) {
+    const m = getMoonPhaseData(cursor);
+    if (m.isMajorPhase) {
+      const k = `${cursor.getFullYear()}-${cursor.getMonth()}-${cursor.getDate()}`;
+      if (!namedMoonKeys.has(k) && !darkMoonKeys.has(k)) {
+        const eventDate = new Date(cursor);
+        eventDate.setHours(0, 0, 0, 0);
+
+        let name: string;
+        let body: string;
+
+        switch (m.eventType) {
+          case "new-moon":
+            name = "🌑 New Moon";
+            body =
+              "The New Moon rises — a portal of fresh beginnings opens. Plant seeds of intention and open yourself to the new cycle ahead.";
+            break;
+          case "first-quarter":
+            name = "🌓 First Quarter Moon";
+            body =
+              "The First Quarter Moon arrives — take decisive action on your intentions. Push past resistance with clarity and courage.";
+            break;
+          case "full-moon":
+            name = "🌕 Full Moon";
+            body =
+              "The Full Moon peaks — it illuminates what was hidden and calls for completion, gratitude, and letting go.";
+            break;
+          case "last-quarter":
+            name = "🌗 Last Quarter Moon";
+            body =
+              "The Last Quarter Moon arrives — forgive, release, and clear space before the next lunar cycle begins.";
+            break;
+          default:
+            name = `🌙 ${m.name}`;
+            body = `The ${m.name} arrives — align with the moon's natural rhythm.`;
+        }
+
+        events.push({ name, date: eventDate, body });
+      }
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return events;
+}
+
+function getFutureEvents(settings: NotificationSettings): SchedulableEvent[] {
+  const now = new Date();
+  const events: SchedulableEvent[] = [];
+  const when = tomorrowOrIn(settings.advanceDays);
+
   if (settings.types.namedMoons) {
     for (const m of NAMED_FULL_MOONS) {
-      if (m.date > now)
-        events.push({ name: `✦ ${m.name}`, date: m.date, body: m.description });
+      if (m.date > now) {
+        events.push({
+          name: `🌕 ${m.name}`,
+          date: m.date,
+          body: `The ${m.name} rises ${when}${m.sign ? ` in ${m.sign}` : ""} — a sacred time for illumination, release, and gratitude.`,
+        });
+      }
     }
   }
 
   if (settings.types.darkMoons) {
     for (const m of DARK_MOONS) {
-      if (m.date > now)
+      if (m.date > now) {
         events.push({
-          name: "🌑 Dark Moon",
+          name: `🌑 Dark Moon${m.sign ? ` · ${m.sign}` : ""}`,
           date: m.date,
-          body: m.description,
+          body: `The Dark Moon${m.sign ? ` in ${m.sign}` : ""} falls ${when} — rest, turn inward, and release what no longer serves before the new cycle ignites.`,
         });
+      }
     }
+  }
+
+  if (settings.types.majorPhases) {
+    events.push(...getComputedMajorPhaseEvents(120));
   }
 
   if (settings.types.sabbats) {
     for (const s of SABBATS) {
-      if (s.date > now)
+      if (s.date > now) {
+        const shortName = s.name.split(" —")[0];
         events.push({
-          name: `🌿 ${s.name.split(" —")[0]}`,
+          name: `🌿 ${shortName}`,
           date: s.date,
-          body: s.description,
+          body: `${shortName} arrives ${when} — honor this sacred turning of the Wheel of the Year. ${s.description}`,
         });
+      }
     }
   }
 
   if (settings.types.eclipses) {
     for (const e of ECLIPSES) {
-      if (e.date > now)
+      if (e.date > now) {
+        const isSolar = e.type === "solar-eclipse";
         events.push({
-          name: e.type === "solar-eclipse" ? `☀️ ${e.name}` : `🌕 ${e.name}`,
+          name: isSolar ? `☀️ ${e.name}` : `🌕 ${e.name}`,
           date: e.date,
-          body: e.description,
+          body: isSolar
+            ? `A solar eclipse arrives ${when} — a powerful portal for bold new beginnings. Set intentions with full awareness; eclipses accelerate what is ready to emerge.`
+            : `A lunar eclipse arrives ${when} — deep illumination and release. What it reveals cannot be unseen. Trust the profound process of transformation.`,
         });
+      }
     }
   }
 
   if (settings.types.mercuryRetrograde) {
     for (const r of MERCURY_RETROGRADES) {
-      if (r.start > now)
+      if (r.start > now) {
         events.push({
           name: "☿ Mercury Retrograde Begins",
           date: r.start,
-          body: r.label,
+          body: `Mercury turns retrograde ${when} — slow down, review commitments, back up your data, and speak with extra care until ${r.end.toLocaleDateString("en-US", { month: "long", day: "numeric" })}.`,
         });
+      }
+      if (r.end > now) {
+        events.push({
+          name: "☿ Mercury Goes Direct",
+          date: r.end,
+          body: `Mercury goes direct ${when} — communications, technology, and travel begin to flow freely again. Resume forward motion with clarity.`,
+        });
+      }
     }
   }
 
   if (settings.types.ifaFestivals) {
     for (const f of IFA_FESTIVALS) {
-      if (f.date > now)
-        events.push({ name: `✨ ${f.name}`, date: f.date, body: f.description });
+      if (f.date > now) {
+        events.push({
+          name: `✨ ${f.name}`,
+          date: f.date,
+          body: `The ${f.name} arrives ${when} — honor the Orisa through prayer, offerings, music, and communal celebration.`,
+        });
+      }
     }
   }
 
@@ -170,15 +268,19 @@ export async function scheduleAllNotifications(
   let scheduled = 0;
 
   // iOS allows max 64 local notifications.
-  // Reserve 2 slots for repeating triggers (Ifa prayer day).
-  // Ose transitions already included in `events` list above when enabled,
-  // so they compete fairly in the sorted cap.
+  // Reserve 2 slots for repeating triggers (Ifa prayer day + potential future repeats).
   const sorted = events
     .map((e) => {
       // Ose transition events already have their exact notify time as `date`;
+      // major phase events already have their date set to midnight of the event day;
       // for everything else, offset by advanceDays.
       const isOse = e.name.startsWith("✦ Ose");
-      return { ...e, trigger: isOse ? e.date : notifDate(e.date, settings.advanceDays) };
+      const isMajorPhase =
+        e.name.startsWith("🌑 New") ||
+        e.name.startsWith("🌓") ||
+        e.name.startsWith("🌗");
+      const useRaw = isOse;
+      return { ...e, trigger: useRaw ? e.date : notifDate(e.date, settings.advanceDays) };
     })
     .filter((e) => e.trigger > now)
     .sort((a, b) => a.trigger.getTime() - b.trigger.getTime())
@@ -209,7 +311,7 @@ export async function scheduleAllNotifications(
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "🌟 Ifa Prayer Day",
-          body: "Today is sacred for Ifa practice — begin with gratitude to Olodumare and Ori.",
+          body: "Today is sacred for Ifa practice — open with gratitude to Olodumare and Ori, and carry that devotion through your day.",
           sound: true,
         },
         trigger: {
