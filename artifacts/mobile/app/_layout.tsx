@@ -5,17 +5,19 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
+import { Orbitron_700Bold } from "@expo-google-fonts/orbitron";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppSplashScreen } from "@/components/AppSplashScreen";
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
+// Prevent the native splash screen from auto-hiding before fonts load.
 SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
@@ -34,10 +36,14 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
+    Orbitron_700Bold,
   });
+
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
+      // Hide native splash — our custom overlay takes over immediately
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
@@ -48,9 +54,12 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <KeyboardProvider>
               <RootLayoutNav />
+              {!splashDone && (
+                <AppSplashScreen onComplete={() => setSplashDone(true)} />
+              )}
             </KeyboardProvider>
           </GestureHandlerRootView>
         </QueryClientProvider>

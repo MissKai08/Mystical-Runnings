@@ -25,6 +25,7 @@ import {
   addDays,
   formatDateShort,
 } from "@/constants/spiritualData";
+import { getDailyWisdom } from "@/constants/dailyWisdom";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
@@ -162,6 +163,8 @@ export default function HomeScreen() {
     return parts.slice(0, 2).join(" ");
   }, [today]);
 
+  const dailyWisdom = useMemo(() => getDailyWisdom(today), [today]);
+
   const upcomingDays = useMemo(() => {
     const result: { date: Date; events: string[] }[] = [];
     for (let i = 1; i <= 21; i++) {
@@ -292,6 +295,15 @@ export default function HomeScreen() {
           <Text style={[styles.weekAheadLabel, { color: colors.mutedForeground }]}>WEEK AHEAD</Text>
         </View>
         <Text style={[styles.weekAheadText, { color: colors.foreground }]}>{weekAheadNarrative}</Text>
+      </View>
+
+      {/* This Day in Spirit */}
+      <View style={[styles.wisdomCard, { backgroundColor: colors.card, borderColor: "#D4A84333" }]}>
+        <View style={styles.wisdomHeader}>
+          <Text style={[styles.wisdomLabel, { color: "#D4A843" }]}>✦ THIS DAY IN SPIRIT</Text>
+        </View>
+        <Text style={[styles.wisdomText, { color: colors.foreground }]}>"{dailyWisdom.text}"</Text>
+        <Text style={[styles.wisdomSource, { color: colors.mutedForeground }]}>— {dailyWisdom.source}</Text>
       </View>
 
       {/* Today's Energies */}
@@ -783,8 +795,34 @@ const styles = StyleSheet.create({
   weekAheadCard: {
     borderRadius: 14,
     padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  wisdomCard: {
+    borderRadius: 14,
+    padding: 18,
     marginBottom: 24,
     borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  wisdomHeader: {
+    marginBottom: 12,
+  },
+  wisdomLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.5,
+  },
+  wisdomText: {
+    fontSize: 15,
+    lineHeight: 24,
+    fontStyle: "italic",
+    marginBottom: 10,
+  },
+  wisdomSource: {
+    fontSize: 12,
+    textAlign: "right",
+    letterSpacing: 0.3,
   },
   weekAheadHeader: {
     flexDirection: "row",
