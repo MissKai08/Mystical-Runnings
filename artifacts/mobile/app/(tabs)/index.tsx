@@ -265,7 +265,7 @@ export default function HomeScreen() {
           style={[styles.bellBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
           hitSlop={8}
         >
-          <Feather name="bell" size={18} color={colors.mutedForeground} />
+          <Feather name="bell" size={24} color="#D4A843" />
         </Pressable>
       </View>
 
@@ -778,10 +778,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   bellBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1.5,
+    borderColor: "#D4A84366",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 2,

@@ -105,6 +105,37 @@ const TYPE_ROWS: TypeRow[] = [
   },
 ];
 
+const HOLIDAY_ROWS: TypeRow[] = [
+  {
+    key: "holidaysUs",
+    label: "U.S. Holidays",
+    description: "Independence Day, Thanksgiving, MLK Day…",
+    color: "#3B82F6",
+    emoji: "🇺🇸",
+  },
+  {
+    key: "holidaysMexico",
+    label: "Mexican Holidays",
+    description: "Día de Muertos, Cinco de Mayo, Guadalupe…",
+    color: "#22C55E",
+    emoji: "🇲🇽",
+  },
+  {
+    key: "holidaysIndia",
+    label: "Indian Holidays",
+    description: "Diwali, Holi, Navratri, Eid…",
+    color: "#F97316",
+    emoji: "🇮🇳",
+  },
+  {
+    key: "holidaysJewish",
+    label: "Jewish Holidays",
+    description: "Rosh Hashanah, Yom Kippur, Passover, Hanukkah…",
+    color: "#60A5FA",
+    emoji: "✡️",
+  },
+];
+
 const ADVANCE_OPTIONS: { value: 1 | 2 | 3; label: string }[] = [
   { value: 1, label: "1 day before" },
   { value: 2, label: "2 days before" },
@@ -167,6 +198,42 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
   };
 
   const activeTypeCount = Object.values(settings.types).filter(Boolean).length;
+
+  const renderTypeRow = (row: TypeRow, idx: number, isLast: boolean) => {
+    const enabled = settings.types[row.key];
+    return (
+      <View
+        key={row.key}
+        style={[
+          styles.typeRow,
+          {
+            backgroundColor: colors.card,
+            borderBottomColor: isLast ? "transparent" : colors.border,
+            opacity: settings.masterEnabled ? 1 : 0.5,
+          },
+        ]}
+      >
+        <View style={[styles.typeEmoji]}>
+          <Text style={styles.typeEmojiText}>{row.emoji}</Text>
+        </View>
+        <View style={styles.typeText}>
+          <Text style={[styles.typeLabel, { color: colors.foreground }]}>
+            {row.label}
+          </Text>
+          <Text style={[styles.typeDesc, { color: colors.mutedForeground }]}>
+            {row.description}
+          </Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={(v) => updateType(row.key, v)}
+          disabled={!settings.masterEnabled}
+          trackColor={{ false: colors.border, true: row.color + "99" }}
+          thumbColor={enabled ? row.color : colors.mutedForeground}
+        />
+      </View>
+    );
+  };
 
   return (
     <Modal
@@ -320,58 +387,27 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
             </Text>
           </View>
 
-          {/* Event type toggles */}
+          {/* Spiritual event type toggles */}
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              EVENT TYPES
+              SPIRITUAL EVENTS
             </Text>
-            <View
-              style={[
-                styles.typeList,
-                { borderColor: colors.border },
-              ]}
-            >
-              {TYPE_ROWS.map((row, idx) => {
-                const isLast = idx === TYPE_ROWS.length - 1;
-                const enabled = settings.types[row.key];
-                return (
-                  <View
-                    key={row.key}
-                    style={[
-                      styles.typeRow,
-                      {
-                        backgroundColor: colors.card,
-                        borderBottomColor: isLast ? "transparent" : colors.border,
-                        opacity: settings.masterEnabled ? 1 : 0.5,
-                      },
-                    ]}
-                  >
-                    <View style={[styles.typeEmoji]}>
-                      <Text style={styles.typeEmojiText}>{row.emoji}</Text>
-                    </View>
-                    <View style={styles.typeText}>
-                      <Text style={[styles.typeLabel, { color: colors.foreground }]}>
-                        {row.label}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.typeDesc,
-                          { color: colors.mutedForeground },
-                        ]}
-                      >
-                        {row.description}
-                      </Text>
-                    </View>
-                    <Switch
-                      value={enabled}
-                      onValueChange={(v) => updateType(row.key, v)}
-                      disabled={!settings.masterEnabled}
-                      trackColor={{ false: colors.border, true: row.color + "99" }}
-                      thumbColor={enabled ? row.color : colors.mutedForeground}
-                    />
-                  </View>
-                );
-              })}
+            <View style={[styles.typeList, { borderColor: colors.border }]}>
+              {TYPE_ROWS.map((row, idx) =>
+                renderTypeRow(row, idx, idx === TYPE_ROWS.length - 1)
+              )}
+            </View>
+          </View>
+
+          {/* Holiday toggles */}
+          <View style={styles.section}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+              HOLIDAYS
+            </Text>
+            <View style={[styles.typeList, { borderColor: colors.border }]}>
+              {HOLIDAY_ROWS.map((row, idx) =>
+                renderTypeRow(row, idx, idx === HOLIDAY_ROWS.length - 1)
+              )}
             </View>
           </View>
 

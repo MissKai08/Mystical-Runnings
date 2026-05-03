@@ -9,6 +9,12 @@ import {
   OSE_GROUPS,
   getMoonPhaseData,
 } from "@/constants/spiritualData";
+import {
+  RELIGIOUS_HOLIDAYS,
+  HOLIDAY_REGION_FLAG,
+  HOLIDAY_REGION_LABEL,
+  type HolidayRegion,
+} from "@/constants/religiousHolidays";
 import type { NotificationSettings } from "./notificationSettings";
 
 Notifications.setNotificationHandler({
@@ -136,6 +142,17 @@ function getComputedMajorPhaseEvents(windowDays = 120): SchedulableEvent[] {
   return events;
 }
 
+function getHolidayEvents(region: HolidayRegion, when: string): SchedulableEvent[] {
+  const now = new Date();
+  const flag = HOLIDAY_REGION_FLAG[region];
+  const label = HOLIDAY_REGION_LABEL[region];
+  return RELIGIOUS_HOLIDAYS.filter((h) => h.region === region && h.date > now).map((h) => ({
+    name: `${flag} ${h.emoji} ${h.name}`,
+    date: h.date,
+    body: `${h.name} arrives ${when} — a sacred day in the ${label} tradition. ${h.description}`,
+  }));
+}
+
 function getFutureEvents(settings: NotificationSettings): SchedulableEvent[] {
   const now = new Date();
   const events: SchedulableEvent[] = [];
@@ -232,6 +249,22 @@ function getFutureEvents(settings: NotificationSettings): SchedulableEvent[] {
     events.push(...getOseTransitionEvents(90));
   }
 
+  if (settings.types.holidaysUs) {
+    events.push(...getHolidayEvents("us", when));
+  }
+
+  if (settings.types.holidaysMexico) {
+    events.push(...getHolidayEvents("mexico", when));
+  }
+
+  if (settings.types.holidaysIndia) {
+    events.push(...getHolidayEvents("india", when));
+  }
+
+  if (settings.types.holidaysJewish) {
+    events.push(...getHolidayEvents("jewish", when));
+  }
+
   return events;
 }
 
@@ -275,10 +308,6 @@ export async function scheduleAllNotifications(
       // major phase events already have their date set to midnight of the event day;
       // for everything else, offset by advanceDays.
       const isOse = e.name.startsWith("✦ Ose");
-      const isMajorPhase =
-        e.name.startsWith("🌑 New") ||
-        e.name.startsWith("🌓") ||
-        e.name.startsWith("🌗");
       const useRaw = isOse;
       return { ...e, trigger: useRaw ? e.date : notifDate(e.date, settings.advanceDays) };
     })

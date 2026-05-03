@@ -12,6 +12,10 @@ export interface NotifTypeSettings {
   ifaPrayerDays: boolean;
   ifaFestivals: boolean;
   oseTransitions: boolean;
+  holidaysUs: boolean;
+  holidaysMexico: boolean;
+  holidaysIndia: boolean;
+  holidaysJewish: boolean;
 }
 
 export interface NotificationSettings {
@@ -33,6 +37,10 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
     ifaPrayerDays: false,
     ifaFestivals: true,
     oseTransitions: false,
+    holidaysUs: true,
+    holidaysMexico: true,
+    holidaysIndia: true,
+    holidaysJewish: true,
   },
 };
 
