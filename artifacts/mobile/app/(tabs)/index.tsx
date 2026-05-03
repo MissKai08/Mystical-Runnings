@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -37,6 +38,7 @@ import {
 } from "@/constants/religiousHolidays";
 import { saveIntention, loadIntention } from "@/utils/intentionsStorage";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
+import { LunarProgressBar } from "@/components/LunarProgressBar";
 import { TodayWidget } from "@/components/TodayWidget";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
@@ -47,6 +49,82 @@ import * as Haptics from "expo-haptics";
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
   "July","August","September","October","November","December",
+];
+
+interface Resource {
+  title: string;
+  source: string;
+  category: string;
+  url: string;
+  emoji: string;
+  color: string;
+}
+
+const RESOURCES: Resource[] = [
+  {
+    title: "Yoruba Culture",
+    source: "256 Healing Arts",
+    category: "Education",
+    url: "https://www.256healingarts.com/yoruba-culture",
+    emoji: "📚",
+    color: "#D4A843",
+  },
+  {
+    title: "Open Educational Resources for Ifa",
+    source: "ATLA LibGuides",
+    category: "Academic",
+    url: "https://atla.libguides.com/OER_Ifa",
+    emoji: "🎓",
+    color: "#7C3AED",
+  },
+  {
+    title: "Orisha Journey",
+    source: "Daydream Alston",
+    category: "Community",
+    url: "https://www.daydreamalston.com/orisha-journey",
+    emoji: "✨",
+    color: "#22D3EE",
+  },
+  {
+    title: "Got2B Oshun",
+    source: "got2boshun.org",
+    category: "Organization",
+    url: "https://www.got2boshun.org/",
+    emoji: "🌊",
+    color: "#F59E0B",
+  },
+  {
+    title: "Got2B Oshun — Tools & Supplies",
+    source: "Amazon Shop",
+    category: "Shop",
+    url: "https://www.amazon.com/shop/got2boshun/list/P4NS1RBG4TH6?ref_=cm_sw_r_apann_aipsflist_aipsfgot2boshun_K507X0QXMZWQ33BBQ998",
+    emoji: "🛒",
+    color: "#F59E0B",
+  },
+  {
+    title: "Creating an Orisha Altar",
+    source: "Original Botanica",
+    category: "Guide",
+    url: "https://originalbotanica.com/blog/creating-an-orisha-altar-",
+    emoji: "🕯️",
+    color: "#34D399",
+  },
+  {
+    title: "2026 Wheel of the Year Calendar",
+    source: "Witch on Fire · Patheos",
+    category: "Paganism",
+    url: "https://www.patheos.com/blogs/witchonfire/2025/08/2026-wheel-of-the-year-astrological-calendar-for-witches/",
+    emoji: "🌿",
+    color: "#34D399",
+  },
+  {
+    title: "Moon Phases 2026 — Lunar Calendar",
+    source: "Google Calendar",
+    category: "Moon",
+    url: "https://share.google/m8xoPWktS3Tdrzmnz",
+    emoji: "🌕",
+    color: "#A78BFA",
+  },
 ];
 
 export default function HomeScreen() {
@@ -292,12 +370,7 @@ export default function HomeScreen() {
             </Text>
           </View>
         )}
-        <View style={styles.moonHeroExtra}>
-          <Text style={[styles.moonHeroLabel, { color: colors.mutedForeground }]}>Tonight's Sky</Text>
-          <Text style={[styles.moonHeroSub, { color: colors.mutedForeground }]}>
-            Day {Math.round(moon.phase)} of 30 in current cycle · {moon.illumination}% illuminated
-          </Text>
-        </View>
+        <LunarProgressBar moonData={moon} />
       </View>
 
       {/* This Week at a Glance */}
@@ -709,6 +782,37 @@ export default function HomeScreen() {
           ))}
         </>
       )}
+      {/* Resources */}
+      <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 8 }]}>Resources</Text>
+      {RESOURCES.map((r, i) => (
+        <Pressable
+          key={i}
+          onPress={() => { Haptics.selectionAsync(); Linking.openURL(r.url); }}
+          style={({ pressed }) => [
+            styles.resourceCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+              opacity: pressed ? 0.78 : 1,
+            },
+          ]}
+        >
+          <View style={[styles.resourceEmojiBadge, { backgroundColor: r.color + "1A" }]}>
+            <Text style={styles.resourceEmoji}>{r.emoji}</Text>
+          </View>
+          <View style={styles.resourceText}>
+            <View style={styles.resourceTitleRow}>
+              <Text style={[styles.resourceTitle, { color: colors.foreground }]} numberOfLines={2}>{r.title}</Text>
+              <View style={[styles.resourceCategoryBadge, { backgroundColor: r.color + "22" }]}>
+                <Text style={[styles.resourceCategory, { color: r.color }]}>{r.category}</Text>
+              </View>
+            </View>
+            <Text style={[styles.resourceSource, { color: colors.mutedForeground }]}>{r.source}</Text>
+          </View>
+          <Feather name="external-link" size={14} color={colors.mutedForeground} style={{ alignSelf: "center" }} />
+        </Pressable>
+      ))}
+
     </ScrollView>
 
     {/* Lunar Intention Modal */}
@@ -1197,5 +1301,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
+  },
+  resourceCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+  },
+  resourceEmojiBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  resourceEmoji: {
+    fontSize: 22,
+  },
+  resourceText: {
+    flex: 1,
+    gap: 3,
+  },
+  resourceTitleRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  resourceTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    flex: 1,
+    lineHeight: 19,
+  },
+  resourceCategoryBadge: {
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: "flex-start",
+    marginTop: 2,
+  },
+  resourceCategory: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.6,
+    textTransform: "uppercase",
+  },
+  resourceSource: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });
