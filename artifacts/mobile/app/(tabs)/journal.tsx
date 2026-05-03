@@ -30,6 +30,7 @@ import {
   addFreeze,
   removeFreeze,
   MOODS,
+  ENTRY_TAGS,
 } from "@/utils/journalStorage";
 import {
   getMoonPhaseData,
@@ -605,6 +606,8 @@ export default function JournalScreen() {
   const [composerDate, setComposerDate] = useState<string | null>(null);
   const [selectedMoods, setSelectedMoods] = useState<string[]>([]);
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [promptIdx, setPromptIdx] = useState(0);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
@@ -635,6 +638,7 @@ export default function JournalScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setComposerDate(null);
     setSelectedMoods([]);
+    setSelectedTags([]);
     setTextValue("");
     setInputMode("text");
     setShowDatePicker(false);
@@ -651,6 +655,7 @@ export default function JournalScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setComposerDate(date);
     setSelectedMoods([]);
+    setSelectedTags([]);
     setTextValue("");
     setInputMode("text");
     setShowDatePicker(false);
@@ -667,6 +672,7 @@ export default function JournalScreen() {
     setComposerOpen(false);
     setComposerDate(null);
     setSelectedMoods([]);
+    setSelectedTags([]);
     setShowDatePicker(false);
   };
 
@@ -692,6 +698,7 @@ export default function JournalScreen() {
       moonPhase: entrySpiritualCtx.moonPhase,
       spiritualContext: entrySpiritualCtx.context,
       mood: selectedMoods.length > 0 ? [...selectedMoods] : undefined,
+      tags: selectedTags.length > 0 ? [...selectedTags] : undefined,
       inputType: inputMode,
       textContent: inputMode === "text" ? textValue.trim() : undefined,
       drawingData:
@@ -834,6 +841,7 @@ export default function JournalScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setComposerDate(null);
     setSelectedMoods([]);
+    setSelectedTags([]);
     setTextValue(`"${todayWisdom.text}"\n— ${todayWisdom.source}\n\n`);
     setInputMode("text");
     drawingRef.current?.clear();
@@ -867,6 +875,7 @@ export default function JournalScreen() {
 
   const filteredEntries = entries.filter((e) => {
     if (moodFilter && !e.mood?.includes(moodFilter)) return false;
+    if (tagFilter && !e.tags?.includes(tagFilter)) return false;
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -874,6 +883,7 @@ export default function JournalScreen() {
       e.moonPhase.toLowerCase().includes(q) ||
       e.spiritualContext.some((c) => c.toLowerCase().includes(q)) ||
       (e.mood ?? []).some((m) => m.includes(q)) ||
+      (e.tags ?? []).some((t) => t.includes(q)) ||
       e.date.includes(q)
     );
   });
@@ -963,138 +973,183 @@ export default function JournalScreen() {
         }
       </View>
 
-      {/* Search bar */}
-      {entries.length > 0 && (
-        <View style={[styles.searchWrap, { borderBottomColor: colors.border }]}>
-          <SearchBar
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search entries, moon phases, events…"
-          />
-          {searchQuery.length > 0 && (
-            <Text style={[styles.searchCount, { color: colors.mutedForeground }]}>
-              {filteredEntries.length} result{filteredEntries.length === 1 ? "" : "s"}
-            </Text>
-          )}
-        </View>
-      )}
+      {/* Single unified scroll — everything below the header scrolls together */}
+      <ScrollView
+        ref={scrollViewRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: bottomPad + 100 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Search bar */}
+        {entries.length > 0 && (
+          <View style={[styles.searchWrap, { borderBottomColor: colors.border }]}>
+            <SearchBar
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="Search entries, moon phases, events…"
+            />
+            {searchQuery.length > 0 && (
+              <Text style={[styles.searchCount, { color: colors.mutedForeground }]}>
+                {filteredEntries.length} result{filteredEntries.length === 1 ? "" : "s"}
+              </Text>
+            )}
+          </View>
+        )}
 
-      {/* Mood filter strip */}
-      {entries.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.moodFilterContent}
-          style={[styles.moodFilterStrip, { borderBottomColor: colors.border }]}
-        >
-          {MOODS.map((m) => {
-            const active = moodFilter === m.id;
-            const hasSome = entries.some((e) => e.mood?.includes(m.id));
-            if (!hasSome) return null;
-            return (
+        {/* Mood filter strip */}
+        {entries.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodFilterContent}
+            style={[styles.moodFilterStrip, { borderBottomColor: colors.border }]}
+          >
+            {MOODS.map((m) => {
+              const active = moodFilter === m.id;
+              const hasSome = entries.some((e) => e.mood?.includes(m.id));
+              if (!hasSome) return null;
+              return (
+                <Pressable
+                  key={m.id}
+                  onPress={() => { Haptics.selectionAsync(); setMoodFilter(active ? null : m.id); }}
+                  style={[
+                    styles.moodFilterChip,
+                    { borderColor: active ? m.color : colors.border },
+                    active && { backgroundColor: m.color + "22" },
+                  ]}
+                >
+                  <Text style={styles.moodFilterEmoji}>{m.emoji}</Text>
+                  <Text style={[styles.moodFilterLabel, { color: active ? m.color : colors.mutedForeground }]}>
+                    {m.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {moodFilter && (
               <Pressable
-                key={m.id}
-                onPress={() => { Haptics.selectionAsync(); setMoodFilter(active ? null : m.id); }}
-                style={[
-                  styles.moodFilterChip,
-                  { borderColor: active ? m.color : colors.border },
-                  active && { backgroundColor: m.color + "22" },
-                ]}
+                onPress={() => { Haptics.selectionAsync(); setMoodFilter(null); }}
+                style={[styles.moodFilterChip, { borderColor: colors.border }]}
               >
-                <Text style={styles.moodFilterEmoji}>{m.emoji}</Text>
-                <Text style={[styles.moodFilterLabel, { color: active ? m.color : colors.mutedForeground }]}>
-                  {m.label}
-                </Text>
+                <Feather name="x" size={11} color={colors.mutedForeground} />
+                <Text style={[styles.moodFilterLabel, { color: colors.mutedForeground }]}>Clear</Text>
               </Pressable>
-            );
-          })}
-          {moodFilter && (
-            <Pressable
-              onPress={() => { Haptics.selectionAsync(); setMoodFilter(null); }}
-              style={[styles.moodFilterChip, { borderColor: colors.border }]}
-            >
-              <Feather name="x" size={11} color={colors.mutedForeground} />
-              <Text style={[styles.moodFilterLabel, { color: colors.mutedForeground }]}>Clear</Text>
-            </Pressable>
-          )}
-        </ScrollView>
-      )}
+            )}
+          </ScrollView>
+        )}
 
-      {/* Today's Sacred Seed — visible on list view when not searching */}
-      {!searchQuery.trim() && (
-        <View style={[styles.listSeedCard, { backgroundColor: colors.card, borderColor: "#7C3AED33" }]}>
-          <View style={styles.listSeedHeader}>
-            <Text style={[styles.listSeedLabel, { color: "#A78BFA" }]}>✦ TODAY'S SACRED SEED</Text>
+        {/* Tag filter strip */}
+        {entries.length > 0 && ENTRY_TAGS.some((t) => entries.some((e) => e.tags?.includes(t.id))) && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodFilterContent}
+            style={[styles.moodFilterStrip, { borderBottomColor: colors.border }]}
+          >
+            {ENTRY_TAGS.map((t) => {
+              const active = tagFilter === t.id;
+              const hasSome = entries.some((e) => e.tags?.includes(t.id));
+              if (!hasSome) return null;
+              return (
+                <Pressable
+                  key={t.id}
+                  onPress={() => { Haptics.selectionAsync(); setTagFilter(active ? null : t.id); }}
+                  style={[
+                    styles.moodFilterChip,
+                    { borderColor: active ? t.color : colors.border },
+                    active && { backgroundColor: t.color + "22" },
+                  ]}
+                >
+                  <Text style={[styles.moodFilterLabel, { color: active ? t.color : colors.mutedForeground }]}>
+                    # {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {tagFilter && (
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setTagFilter(null); }}
+                style={[styles.moodFilterChip, { borderColor: colors.border }]}
+              >
+                <Feather name="x" size={11} color={colors.mutedForeground} />
+                <Text style={[styles.moodFilterLabel, { color: colors.mutedForeground }]}>Clear</Text>
+              </Pressable>
+            )}
+          </ScrollView>
+        )}
+
+        {/* Today's Sacred Seed — visible when not searching */}
+        {!searchQuery.trim() && (
+          <View style={[styles.listSeedCard, { backgroundColor: colors.card, borderColor: "#7C3AED33" }]}>
+            <View style={styles.listSeedHeader}>
+              <Text style={[styles.listSeedLabel, { color: "#A78BFA" }]}>✦ TODAY'S SACRED SEED</Text>
+              <Pressable
+                onPress={openComposerWithSeed}
+                style={[styles.listSeedBtn, { backgroundColor: "#7C3AED18", borderColor: "#7C3AED44" }]}
+              >
+                <Feather name="edit-3" size={11} color="#A78BFA" />
+                <Text style={[styles.listSeedBtnText, { color: "#A78BFA" }]}>Write on This</Text>
+              </Pressable>
+            </View>
+            <Text style={[styles.listSeedText, { color: colors.foreground }]}>"{todayWisdom.text}"</Text>
+            <Text style={[styles.listSeedSource, { color: colors.mutedForeground }]}>— {todayWisdom.source}</Text>
+          </View>
+        )}
+
+        {/* Sacred Altar */}
+        {!searchQuery.trim() && <SacredAltar />}
+
+        {/* Entry list */}
+        {entries.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyIcon, { color: colors.mutedForeground }]}>✦</Text>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Begin Your Practice</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              Record intentions, divination insights, dreams, and reflections — tied to the moon and the sacred calendar.
+            </Text>
             <Pressable
-              onPress={openComposerWithSeed}
-              style={[styles.listSeedBtn, { backgroundColor: "#7C3AED18", borderColor: "#7C3AED44" }]}
+              style={[styles.emptyBtn, { backgroundColor: "#D4A84322", borderColor: "#D4A84355" }]}
+              onPress={openComposer}
             >
-              <Feather name="edit-3" size={11} color="#A78BFA" />
-              <Text style={[styles.listSeedBtnText, { color: "#A78BFA" }]}>Write on This</Text>
+              <Feather name="edit-3" size={16} color="#D4A843" />
+              <Text style={[styles.emptyBtnText, { color: "#D4A843" }]}>Write First Entry</Text>
             </Pressable>
           </View>
-          <Text style={[styles.listSeedText, { color: colors.foreground }]}>"{todayWisdom.text}"</Text>
-          <Text style={[styles.listSeedSource, { color: colors.mutedForeground }]}>— {todayWisdom.source}</Text>
-        </View>
-      )}
-
-      {/* Sacred Altar */}
-      {!searchQuery.trim() && <SacredAltar />}
-
-      {/* Entry list */}
-      {entries.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={[styles.emptyIcon, { color: colors.mutedForeground }]}>✦</Text>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Begin Your Practice</Text>
-          <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-            Record intentions, divination insights, dreams, and reflections — tied to the moon and the sacred calendar.
-          </Text>
-          <Pressable
-            style={[styles.emptyBtn, { backgroundColor: "#D4A84322", borderColor: "#D4A84355" }]}
-            onPress={openComposer}
-          >
-            <Feather name="edit-3" size={16} color="#D4A843" />
-            <Text style={[styles.emptyBtnText, { color: "#D4A843" }]}>Write First Entry</Text>
-          </Pressable>
-        </View>
-      ) : filteredEntries.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Feather name="search" size={32} color={colors.mutedForeground} />
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No Results</Text>
-          <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-            No entries match "{searchQuery}"
-          </Text>
-        </View>
-      ) : (
-        <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={[styles.listContent, { paddingBottom: bottomPad + 90 }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {grouped.map(({ date, entries: dayEntries }) => (
-            <View
-              key={date}
-              style={[
-                styles.dateGroup,
-                highlightDate === date && styles.dateGroupHighlight,
-              ]}
-              onLayout={(e) => { offsetMap.current.set(date, e.nativeEvent.layout.y); }}
-            >
-              <Text style={[styles.dateHeader, { color: colors.mutedForeground }]}>
-                {formatEntryDate(date).toUpperCase()}
-              </Text>
-              {dayEntries.map((entry) => (
-                <EntryCard
-                  key={entry.id}
-                  entry={entry}
-                  colors={colors}
-                  onDelete={() => handleDelete(entry.id)}
-                />
-              ))}
-            </View>
-          ))}
-        </ScrollView>
-      )}
+        ) : filteredEntries.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Feather name="search" size={32} color={colors.mutedForeground} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No Results</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              No entries match "{searchQuery || tagFilter || moodFilter || ""}"
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.listContent}>
+            {grouped.map(({ date, entries: dayEntries }) => (
+              <View
+                key={date}
+                style={[
+                  styles.dateGroup,
+                  highlightDate === date && styles.dateGroupHighlight,
+                ]}
+                onLayout={(e) => { offsetMap.current.set(date, e.nativeEvent.layout.y); }}
+              >
+                <Text style={[styles.dateHeader, { color: colors.mutedForeground }]}>
+                  {formatEntryDate(date).toUpperCase()}
+                </Text>
+                {dayEntries.map((entry) => (
+                  <EntryCard
+                    key={entry.id}
+                    entry={entry}
+                    colors={colors}
+                    onDelete={() => handleDelete(entry.id)}
+                  />
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
       {/* FAB */}
       {entries.length > 0 && (
@@ -1313,6 +1368,39 @@ export default function JournalScreen() {
             })}
           </ScrollView>
 
+          {/* Tag selector */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.moodSelectorContent}
+            style={[styles.moodSelectorRow, { borderBottomColor: colors.border }]}
+          >
+            <Text style={[styles.tagSelectorLabel, { color: colors.mutedForeground }]}>#</Text>
+            {ENTRY_TAGS.map((t) => {
+              const active = selectedTags.includes(t.id);
+              return (
+                <Pressable
+                  key={t.id}
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedTags((prev) =>
+                      prev.includes(t.id) ? prev.filter((x) => x !== t.id) : [...prev, t.id]
+                    );
+                  }}
+                  style={[
+                    styles.tagPill,
+                    { borderColor: active ? t.color : colors.border },
+                    active && { backgroundColor: t.color + "22" },
+                  ]}
+                >
+                  <Text style={[styles.tagPillText, { color: active ? t.color : colors.mutedForeground }]}>
+                    {t.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+
           {/* Mode toggle */}
           <View style={[styles.modeRow, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
             <Pressable
@@ -1453,6 +1541,21 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
               <View key={id} style={[styles.moodBadge, { borderColor: m.color + "66", backgroundColor: m.color + "18" }]}>
                 <Text style={styles.moodBadgeEmoji}>{m.emoji}</Text>
                 <Text style={[styles.moodBadgeLabel, { color: m.color }]}>{m.label}</Text>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Tag badges */}
+      {(entry.tags ?? []).length > 0 && (
+        <View style={styles.moodBadgeRow}>
+          {(entry.tags ?? []).map((id) => {
+            const t = ENTRY_TAGS.find((x) => x.id === id);
+            if (!t) return null;
+            return (
+              <View key={id} style={[styles.tagBadge, { borderColor: t.color + "66", backgroundColor: t.color + "18" }]}>
+                <Text style={[styles.tagBadgeText, { color: t.color }]}># {t.label}</Text>
               </View>
             );
           })}
@@ -2109,5 +2212,34 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.2,
+  },
+  tagSelectorLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    alignSelf: "center",
+    marginRight: 4,
+    opacity: 0.5,
+  },
+  tagPill: {
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    marginRight: 6,
+  },
+  tagPillText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  tagBadge: {
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+  },
+  tagBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });

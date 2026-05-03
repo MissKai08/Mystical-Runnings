@@ -27,6 +27,27 @@ export const MOODS: Mood[] = [
   { id: "shadow",    emoji: "🌑", label: "Shadow",     color: "#7C3AED" },
 ];
 
+export interface EntryTag {
+  id: string;
+  label: string;
+  color: string;
+}
+
+export const ENTRY_TAGS: EntryTag[] = [
+  { id: "dream",      label: "Dream",            color: "#A78BFA" },
+  { id: "ancestor",   label: "Ancestor Message",  color: "#D4A843" },
+  { id: "orisha",     label: "Orisha Work",       color: "#F59E0B" },
+  { id: "vision",     label: "Vision",            color: "#67E8F9" },
+  { id: "ritual",     label: "Ritual",            color: "#F472B6" },
+  { id: "divination", label: "Divination",        color: "#7C3AED" },
+  { id: "shadow",     label: "Shadow Work",       color: "#94A3B8" },
+  { id: "healing",    label: "Healing",           color: "#4ADE80" },
+  { id: "manifest",   label: "Manifestation",     color: "#FCD34D" },
+  { id: "moon-rite",  label: "Moon Rite",         color: "#C4B5FD" },
+  { id: "prayer",     label: "Prayer",            color: "#FB923C" },
+  { id: "gratitude",  label: "Gratitude",         color: "#34D399" },
+];
+
 export interface JournalEntry {
   id: string;
   date: string;
@@ -36,6 +57,7 @@ export interface JournalEntry {
   textContent?: string;
   drawingData?: DrawingData;
   mood?: string[];
+  tags?: string[];
   createdAt: number;
 }
 
