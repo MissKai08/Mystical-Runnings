@@ -607,6 +607,7 @@ export default function JournalScreen() {
 
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [inputMode, setInputMode] = useState<InputMode>("text");
   const [textValue, setTextValue] = useState("");
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -748,6 +749,7 @@ export default function JournalScreen() {
 
   const openComposer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setEditingEntryId(null);
     setComposerDate(null);
     setSelectedMoods([]);
     setSelectedTags([]);
@@ -765,6 +767,7 @@ export default function JournalScreen() {
 
   const openComposerForDate = (date: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setEditingEntryId(null);
     setComposerDate(date);
     setSelectedMoods([]);
     setSelectedTags([]);
@@ -782,6 +785,7 @@ export default function JournalScreen() {
 
   const closeComposer = () => {
     setComposerOpen(false);
+    setEditingEntryId(null);
     setComposerDate(null);
     setSelectedMoods([]);
     setSelectedTags([]);
@@ -805,7 +809,7 @@ export default function JournalScreen() {
     setSaving(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const entry: JournalEntry = {
-      id: generateId(),
+      id: editingEntryId ?? generateId(),
       date: composerDate ?? todayKey(),
       moonPhase: entrySpiritualCtx.moonPhase,
       spiritualContext: entrySpiritualCtx.context,
@@ -824,11 +828,29 @@ export default function JournalScreen() {
       createdAt: Date.now(),
     };
     await saveEntry(entry);
-    const updated = await loadEntries();
-    setEntries(updated);
+    setEntries(await loadEntries());
     setSaving(false);
     setComposerOpen(false);
+    setEditingEntryId(null);
   };
+
+  const openComposerForEdit = useCallback((entry: JournalEntry) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setEditingEntryId(entry.id);
+    setComposerDate(entry.date);
+    setInputMode(entry.inputType);
+    setTextValue(entry.textContent ?? "");
+    setSelectedMoods(entry.mood ?? []);
+    setSelectedTags(entry.tags ?? []);
+    setShowDatePicker(false);
+    drawingRef.current?.clear();
+    const [y, m, d] = entry.date.split("-").map(Number);
+    const parsedDate = new Date(y, m - 1, d);
+    setPickerYear(parsedDate.getFullYear());
+    setPickerMonth(parsedDate.getMonth());
+    setPromptIdx((parsedDate.getDate() + parsedDate.getMonth() * 31) % 3);
+    setComposerOpen(true);
+  }, []);
 
   const handleDelete = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -1559,6 +1581,7 @@ export default function JournalScreen() {
                     key={entry.id}
                     entry={entry}
                     colors={colors}
+                    onEdit={() => openComposerForEdit(entry)}
                     onDelete={() => handleDelete(entry.id)}
                   />
                 ))}
@@ -1945,7 +1968,7 @@ export default function JournalScreen() {
   );
 }
 
-function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onDelete: () => void }) {
+function EntryCard({ entry, colors, onEdit, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onEdit: () => void; onDelete: () => void }) {
   const { fs } = useFontScale();
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
@@ -1992,9 +2015,14 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
           </View>
           <Text style={[styles.entryTime, { color: colors.mutedForeground }]}>{time}</Text>
         </View>
-        <Pressable onPress={onDelete} hitSlop={8} style={styles.deleteBtn}>
-          <Feather name="trash-2" size={14} color={colors.mutedForeground} />
-        </Pressable>
+        <View style={styles.entryActions}>
+          <Pressable onPress={onEdit} hitSlop={8} style={styles.actionBtn}>
+            <Feather name="edit-2" size={14} color={colors.mutedForeground} />
+          </Pressable>
+          <Pressable onPress={onDelete} hitSlop={8} style={styles.actionBtn}>
+            <Feather name="trash-2" size={14} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Lunar history row — moon phase + Odu stamped on the entry */}
@@ -2355,7 +2383,12 @@ const styles = StyleSheet.create({
   entryTime: {
     fontSize: 11,
   },
-  deleteBtn: {
+  entryActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  actionBtn: {
     padding: 4,
   },
   lunarHistoryRow: {
