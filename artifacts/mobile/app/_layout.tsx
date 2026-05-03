@@ -44,19 +44,11 @@ export default function RootLayout() {
   });
 
   const [splashDone, setSplashDone] = useState(false);
-  const [readyToShowSplash, setReadyToShowSplash] = useState(false);
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
       // Hide native splash — our custom overlay takes over immediately
       SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
-
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      const t = setTimeout(() => setReadyToShowSplash(true), 500);
-      return () => clearTimeout(t);
     }
   }, [fontsLoaded, fontError]);
 
@@ -70,9 +62,10 @@ export default function RootLayout() {
             <UserProfileProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
-                  <RootLayoutNav />
-                  {readyToShowSplash && !splashDone && (
+                  {!splashDone ? (
                     <AppSplashScreen onComplete={() => setSplashDone(true)} />
+                  ) : (
+                    <RootLayoutNav />
                   )}
                 </KeyboardProvider>
               </GestureHandlerRootView>
