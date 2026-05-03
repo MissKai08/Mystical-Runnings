@@ -31,11 +31,13 @@ interface Props {
   enabledRegions: Set<HolidayRegion>;
   birthdayMonth?: number;
   birthdayDay?: number;
+  journaledDates?: Set<string>;
+  journalMoonColors?: Record<string, string>;
 }
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay }: Props) {
+export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay, journaledDates, journalMoonColors }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
@@ -74,6 +76,9 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
             const isBirthday = !!(birthdayMonth && birthdayDay &&
               day.getMonth() + 1 === birthdayMonth &&
               day.getDate() === birthdayDay);
+            const mm = String(day.getMonth() + 1).padStart(2, "0");
+            const dd = String(day.getDate()).padStart(2, "0");
+            const dateKey = `${day.getFullYear()}-${mm}-${dd}`;
 
             return (
               <Pressable
@@ -111,6 +116,12 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
                   ))}
                   {isBirthday && (
                     <View style={[styles.holidayDot, { backgroundColor: "#D4A843" }]} />
+                  )}
+                  {journaledDates?.has(dateKey) && (
+                    <View style={[
+                      styles.journalDot,
+                      { backgroundColor: journalMoonColors?.[dateKey] ?? "#34D399" },
+                    ]} />
                   )}
                 </View>
               </Pressable>
@@ -170,5 +181,11 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
+  },
+  journalDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    opacity: 0.9,
   },
 });

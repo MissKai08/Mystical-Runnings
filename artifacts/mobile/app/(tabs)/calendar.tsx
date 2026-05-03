@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -38,6 +38,7 @@ import {
 } from "@/constants/religiousHolidays";
 import * as Haptics from "expo-haptics";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { loadEntries, type JournalEntry } from "@/utils/journalStorage";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -135,6 +136,7 @@ export default function CalendarScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { profile } = useUserProfile();
+  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
   const [calView, setCalView] = useState<CalendarView>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
@@ -157,6 +159,34 @@ export default function CalendarScreen() {
   const year = displayDate.getFullYear();
   const month = displayDate.getMonth();
   const weekStart = useMemo(() => getStartOfWeek(selectedDate), [selectedDate]);
+
+  useEffect(() => {
+    loadEntries().then(setJournalEntries);
+  }, []);
+
+  const journaledDates = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of journalEntries) s.add(e.date);
+    return s;
+  }, [journalEntries]);
+
+  const journalMoonColors = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of journalEntries) {
+      const p = (e.moonPhase ?? "").toLowerCase();
+      let color = "#34D399";
+      if (p.includes("full"))              color = "#D4A843";
+      else if (p.includes("new") || p.includes("dark")) color = "#7C3AED";
+      else if (p.includes("waxing crescent"))  color = "#C4B5FD";
+      else if (p.includes("first quarter"))    color = "#A78BFA";
+      else if (p.includes("waxing gibbous"))   color = "#9333EA";
+      else if (p.includes("waning gibbous"))   color = "#F59E0B";
+      else if (p.includes("last quarter"))     color = "#22D3EE";
+      else if (p.includes("waning crescent"))  color = "#38BDF8";
+      map[e.date] = color;
+    }
+    return map;
+  }, [journalEntries]);
 
   const birthdayNameForDate = useMemo(() => {
     if (!profile) return undefined;
@@ -391,6 +421,8 @@ export default function CalendarScreen() {
                   enabledRegions={enabledRegions}
                   birthdayMonth={profile?.birthMonth}
                   birthdayDay={profile?.birthDay}
+                  journaledDates={journaledDates}
+                  journalMoonColors={journalMoonColors}
                 />
               </View>
             )}
@@ -455,6 +487,15 @@ const LEGEND_GROUPS = [
       { color: "#22C55E", label: "🇲🇽 Mexican Holiday" },
       { color: "#F97316", label: "🇮🇳 Indian Holiday" },
       { color: "#60A5FA", label: "✡️ Jewish Holiday" },
+    ],
+  },
+  {
+    heading: "Journal",
+    items: [
+      { color: "#D4A843", label: "Full Moon entry" },
+      { color: "#7C3AED", label: "New / Dark Moon entry" },
+      { color: "#A78BFA", label: "Quarter Moon entry" },
+      { color: "#34D399", label: "Other phase entry" },
     ],
   },
 ];

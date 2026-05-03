@@ -40,6 +40,7 @@ export default function RootLayout() {
     Inter_700Bold,
     Orbitron_700Bold,
     Orbitron_900Black,
+    Beasigne: require("../assets/fonts/Beasigne.ttf"),
   });
 
   const [splashDone, setSplashDone] = useState(false);
