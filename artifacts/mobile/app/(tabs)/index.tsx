@@ -37,6 +37,7 @@ import {
 } from "@/constants/religiousHolidays";
 import { saveIntention, loadIntention } from "@/utils/intentionsStorage";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
+import { TodayWidget } from "@/components/TodayWidget";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
 import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
@@ -270,6 +271,9 @@ export default function HomeScreen() {
       </View>
 
       <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
+
+      {/* Today Widget — moon · ose · next event */}
+      <TodayWidget today={today} />
 
       {/* Moon Phase Hero */}
       <View style={[styles.moonHero, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
