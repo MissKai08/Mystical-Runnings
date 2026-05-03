@@ -13,7 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
-import { getDailyOdu, ODU_LIST, ODU_REFLECTIONS, type OduEntry } from "@/constants/spiritualData";
+import { getDailyOdu, ODU_LIST, ODU_REFLECTIONS, getMoonPhaseData, type OduEntry } from "@/constants/spiritualData";
+import MoonSoundBath from "@/components/MoonSoundBath";
 
 type Tab = "guide" | "prayers" | "divination";
 
@@ -166,6 +167,7 @@ export default function PrayerScreen() {
   const [guardianExpanded, setGuardianExpanded] = useState(false);
   const [oduExpanded, setOduExpanded] = useState(false);
   const [castRevealed, setCastRevealed] = useState(false);
+  const [soundBathOpen, setSoundBathOpen] = useState(false);
   const [expandedOdu, setExpandedOdu] = useState<number | null>(null);
 
   const dailyOdu: OduEntry = useMemo(() => getDailyOdu(new Date()), []);
@@ -238,6 +240,40 @@ export default function PrayerScreen() {
           contentContainerStyle={[styles.content, { paddingBottom: bottomPad + 60 }]}
           showsVerticalScrollIndicator={false}
         >
+          {/* Moon Sound Bath card */}
+          {(() => {
+            const moon = getMoonPhaseData(new Date());
+            const PHASE_COLORS: Record<string, string> = {
+              "dark-moon": "#4C1D95", "new-moon": "#6D28D9", "waxing-crescent": "#7C3AED",
+              "first-quarter": "#8B5CF6", "waxing-gibbous": "#A78BFA",
+              "full-moon": "#D4A843", "named-moon": "#D4A843",
+              "waning-gibbous": "#A78BFA", "last-quarter": "#8B5CF6", "waning-crescent": "#6D28D9",
+            };
+            const PHASE_HZ: Record<string, string> = {
+              "dark-moon": "174 Hz", "new-moon": "396 Hz", "waxing-crescent": "417 Hz",
+              "first-quarter": "528 Hz", "waxing-gibbous": "639 Hz",
+              "full-moon": "432 Hz", "named-moon": "432 Hz",
+              "waning-gibbous": "528 Hz", "last-quarter": "852 Hz", "waning-crescent": "963 Hz",
+            };
+            const c = PHASE_COLORS[moon.eventType] ?? "#A78BFA";
+            const hz = PHASE_HZ[moon.eventType] ?? "432 Hz";
+            return (
+              <Pressable
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setSoundBathOpen(true); }}
+                style={[styles.soundBathCard, { backgroundColor: c + "0F", borderColor: c + "44" }]}
+              >
+                <View style={styles.soundBathLeft}>
+                  <Text style={[styles.soundBathLabel, { color: c }]}>MOON SOUND BATH</Text>
+                  <Text style={[styles.soundBathPhase, { color: colors.foreground }]}>{moon.name}</Text>
+                  <Text style={[styles.soundBathHz, { color: c }]}>{hz} · Solfeggio Frequency</Text>
+                </View>
+                <View style={[styles.soundBathIcon, { backgroundColor: c + "22", borderColor: c + "55" }]}>
+                  <Feather name="headphones" size={20} color={c} />
+                </View>
+              </Pressable>
+            );
+          })()}
+
           {/* Today's Odu */}
           <Pressable
             style={[styles.oduCard, { backgroundColor: "#7C3AED14", borderColor: oduExpanded ? "#7C3AED88" : "#7C3AED44" }]}
@@ -742,6 +778,9 @@ export default function PrayerScreen() {
           })}
         </ScrollView>
       )}
+
+      {/* Moon Sound Bath modal */}
+      <MoonSoundBath visible={soundBathOpen} onClose={() => setSoundBathOpen(false)} />
     </View>
   );
 }
@@ -1264,5 +1303,27 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: 1,
     gap: 12,
+  },
+  soundBathCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 4,
+  },
+  soundBathLeft: { gap: 3, flex: 1 },
+  soundBathLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  soundBathPhase: { fontSize: 16, fontWeight: "700" },
+  soundBathHz: { fontSize: 12, fontWeight: "600" },
+  soundBathIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
   },
 });

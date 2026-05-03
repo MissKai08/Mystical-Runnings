@@ -149,6 +149,30 @@ const RESOURCES: Resource[] = [
     emoji: "📅",
     color: "#F59E0B",
   },
+  {
+    title: "The Old Farmer's Almanac",
+    source: "Gardening · Weather · Moon · Calendar",
+    category: "Calendar",
+    url: "https://share.google/vXQaMUABYeyaFhQVQ",
+    emoji: "🌾",
+    color: "#22C55E",
+  },
+  {
+    title: "The Witches' Almanac",
+    source: "Witches' Almanac Ltd.",
+    category: "Reference",
+    url: "https://share.google/1Fz3hZ0zBkQJiacxy",
+    emoji: "🧙",
+    color: "#7C3AED",
+  },
+  {
+    title: "Chani Nicholas",
+    source: "Astrology · Linktree",
+    category: "Astrology",
+    url: "https://linktr.ee/chaninicholas",
+    emoji: "⭐",
+    color: "#A78BFA",
+  },
 ];
 
 export default function HomeScreen() {
