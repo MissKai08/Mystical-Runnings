@@ -58,6 +58,8 @@ export interface JournalEntry {
   drawingData?: DrawingData;
   mood?: string[];
   tags?: string[];
+  isLunarLetter?: boolean;
+  letterMonth?: string;
   createdAt: number;
 }
 

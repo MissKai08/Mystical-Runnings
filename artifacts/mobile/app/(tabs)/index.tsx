@@ -141,6 +141,14 @@ const RESOURCES: Resource[] = [
     emoji: "🌟",
     color: "#22D3EE",
   },
+  {
+    title: "Ose Calendar — Sacred Ifa Days",
+    source: "Ashe Soul",
+    category: "Calendar",
+    url: "https://www.ashesoul.com/osecalendar",
+    emoji: "📅",
+    color: "#F59E0B",
+  },
 ];
 
 export default function HomeScreen() {

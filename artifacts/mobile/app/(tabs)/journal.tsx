@@ -49,6 +49,8 @@ import { getDailyWisdom } from "@/constants/dailyWisdom";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
 import { SearchBar } from "@/components/SearchBar";
 import SacredAltar from "@/components/SacredAltar";
+import LunarLetterModal from "@/components/LunarLetterModal";
+import { generateLunarLetter, LunarLetterData } from "@/utils/lunarLetter";
 import Svg, { Path } from "react-native-svg";
 
 type InputMode = "text" | "drawing";
@@ -613,6 +615,8 @@ export default function JournalScreen() {
   const [pickerYear, setPickerYear] = useState(() => new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState(() => new Date().getMonth());
   const [freezes, setFreezes] = useState<Set<string>>(new Set());
+  const [lunarLetterOpen, setLunarLetterOpen] = useState(false);
+  const [lunarLetterData, setLunarLetterData] = useState<LunarLetterData | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const offsetMap = useRef<Map<string, number>>(new Map());
@@ -835,6 +839,39 @@ export default function JournalScreen() {
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
   const lunarStreak = useMemo(() => lunarPhaseStreak(entries), [entries]);
 
+  const handleOpenLunarLetter = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const now = new Date();
+    setLunarLetterData(generateLunarLetter(now.getFullYear(), now.getMonth()));
+    setLunarLetterOpen(true);
+  }, []);
+
+  const handleSaveLunarLetter = useCallback(async () => {
+    if (!lunarLetterData) return;
+    const now = new Date();
+    const dateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    const ctx = getSpiritualContextForDate(now);
+    const entry: JournalEntry = {
+      id: `letter-${lunarLetterData.monthKey}-${Date.now()}`,
+      date: dateKey,
+      moonPhase: ctx.moonPhase,
+      spiritualContext: ctx.context,
+      inputType: "text",
+      textContent: lunarLetterData.text,
+      isLunarLetter: true,
+      letterMonth: lunarLetterData.monthKey,
+      createdAt: Date.now(),
+    };
+    await saveEntry(entry);
+    const updated = await loadEntries();
+    setEntries(updated);
+  }, [lunarLetterData]);
+
+  const lunarLetterSaved = useMemo(() => {
+    if (!lunarLetterData) return false;
+    return entries.some((e) => e.isLunarLetter && e.letterMonth === lunarLetterData.monthKey);
+  }, [entries, lunarLetterData]);
+
   const todayWisdom = useMemo(() => getDailyWisdom(new Date()), []);
 
   const openComposerWithSeed = useCallback(() => {
@@ -936,6 +973,18 @@ export default function JournalScreen() {
             </Text>
           )}
         </View>
+
+        {/* Lunar Letter button */}
+        <Pressable
+          onPress={handleOpenLunarLetter}
+          style={[styles.lunarLetterBtn, { backgroundColor: "#D4A84314", borderColor: "#D4A84344" }]}
+        >
+          <Text style={styles.lunarLetterBtnGlyph}>✦</Text>
+          <Text style={[styles.lunarLetterBtnText, { color: "#D4A843" }]}>
+            Lunar Letter — {new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+          </Text>
+          <Feather name="chevron-right" size={14} color="#D4A84388" />
+        </Pressable>
 
         {/* Calendar mode toggle */}
         <View style={styles.calToggleRow}>
@@ -1160,6 +1209,15 @@ export default function JournalScreen() {
           <Feather name="edit-3" size={22} color="#080714" />
         </Pressable>
       )}
+
+      {/* Lunar Letter Modal */}
+      <LunarLetterModal
+        visible={lunarLetterOpen}
+        letter={lunarLetterData}
+        alreadySaved={lunarLetterSaved}
+        onSave={handleSaveLunarLetter}
+        onClose={() => setLunarLetterOpen(false)}
+      />
 
       {/* Composer Modal */}
       <Modal visible={composerOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeComposer}>
@@ -1466,21 +1524,36 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
   const moonEmoji = moonPhaseEmoji(entry.moonPhase);
 
   return (
-    <View style={[styles.entryCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={[styles.entryCard, { backgroundColor: colors.card, borderColor: entry.isLunarLetter ? "#D4A84366" : colors.border }]}>
+      {/* Lunar Letter banner */}
+      {entry.isLunarLetter && (
+        <View style={[styles.lunarLetterCardBanner, { backgroundColor: "#D4A84318", borderBottomColor: "#D4A84333" }]}>
+          <Text style={styles.lunarLetterCardGlyph}>✦</Text>
+          <Text style={[styles.lunarLetterCardTitle, { color: "#D4A843" }]}>Lunar Letter</Text>
+          {entry.letterMonth && (
+            <Text style={[styles.lunarLetterCardMonth, { color: "#A08030" }]}>
+              · {entry.letterMonth.replace(/^(\d{4})-(\d{2})$/, (_, y, m) =>
+                new Date(Number(y), Number(m) - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })
+              )}
+            </Text>
+          )}
+        </View>
+      )}
+
       {/* Card header */}
       <View style={styles.entryCardHeader}>
         <View style={styles.entryMeta}>
           <View style={[styles.entryTypeBadge, {
-            backgroundColor: entry.inputType === "drawing" ? "#7C3AED22" : "#D4A84322",
-            borderColor: entry.inputType === "drawing" ? "#7C3AED55" : "#D4A84355",
+            backgroundColor: entry.isLunarLetter ? "#D4A84322" : entry.inputType === "drawing" ? "#7C3AED22" : "#D4A84322",
+            borderColor: entry.isLunarLetter ? "#D4A84355" : entry.inputType === "drawing" ? "#7C3AED55" : "#D4A84355",
           }]}>
             <Feather
-              name={entry.inputType === "drawing" ? "edit-2" : "type"}
+              name={entry.isLunarLetter ? "mail" : entry.inputType === "drawing" ? "edit-2" : "type"}
               size={10}
-              color={entry.inputType === "drawing" ? "#A78BFA" : "#D4A843"}
+              color={entry.isLunarLetter ? "#D4A843" : entry.inputType === "drawing" ? "#A78BFA" : "#D4A843"}
             />
-            <Text style={[styles.entryTypeLabel, { color: entry.inputType === "drawing" ? "#A78BFA" : "#D4A843" }]}>
-              {entry.inputType === "drawing" ? "Handwritten" : "Text"}
+            <Text style={[styles.entryTypeLabel, { color: entry.isLunarLetter ? "#D4A843" : entry.inputType === "drawing" ? "#A78BFA" : "#D4A843" }]}>
+              {entry.isLunarLetter ? "Lunar Letter" : entry.inputType === "drawing" ? "Handwritten" : "Text"}
             </Text>
           </View>
           <Text style={[styles.entryTime, { color: colors.mutedForeground }]}>{time}</Text>
@@ -2212,6 +2285,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.2,
+  },
+  lunarLetterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+    marginTop: 4,
+  },
+  lunarLetterBtnGlyph: {
+    fontSize: 14,
+    color: "#D4A843",
+  },
+  lunarLetterBtnText: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  lunarLetterCardBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    gap: 6,
+  },
+  lunarLetterCardGlyph: {
+    fontSize: 13,
+    color: "#D4A843",
+  },
+  lunarLetterCardTitle: {
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  lunarLetterCardMonth: {
+    fontSize: 12,
+    fontWeight: "500",
   },
   tagSelectorLabel: {
     fontSize: 14,
