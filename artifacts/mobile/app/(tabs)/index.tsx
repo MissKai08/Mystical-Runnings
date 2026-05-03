@@ -10,6 +10,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Linking,
+  Share,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -30,6 +31,7 @@ import {
   formatDateShort,
 } from "@/constants/spiritualData";
 import { getDailyWisdom } from "@/constants/dailyWisdom";
+import { getDailyProverb } from "@/constants/ifaProverbs";
 import {
   getHolidaysForDate,
   HOLIDAY_REGION_COLOR,
@@ -345,6 +347,7 @@ export default function HomeScreen() {
   }, [today]);
 
   const dailyWisdom = useMemo(() => getDailyWisdom(today), [today]);
+  const dailyProverb = useMemo(() => getDailyProverb(today), [today]);
 
   const upcomingDays = useMemo(() => {
     const result: { date: Date; events: { label: string; dotColor: string }[] }[] = [];
@@ -575,6 +578,34 @@ export default function HomeScreen() {
         </View>
         <Text style={[styles.wisdomText, { color: colors.foreground }]}>"{dailyWisdom.text}"</Text>
         <Text style={[styles.wisdomSource, { color: colors.mutedForeground }]}>— {dailyWisdom.source}</Text>
+      </View>
+
+      {/* Ifa Proverb of the Day */}
+      <View style={[styles.proverbCard, { backgroundColor: colors.card, borderColor: "#7C3AED44" }]}>
+        <View style={styles.proverbHeader}>
+          <View style={styles.proverbHeaderLeft}>
+            <Text style={[styles.proverbSectionLabel, { color: "#7C3AED" }]}>IFA PROVERB OF THE DAY</Text>
+            <View style={[styles.oduBadge, { backgroundColor: "#7C3AED18", borderColor: "#7C3AED44" }]}>
+              <Text style={[styles.oduBadgeText, { color: "#A78BFA" }]}>{dailyProverb.odu}</Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              Share.share({
+                message: `"${dailyProverb.english}"\n\n— Odu ${dailyProverb.odu}\n\nMystical Runnings`,
+              });
+            }}
+            hitSlop={10}
+            style={[styles.shareBtn, { backgroundColor: "#7C3AED18", borderColor: "#7C3AED44" }]}
+          >
+            <Feather name="share" size={13} color="#A78BFA" />
+          </Pressable>
+        </View>
+        <Text style={[styles.proverbYoruba, { color: "#A78BFA" }]}>{dailyProverb.yoruba}</Text>
+        <Text style={[styles.proverbEnglish, { color: colors.foreground }]}>"{dailyProverb.english}"</Text>
+        <View style={[styles.proverbDivider, { backgroundColor: "#7C3AED33" }]} />
+        <Text style={[styles.proverbTeaching, { color: colors.mutedForeground }]}>{dailyProverb.teaching}</Text>
       </View>
 
       {/* Today's Energies */}
@@ -1216,6 +1247,71 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "right",
     letterSpacing: 0.3,
+  },
+  proverbCard: {
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 24,
+    borderWidth: 1,
+  },
+  proverbHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 8,
+  },
+  proverbHeaderLeft: {
+    flex: 1,
+    gap: 6,
+  },
+  proverbSectionLabel: {
+    fontSize: 9,
+    fontWeight: "800",
+    letterSpacing: 2,
+  },
+  oduBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 6,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  oduBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  shareBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 2,
+  },
+  proverbYoruba: {
+    fontSize: 13,
+    fontStyle: "italic",
+    lineHeight: 20,
+    marginBottom: 8,
+    letterSpacing: 0.2,
+  },
+  proverbEnglish: {
+    fontSize: 15,
+    lineHeight: 24,
+    fontWeight: "500",
+    marginBottom: 12,
+  },
+  proverbDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginBottom: 10,
+  },
+  proverbTeaching: {
+    fontSize: 13,
+    lineHeight: 20,
+    letterSpacing: 0.1,
   },
   weekAheadHeader: {
     flexDirection: "row",
