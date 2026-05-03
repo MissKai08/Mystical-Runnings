@@ -5,7 +5,6 @@ import {
   StyleSheet,
   Animated,
   Dimensions,
-  Platform,
 } from "react-native";
 import Svg, {
   Circle,
@@ -317,11 +316,7 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: Platform.select({
-      ios: "Beasigne",
-      android: "Beasigne",
-      default: "Beasigne",
-    }),
+    fontFamily: "Arial",
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,
