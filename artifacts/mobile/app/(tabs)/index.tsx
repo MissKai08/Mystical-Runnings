@@ -19,6 +19,7 @@ import {
   getDarkMoonForDate,
   getEclipseForDate,
   getOseDay,
+  OSE_GROUPS,
   isSameDay,
   EVENT_COLORS,
   addDays,
@@ -392,31 +393,46 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Ose Calendar — today's 4-day Yoruba sacred week group */}
+      {/* Ose Calendar — 4-group cycle strip */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Ose Calendar</Text>
-      <Pressable
-        onPress={() => setOseModalGroup(oseDay)}
-        style={({ pressed }) => [
-          styles.oseCard,
-          { backgroundColor: colors.card, borderColor: oseDay.color + "44", opacity: pressed ? 0.85 : 1 },
-        ]}
-      >
-        <View style={styles.oseCardHeader}>
-          <View style={[styles.oseDot, { backgroundColor: oseDay.color }]} />
-          <Text style={[styles.oseCardName, { color: colors.foreground }]}>{oseDay.name}</Text>
-          <Text style={[styles.oseTapHint, { color: colors.mutedForeground }]}>Tap to expand</Text>
-        </View>
-        <View style={styles.oseChips}>
-          {oseDay.orisas.map((o, i) => (
-            <View key={i} style={[styles.oseChip, { borderColor: oseDay.color + "55", backgroundColor: oseDay.color + "18" }]}>
-              <Text style={[styles.oseChipText, { color: oseDay.color }]}>{o}</Text>
-            </View>
-          ))}
-        </View>
-        <Text style={[styles.oseGuidance, { color: colors.mutedForeground }]} numberOfLines={2}>
-          {oseDay.guidance}
-        </Text>
-      </Pressable>
+      <View style={styles.oseStrip}>
+        {OSE_GROUPS.map((group) => {
+          const isActive = group.id === oseDay.id;
+          return (
+            <Pressable
+              key={group.id}
+              onPress={() => setOseModalGroup(group)}
+              style={({ pressed }) => [
+                styles.oseStripCell,
+                {
+                  backgroundColor: isActive ? `${group.color}1A` : `${group.color}08`,
+                  borderColor: isActive ? group.color : colors.border,
+                  borderWidth: isActive ? 2 : 1,
+                  opacity: pressed ? 0.78 : isActive ? 1 : 0.6,
+                },
+              ]}
+            >
+              <View style={[styles.oseStripDot, { backgroundColor: group.color }]} />
+              <Text
+                style={[styles.oseStripName, { color: isActive ? group.color : colors.mutedForeground }]}
+                numberOfLines={1}
+              >
+                {group.name.replace("Ose ", "")}
+              </Text>
+              {isActive ? (
+                <View style={[styles.oseStripBadge, { backgroundColor: `${group.color}30` }]}>
+                  <Text style={[styles.oseStripBadgeText, { color: group.color }]}>Today</Text>
+                </View>
+              ) : (
+                <View style={styles.oseStripBadgePlaceholder} />
+              )}
+              <Text style={[styles.oseStripHint, { color: colors.mutedForeground }]}>
+                {isActive ? "Details" : "Tap"}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
       <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
 
@@ -632,60 +648,52 @@ const styles = StyleSheet.create({
     borderRadius: 2.5,
     flexShrink: 0,
   },
-  oseCard: {
+  oseStrip: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 24,
+  },
+  oseStripCell: {
+    flex: 1,
     borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 12,
-    gap: 6,
-  },
-  oseCardHeader: {
-    flexDirection: "row",
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
+    gap: 5,
+    minHeight: 96,
+    justifyContent: "center",
   },
-  oseDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  oseStripDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
-  oseCardName: {
-    fontSize: 17,
-    fontWeight: "800",
-    letterSpacing: 0.2,
-  },
-  oseChips: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: 6,
-  },
-  oseChip: {
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  oseChipText: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-  },
-  oseGuidance: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontStyle: "italic",
-  },
-  oseOfferings: {
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  oseTapHint: {
+  oseStripName: {
     fontSize: 10,
-    marginLeft: "auto",
-    letterSpacing: 0.2,
+    fontWeight: "800",
+    letterSpacing: 0.3,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  oseStripBadge: {
+    borderRadius: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  oseStripBadgePlaceholder: {
+    height: 16,
+  },
+  oseStripBadgeText: {
+    fontSize: 8,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
+  oseStripHint: {
+    fontSize: 8,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
   },
   upcomingEventText: {
     fontSize: 14,
