@@ -53,6 +53,7 @@ import LunarLetterModal from "@/components/LunarLetterModal";
 import { generateLunarLetter, LunarLetterData } from "@/utils/lunarLetter";
 import IntentionsModal from "@/components/IntentionsModal";
 import Svg, { Path } from "react-native-svg";
+import { useFontScale } from "@/contexts/FontScaleContext";
 
 type InputMode = "text" | "drawing";
 
@@ -592,6 +593,7 @@ const dpStyles = StyleSheet.create({
 export default function JournalScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { fs } = useFontScale();
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
 
@@ -839,6 +841,26 @@ export default function JournalScreen() {
   const streak = useMemo(() => calculateStreak(entries, freezeArr), [entries, freezeArr]);
   const best = useMemo(() => longestStreak(entries, freezeArr), [entries, freezeArr]);
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
+
+  const yearInReview = useMemo(() => {
+    const now = new Date();
+    const thisYear = now.getFullYear();
+    const monthCounts = Array.from({ length: 12 }, (_, m) => ({
+      month: m,
+      count: entries.filter((e) => {
+        const [y, em] = e.date.split("-").map(Number);
+        return y === thisYear && em === m + 1;
+      }).length,
+    }));
+    const maxCount = Math.max(...monthCounts.map((m) => m.count), 1);
+    const phaseFreq: Record<string, number> = {};
+    for (const e of entries) {
+      const p = e.moonPhase || "Unknown";
+      phaseFreq[p] = (phaseFreq[p] ?? 0) + 1;
+    }
+    const topPhase = Object.entries(phaseFreq).sort((a, b) => b[1] - a[1])[0];
+    return { monthCounts, maxCount, topPhase, thisYear };
+  }, [entries]);
   const lunarStreak = useMemo(() => lunarPhaseStreak(entries), [entries]);
 
   const handleOpenLunarLetter = useCallback(() => {
@@ -1161,6 +1183,62 @@ export default function JournalScreen() {
 
         {/* Sacred Altar */}
         {!searchQuery.trim() && <SacredAltar collapsed />}
+
+        {/* Spiritual Year in Review */}
+        {!searchQuery.trim() && entries.length >= 3 && (
+          <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: "#7C3AED33" }]}>
+            <Text style={[styles.reviewTitle, { color: colors.foreground, fontSize: fs(13) }]}>
+              ✦ {yearInReview.thisYear} — Year in Review
+            </Text>
+            <Text style={[styles.reviewSub, { color: colors.mutedForeground, fontSize: fs(11) }]}>
+              {entries.filter((e) => e.date.startsWith(String(yearInReview.thisYear))).length} entries this year
+            </Text>
+
+            {/* Monthly bar chart */}
+            <View style={styles.reviewBars}>
+              {yearInReview.monthCounts.map(({ month, count }) => {
+                const barH = Math.max(4, Math.round((count / yearInReview.maxCount) * 36));
+                const isActive = count > 0;
+                const SHORT_MONTHS = ["J","F","M","A","M","J","J","A","S","O","N","D"];
+                return (
+                  <View key={month} style={styles.reviewBarCol}>
+                    <View style={[
+                      styles.reviewBar,
+                      { height: barH, backgroundColor: isActive ? "#7C3AED" : "#1E1A3A" },
+                    ]} />
+                    <Text style={[styles.reviewBarLabel, { color: colors.mutedForeground }]}>{SHORT_MONTHS[month]}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            {/* Stats row */}
+            <View style={styles.reviewStats}>
+              <View style={styles.reviewStat}>
+                <Text style={[styles.reviewStatNum, { color: "#D4A843", fontSize: fs(18) }]}>{streak}</Text>
+                <Text style={[styles.reviewStatLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>current streak</Text>
+              </View>
+              <View style={[styles.reviewStatDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.reviewStat}>
+                <Text style={[styles.reviewStatNum, { color: "#A78BFA", fontSize: fs(18) }]}>{best}</Text>
+                <Text style={[styles.reviewStatLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>best streak</Text>
+              </View>
+              {yearInReview.topPhase && (
+                <>
+                  <View style={[styles.reviewStatDivider, { backgroundColor: colors.border }]} />
+                  <View style={[styles.reviewStat, { flex: 2 }]}>
+                    <Text style={[styles.reviewStatNum, { color: "#A78BFA", fontSize: fs(13) }]} numberOfLines={1}>
+                      {yearInReview.topPhase[0]}
+                    </Text>
+                    <Text style={[styles.reviewStatLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>
+                      most written under ({yearInReview.topPhase[1]})
+                    </Text>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        )}
 
         {/* Entry list */}
         {entries.length === 0 ? (
@@ -1540,6 +1618,7 @@ export default function JournalScreen() {
 }
 
 function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onDelete: () => void }) {
+  const { fs } = useFontScale();
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
   // Derive Odu from the entry date — deterministic, works for all existing entries
@@ -1664,7 +1743,7 @@ function EntryCard({ entry, colors, onDelete }: { entry: JournalEntry; colors: R
 
       {/* Content preview */}
       {entry.inputType === "text" && entry.textContent && (
-        <Text style={[styles.entryTextPreview, { color: colors.foreground }]} numberOfLines={4}>
+        <Text style={[styles.entryTextPreview, { color: colors.foreground, fontSize: fs(14), lineHeight: fs(14) * 1.5 }]} numberOfLines={4}>
           {entry.textContent}
         </Text>
       )}
@@ -2383,5 +2462,65 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
     letterSpacing: 0.3,
+  },
+  reviewCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    marginBottom: 12,
+    gap: 10,
+  },
+  reviewTitle: {
+    fontWeight: "700",
+    letterSpacing: 0.3,
+  },
+  reviewSub: {
+    letterSpacing: 0.2,
+    marginTop: -6,
+  },
+  reviewBars: {
+    flexDirection: "row" as const,
+    alignItems: "flex-end" as const,
+    gap: 4,
+    height: 44,
+    paddingBottom: 2,
+  },
+  reviewBarCol: {
+    flex: 1,
+    alignItems: "center" as const,
+    justifyContent: "flex-end" as const,
+    gap: 3,
+  },
+  reviewBar: {
+    width: "100%" as const,
+    borderRadius: 3,
+  },
+  reviewBarLabel: {
+    fontSize: 8,
+    fontWeight: "600" as const,
+    letterSpacing: 0.2,
+  },
+  reviewStats: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: 0,
+    marginTop: 2,
+  },
+  reviewStat: {
+    flex: 1,
+    alignItems: "center" as const,
+    gap: 2,
+  },
+  reviewStatNum: {
+    fontWeight: "800" as const,
+  },
+  reviewStatLabel: {
+    textAlign: "center" as const,
+    letterSpacing: 0.2,
+  },
+  reviewStatDivider: {
+    width: 1,
+    height: 28,
+    marginHorizontal: 4,
   },
 });

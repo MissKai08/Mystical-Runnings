@@ -37,6 +37,7 @@ import {
   type HolidayRegion,
 } from "@/constants/religiousHolidays";
 import * as Haptics from "expo-haptics";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -133,6 +134,7 @@ const REGION_LABEL: Record<HolidayRegion, string> = {
 export default function CalendarScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { profile } = useUserProfile();
   const [calView, setCalView] = useState<CalendarView>("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [displayDate, setDisplayDate] = useState<Date>(new Date());
@@ -155,6 +157,15 @@ export default function CalendarScreen() {
   const year = displayDate.getFullYear();
   const month = displayDate.getMonth();
   const weekStart = useMemo(() => getStartOfWeek(selectedDate), [selectedDate]);
+
+  const birthdayNameForDate = useMemo(() => {
+    if (!profile) return undefined;
+    const d = selectedDate;
+    if (d.getMonth() + 1 === profile.birthMonth && d.getDate() === profile.birthDay) {
+      return profile.firstName;
+    }
+    return undefined;
+  }, [profile, selectedDate]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return SEARCH_INDEX;
@@ -378,6 +389,8 @@ export default function CalendarScreen() {
                   selectedDate={selectedDate}
                   onSelectDate={handleSelectDate}
                   enabledRegions={enabledRegions}
+                  birthdayMonth={profile?.birthMonth}
+                  birthdayDay={profile?.birthDay}
                 />
               </View>
             )}
@@ -389,7 +402,7 @@ export default function CalendarScreen() {
                 enabledRegions={enabledRegions}
               />
             )}
-            {calView === "day" && <DayView date={selectedDate} />}
+            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} />}
             {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} />}
             {calView === "almanac" && <AlmanacView />}
           </View>

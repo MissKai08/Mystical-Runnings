@@ -27,9 +27,10 @@ import type { OseGroup } from "@/constants/spiritualData";
 
 interface Props {
   date: Date;
+  birthdayName?: string;
 }
 
-export function DayView({ date }: Props) {
+export function DayView({ date, birthdayName }: Props) {
   const colors = useColors();
   const moon = getMoonPhaseData(date);
   const retrograde = getMercuryRetrogradeInfo(date);
@@ -88,6 +89,20 @@ export function DayView({ date }: Props) {
       <Text style={[styles.dateTitle, { color: colors.foreground }]}>
         {formatDateLong(date)}
       </Text>
+
+      {/* Birthday */}
+      {birthdayName && (
+        <View style={[styles.card, { backgroundColor: "#D4A84315", borderColor: "#D4A84355" }]}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: "#D4A843" }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>PERSONAL</Text>
+          </View>
+          <Text style={[styles.cardTitle, { color: "#D4A843" }]}>🥳 Happy Birthday, {birthdayName}!</Text>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            May this solar return bring clarity, abundance, and deep spiritual alignment.
+          </Text>
+        </View>
+      )}
 
       {/* Named Full Moon overrides generic moon */}
       <Pressable

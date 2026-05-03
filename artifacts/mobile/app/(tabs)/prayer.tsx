@@ -15,6 +15,7 @@ import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
 import { getDailyOdu, ODU_LIST, ODU_REFLECTIONS, getMoonPhaseData, type OduEntry } from "@/constants/spiritualData";
 import MoonSoundBath from "@/components/MoonSoundBath";
+import { useFontScale } from "@/contexts/FontScaleContext";
 
 type Tab = "guide" | "prayers" | "divination";
 
@@ -158,6 +159,7 @@ type FilterKey = "all" | Prayer["category"];
 export default function PrayerScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { fs } = useFontScale();
   const [activeTab, setActiveTab] = useState<Tab>("guide");
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -755,8 +757,8 @@ export default function PrayerScreen() {
                     <View style={[styles.orishaChip, { backgroundColor: "#D4A84322" }]}>
                       <Text style={[styles.orishaText, { color: "#D4A843" }]}>{prayer.orisha}</Text>
                     </View>
-                    <Text style={[styles.prayerTitle, { color: colors.foreground }]}>{prayer.title}</Text>
-                    <Text style={[styles.prayerPurpose, { color: colors.mutedForeground }]}>{prayer.purpose}</Text>
+                    <Text style={[styles.prayerTitle, { color: colors.foreground, fontSize: fs(16) }]}>{prayer.title}</Text>
+                    <Text style={[styles.prayerPurpose, { color: colors.mutedForeground, fontSize: fs(12) }]}>{prayer.purpose}</Text>
                   </View>
                   <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.mutedForeground} />
                 </View>
@@ -766,11 +768,11 @@ export default function PrayerScreen() {
                     {prayer.yoruba && (
                       <>
                         <Text style={[styles.langLabel, { color: colors.mutedForeground }]}>YORUBA</Text>
-                        <Text style={[styles.prayerText, styles.yorubaText, { color: "#D4A843" }]}>{prayer.yoruba}</Text>
+                        <Text style={[styles.prayerText, styles.yorubaText, { color: "#D4A843", fontSize: fs(14) }]}>{prayer.yoruba}</Text>
                       </>
                     )}
                     <Text style={[styles.langLabel, { color: colors.mutedForeground }]}>ENGLISH</Text>
-                    <Text style={[styles.prayerText, { color: colors.foreground }]}>{prayer.english}</Text>
+                    <Text style={[styles.prayerText, { color: colors.foreground, fontSize: fs(14) }]}>{prayer.english}</Text>
                   </View>
                 )}
               </Pressable>

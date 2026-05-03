@@ -16,6 +16,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplashScreen } from "@/components/AppSplashScreen";
+import { FontScaleProvider } from "@/contexts/FontScaleContext";
+import { UserProfileProvider } from "@/contexts/UserProfileContext";
 
 // Prevent the native splash screen from auto-hiding before fonts load.
 SplashScreen.preventAutoHideAsync();
@@ -55,14 +57,18 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <KeyboardProvider>
-              <RootLayoutNav />
-              {!splashDone && (
-                <AppSplashScreen onComplete={() => setSplashDone(true)} />
-              )}
-            </KeyboardProvider>
-          </GestureHandlerRootView>
+          <FontScaleProvider>
+            <UserProfileProvider>
+              <GestureHandlerRootView style={{ flex: 1 }}>
+                <KeyboardProvider>
+                  <RootLayoutNav />
+                  {!splashDone && (
+                    <AppSplashScreen onComplete={() => setSplashDone(true)} />
+                  )}
+                </KeyboardProvider>
+              </GestureHandlerRootView>
+            </UserProfileProvider>
+          </FontScaleProvider>
         </QueryClientProvider>
       </ErrorBoundary>
     </SafeAreaProvider>

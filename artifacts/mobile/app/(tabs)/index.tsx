@@ -38,8 +38,10 @@ import {
   HOLIDAY_REGION_FLAG,
 } from "@/constants/religiousHolidays";
 import { saveIntention, loadIntention } from "@/utils/intentionsStorage";
-import { loadUserProfile, saveUserProfile, isTodayBirthday, UserProfile } from "@/utils/userProfile";
-import { loadFontScaleIndex, saveFontScaleIndex, fontScaleFromIndex, MAX_SCALE_INDEX, DEFAULT_SCALE_INDEX } from "@/utils/fontScale";
+import { saveUserProfile, isTodayBirthday, UserProfile } from "@/utils/userProfile";
+import { MAX_SCALE_INDEX } from "@/utils/fontScale";
+import { useFontScale } from "@/contexts/FontScaleContext";
+import { useUserProfile } from "@/contexts/UserProfileContext";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { LunarProgressBar } from "@/components/LunarProgressBar";
 import { TodayWidget } from "@/components/TodayWidget";
@@ -84,12 +86,10 @@ export default function HomeScreen() {
   const [intentionDraft, setIntentionDraft] = useState("");
   const [currentIntention, setCurrentIntention] = useState<string | null>(null);
   const [moonWaterOpen, setMoonWaterOpen] = useState(false);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState({ firstName: "", birthMonth: "", birthDay: "" });
-  const [scaleIdx, setScaleIdx] = useState(DEFAULT_SCALE_INDEX);
-  const fontScale = useMemo(() => fontScaleFromIndex(scaleIdx), [scaleIdx]);
-  const fs = useCallback((n: number) => Math.round(n * fontScale), [fontScale]);
+  const { scaleIdx, fs, handleScaleChange } = useFontScale();
+  const { profile, setProfile } = useUserProfile();
   const isBirthday = useMemo(() => profile ? isTodayBirthday(profile, today) : false, [profile, today]);
 
   const lastNewMoonDate = useMemo(() => {
@@ -122,20 +122,6 @@ export default function HomeScreen() {
       loadIntention(lastNewMoonDate).then(setCurrentIntention);
     }
   }, [lastNewMoonDate]);
-
-  useEffect(() => {
-    loadUserProfile().then(setProfile);
-    loadFontScaleIndex().then(setScaleIdx);
-  }, []);
-
-  const handleScaleChange = useCallback((delta: number) => {
-    setScaleIdx((prev) => {
-      const next = Math.max(0, Math.min(MAX_SCALE_INDEX, prev + delta));
-      saveFontScaleIndex(next);
-      return next;
-    });
-    Haptics.selectionAsync();
-  }, []);
 
   const handleSaveProfile = useCallback(async () => {
     const month = parseInt(profileDraft.birthMonth, 10);
@@ -308,7 +294,7 @@ export default function HomeScreen() {
           </Text>
           {isBirthday && profile ? (
             <Text style={[styles.appName, { color: "#D4A843", fontSize: fs(22) }]}>
-              🎂 Happy Birthday, {profile.firstName}!
+              🥳 Happy Birthday, {profile.firstName}!
             </Text>
           ) : (
             <Text style={[styles.appName, { color: colors.foreground, fontSize: fs(26) }]}>

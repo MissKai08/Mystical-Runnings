@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
+import { useFontScale } from "@/contexts/FontScaleContext";
 
 interface Resource {
   title: string;
@@ -149,6 +150,7 @@ const CATEGORIES = Array.from(new Set(RESOURCES.map((r) => r.category)));
 export default function ResourcesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { fs } = useFontScale();
 
   return (
     <ScrollView
@@ -183,8 +185,8 @@ export default function ResourcesScreen() {
                   <Text style={styles.emoji}>{r.emoji}</Text>
                 </View>
                 <View style={styles.textBlock}>
-                  <Text style={[styles.title, { color: colors.foreground }]} numberOfLines={2}>{r.title}</Text>
-                  <Text style={[styles.source, { color: colors.mutedForeground }]}>{r.source}</Text>
+                  <Text style={[styles.title, { color: colors.foreground, fontSize: fs(14) }]} numberOfLines={2}>{r.title}</Text>
+                  <Text style={[styles.source, { color: colors.mutedForeground, fontSize: fs(12) }]}>{r.source}</Text>
                 </View>
                 <Feather name="external-link" size={14} color={colors.mutedForeground} style={{ alignSelf: "center" }} />
               </Pressable>

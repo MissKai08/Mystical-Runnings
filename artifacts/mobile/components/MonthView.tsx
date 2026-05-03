@@ -29,11 +29,13 @@ interface Props {
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   enabledRegions: Set<HolidayRegion>;
+  birthdayMonth?: number;
+  birthdayDay?: number;
 }
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions }: Props) {
+export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
@@ -69,6 +71,9 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
               : [];
 
             const isCurrentMonth = day.getMonth() === month;
+            const isBirthday = !!(birthdayMonth && birthdayDay &&
+              day.getMonth() + 1 === birthdayMonth &&
+              day.getDate() === birthdayDay);
 
             return (
               <Pressable
@@ -104,6 +109,9 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
                       style={[styles.holidayDot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]}
                     />
                   ))}
+                  {isBirthday && (
+                    <View style={[styles.holidayDot, { backgroundColor: "#D4A843" }]} />
+                  )}
                 </View>
               </Pressable>
             );
