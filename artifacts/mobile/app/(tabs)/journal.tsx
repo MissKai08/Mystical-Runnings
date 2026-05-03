@@ -40,6 +40,7 @@ import {
   getDailyOdu,
   getOseDay,
 } from "@/constants/spiritualData";
+import { getDailyWisdom } from "@/constants/dailyWisdom";
 import { DrawingCanvas, DrawingCanvasRef } from "@/components/DrawingCanvas";
 import { SearchBar } from "@/components/SearchBar";
 import Svg, { Path } from "react-native-svg";
@@ -600,6 +601,20 @@ export default function JournalScreen() {
   const wroteToday = useMemo(() => entries.some((e) => e.date === todayKey()), [entries]);
   const lunarStreak = useMemo(() => lunarPhaseStreak(entries), [entries]);
 
+  const todayWisdom = useMemo(() => getDailyWisdom(new Date()), []);
+
+  const openComposerWithSeed = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setComposerDate(null);
+    setSelectedMoods([]);
+    setTextValue(`"${todayWisdom.text}"\n— ${todayWisdom.source}\n\n`);
+    setInputMode("text");
+    drawingRef.current?.clear();
+    const now = new Date();
+    setPromptIdx((now.getDate() + now.getMonth() * 31) % 3);
+    setComposerOpen(true);
+  }, [todayWisdom]);
+
   const currentPrompts = useMemo(() => {
     const type = getMoonPromptType(entryDate);
     return MOON_PROMPTS[type] ?? MOON_PROMPTS["full-moon"];
@@ -771,6 +786,24 @@ export default function JournalScreen() {
         </ScrollView>
       )}
 
+      {/* Today's Sacred Seed — visible on list view when not searching */}
+      {!searchQuery.trim() && (
+        <View style={[styles.listSeedCard, { backgroundColor: colors.card, borderColor: "#7C3AED33" }]}>
+          <View style={styles.listSeedHeader}>
+            <Text style={[styles.listSeedLabel, { color: "#A78BFA" }]}>✦ TODAY'S SACRED SEED</Text>
+            <Pressable
+              onPress={openComposerWithSeed}
+              style={[styles.listSeedBtn, { backgroundColor: "#7C3AED18", borderColor: "#7C3AED44" }]}
+            >
+              <Feather name="edit-3" size={11} color="#A78BFA" />
+              <Text style={[styles.listSeedBtnText, { color: "#A78BFA" }]}>Write on This</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.listSeedText, { color: colors.foreground }]}>"{todayWisdom.text}"</Text>
+          <Text style={[styles.listSeedSource, { color: colors.mutedForeground }]}>— {todayWisdom.source}</Text>
+        </View>
+      )}
+
       {/* Entry list */}
       {entries.length === 0 ? (
         <View style={styles.emptyState}>
@@ -884,6 +917,32 @@ export default function JournalScreen() {
                 </View>
               ))}
             </ScrollView>
+          )}
+
+          {/* Sacred Seed — wisdom connected to the Odu wisdom cycle */}
+          {inputMode === "text" && (
+            <View style={[styles.seedCard, { backgroundColor: "#7C3AED09", borderColor: "#7C3AED33" }]}>
+              <Text style={[styles.seedLabel, { color: "#A78BFA" }]}>✦ TODAY'S SACRED SEED</Text>
+              <Text style={[styles.seedText, { color: colors.foreground }]}>"{todayWisdom.text}"</Text>
+              <Text style={[styles.seedSource, { color: colors.mutedForeground }]}>— {todayWisdom.source}</Text>
+              <Pressable
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  if (textValue.trim().length === 0) {
+                    setTextValue(`"${todayWisdom.text}"\n— ${todayWisdom.source}\n\n`);
+                  }
+                }}
+                style={[
+                  styles.seedUseBtn,
+                  { borderColor: "#7C3AED44", opacity: textValue.trim().length > 0 ? 0.4 : 1 },
+                ]}
+              >
+                <Feather name="feather" size={12} color="#A78BFA" />
+                <Text style={[styles.seedUseBtnText, { color: "#A78BFA" }]}>
+                  {textValue.trim().length > 0 ? "Seed used" : "Use as opening"}
+                </Text>
+              </Pressable>
+            </View>
           )}
 
           {/* Daily Journal Prompt */}
@@ -1597,5 +1656,90 @@ const styles = StyleSheet.create({
   },
   drawingArea: {
     flex: 1,
+  },
+  listSeedCard: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderStyle: "dashed",
+  },
+  listSeedHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  listSeedLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.2,
+  },
+  listSeedBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  listSeedBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  listSeedText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontStyle: "italic",
+    marginBottom: 6,
+  },
+  listSeedSource: {
+    fontSize: 11,
+    textAlign: "right",
+    letterSpacing: 0.2,
+  },
+  seedCard: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 2,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 14,
+    gap: 8,
+  },
+  seedLabel: {
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
+  seedText: {
+    fontSize: 14,
+    lineHeight: 21,
+    fontStyle: "italic",
+    fontWeight: "500",
+  },
+  seedSource: {
+    fontSize: 11,
+    textAlign: "right",
+    letterSpacing: 0.2,
+  },
+  seedUseBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginTop: 2,
+  },
+  seedUseBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.2,
   },
 });
