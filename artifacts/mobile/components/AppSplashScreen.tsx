@@ -146,16 +146,27 @@ export function AppSplashScreen({ onComplete }: Props) {
   const moonOpacity     = useRef(new Animated.Value(0)).current;
   const moonScale       = useRef(new Animated.Value(0.75)).current;
   const glowScale       = useRef(new Animated.Value(1)).current;
+  const [fontReady, setFontReady] = useState(false);
 
   const [titleMounted, setTitleMounted] = useState(false);
 
   useEffect(() => {
-    const mountTimer = setTimeout(() => setTitleMounted(true), 700);
-    return () => clearTimeout(mountTimer);
+    let active = true;
+    const mountTimer = setTimeout(() => {
+      if (active) setTitleMounted(true);
+    }, 700);
+    const fontTimer = setTimeout(() => {
+      if (active) setFontReady(true);
+    }, 0);
+    return () => {
+      active = false;
+      clearTimeout(mountTimer);
+      clearTimeout(fontTimer);
+    };
   }, []);
 
   useEffect(() => {
-    if (!titleMounted) return;
+    if (!titleMounted || !fontReady) return;
 
     Animated.loop(
       Animated.sequence([
