@@ -287,7 +287,7 @@ export default function HomeScreen() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.brandHeader}>
-        <Text style={[styles.brandTitle, { color: colors.foreground }]}>Mystical Runnings</Text>
+        <Text style={[styles.brandTitle, { color: "#D4A843" }]}>Mystical Runnings</Text>
         <Text style={[styles.brandSubtitle, { color: colors.mutedForeground }]}>curated by MissKai</Text>
       </View>
 
