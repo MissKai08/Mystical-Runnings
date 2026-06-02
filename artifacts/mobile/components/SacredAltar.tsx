@@ -24,7 +24,7 @@ export const ALTAR_SYMBOLS: AltarSymbol[] = [
   { emoji: "💀", label: "Ancestors", color: "#E2E8F0" },
   { emoji: "⭐", label: "Ase", color: "#D4A843" },
   { emoji: "🕯️", label: "Candle", color: "#D4A843" },
-  { emoji: "🍂", label: "Cinnamon", color: "#D97706" },
+  { emoji: "🪵", label: "Cinnamon", color: "#D97706" },
   { emoji: "🥥", label: "Coconut Oil", color: "#F5F5DC" },
   { emoji: "🧊", label: "Cool Water", color: "#38BDF8" },
   { emoji: "🌽", label: "Cornmeal", color: "#FBBF24" },
