@@ -176,6 +176,24 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
     return { phase, phaseFraction, name: nameMap[hardcoded]!, illumination, isMajorPhase: true, eventType: hardcoded };
   }
 
+  // For years inside the 2024–2027 range, the lookup table is the ONLY
+  // source of truth for major phases. Dates not in the table are minor phases.
+  const year = date.getFullYear();
+  if (year >= 2024 && year <= 2027) {
+    let eventType: EventType;
+    let name: string;
+    if (phase < Q1) {
+      name = "Waxing Crescent"; eventType = "waxing-crescent";
+    } else if (phase < Q2) {
+      name = "Waxing Gibbous";  eventType = "waxing-gibbous";
+    } else if (phase < Q3) {
+      name = "Waning Gibbous";  eventType = "waning-gibbous";
+    } else {
+      name = "Waning Crescent"; eventType = "waning-crescent";
+    }
+    return { phase, phaseFraction, name, illumination, isMajorPhase: false, eventType };
+  }
+
   // Fallback: mathematical closest-day formula for years outside the table.
   const dPrev = new Date(date); dPrev.setDate(dPrev.getDate() - 1);
   const dNext = new Date(date); dNext.setDate(dNext.getDate() + 1);
