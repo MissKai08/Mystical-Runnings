@@ -13,9 +13,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
 import * as Haptics from "expo-haptics";
+import * as Speech from "expo-speech";
 import { getDailyOdu, ODU_LIST, ODU_REFLECTIONS, getMoonPhaseData, type OduEntry } from "@/constants/spiritualData";
 import MoonSoundBath from "@/components/MoonSoundBath";
 import { useFontScale } from "@/contexts/FontScaleContext";
+
+function speak(text: string) {
+  Speech.stop();
+  Speech.speak(text, {
+    language: "yo",
+    pitch: 1.0,
+    rate: 0.85,
+  });
+}
 
 type Tab = "guide" | "prayers" | "divination";
 
@@ -198,10 +208,6 @@ export default function PrayerScreen() {
 
   const openGuideLink = () => {
     Linking.openURL("https://www.daydreamalston.com/prayer-guide");
-  };
-
-  const openVideoLink = () => {
-    Linking.openURL("https://youtu.be/MWQCb42xKUw");
   };
 
   return (
@@ -507,20 +513,6 @@ export default function PrayerScreen() {
             </View>
           </View>
 
-          {/* Video link */}
-          <Pressable
-            style={[styles.videoCard, { backgroundColor: "#7C3AED22", borderColor: "#7C3AED55" }]}
-            onPress={openVideoLink}
-          >
-            <Feather name="play-circle" size={28} color="#A78BFA" />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.videoTitle, { color: colors.foreground }]}>Watch the Step-by-Step Video</Text>
-              <Text style={[styles.videoSub, { color: colors.mutedForeground }]}>
-                Full explanation by Daydream Alston — YouTube
-              </Text>
-            </View>
-            <Feather name="external-link" size={16} color="#A78BFA" />
-          </Pressable>
         </ScrollView>
       ) : activeTab === "divination" ? (
         <ScrollView
@@ -767,7 +759,16 @@ export default function PrayerScreen() {
                     <View style={[styles.divider, { backgroundColor: colors.border }]} />
                     {prayer.yoruba && (
                       <>
-                        <Text style={[styles.langLabel, { color: colors.mutedForeground }]}>YORUBA</Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                          <Text style={[styles.langLabel, { color: colors.mutedForeground }]}>YORUBA</Text>
+                          <Pressable
+                            onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); speak(prayer.yoruba!); }}
+                            style={styles.speakBtn}
+                            hitSlop={8}
+                          >
+                            <Feather name="volume-2" size={14} color="#A78BFA" />
+                          </Pressable>
+                        </View>
                         <Text style={[styles.prayerText, styles.yorubaText, { color: "#D4A843", fontSize: fs(14) }]}>{prayer.yoruba}</Text>
                       </>
                     )}
@@ -950,24 +951,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontStyle: "normal",
   },
-  videoCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 4,
-    marginBottom: 16,
-    borderWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-  },
-  videoTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 2,
-  },
-  videoSub: {
-    fontSize: 12,
-  },
   filterScroll: { marginBottom: 12 },
   filterRow: { gap: 8, paddingRight: 16 },
   filterChip: {
@@ -1066,6 +1049,11 @@ const styles = StyleSheet.create({
   oduYoruba: {
     fontSize: 12,
     fontStyle: "italic",
+  },
+  speakBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "#7C3AED14",
   },
   oduSymbol: {
     fontSize: 15,
