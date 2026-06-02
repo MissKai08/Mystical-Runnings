@@ -6,8 +6,77 @@ import {
   Dimensions,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
+import Svg, {
+  Circle,
+  Ellipse,
+  Defs,
+  RadialGradient,
+  Stop,
+  ClipPath,
+  G,
+  Rect,
+} from "react-native-svg";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+
+function RealisticMoon() {
+  return (
+    <Svg width={130} height={130} viewBox="0 0 130 130">
+      <Defs>
+        <RadialGradient id="moonSurface" cx="60%" cy="38%" r="62%">
+          <Stop offset="0%"   stopColor="#E8ECF0" stopOpacity="1" />
+          <Stop offset="30%"  stopColor="#CDD4DC" stopOpacity="1" />
+          <Stop offset="65%"  stopColor="#A5B0BC" stopOpacity="1" />
+          <Stop offset="100%" stopColor="#6A7480" stopOpacity="1" />
+        </RadialGradient>
+        <RadialGradient id="craterShade" cx="30%" cy="30%" r="70%">
+          <Stop offset="0%"   stopColor="#000000" stopOpacity="0.0" />
+          <Stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
+        </RadialGradient>
+        <ClipPath id="moonClip">
+          <Circle cx="65" cy="65" r="54" />
+        </ClipPath>
+      </Defs>
+
+      <G clipPath="url(#moonClip)">
+        <Circle cx="65" cy="65" r="54" fill="url(#moonSurface)" />
+        <Circle cx="65" cy="65" r="54" fill="url(#craterShade)" />
+
+        <Ellipse cx="44" cy="42" rx="16" ry="12" fill="#7A8590" opacity="0.45" />
+        <Ellipse cx="70" cy="52" rx="10" ry="8"  fill="#6E7880" opacity="0.38" />
+        <Ellipse cx="55" cy="72" rx="8"  ry="6"  fill="#727E88" opacity="0.35" />
+        <Ellipse cx="82" cy="38" rx="7"  ry="5"  fill="#788288" opacity="0.30" />
+        <Ellipse cx="36" cy="68" rx="5"  ry="4"  fill="#6E7A82" opacity="0.32" />
+        <Ellipse cx="90" cy="70" rx="9"  ry="6"  fill="#748088" opacity="0.28" />
+        <Ellipse cx="60" cy="88" rx="6"  ry="4"  fill="#707C84" opacity="0.30" />
+
+        <Circle cx="48" cy="56" r="5.5" fill="#606870" opacity="0.55" />
+        <Circle cx="49" cy="55" r="2"   fill="#A0AAAF" opacity="0.45" />
+        <Circle cx="72" cy="76" r="4"   fill="#58606A" opacity="0.50" />
+        <Circle cx="73" cy="75" r="1.5" fill="#9AA4A8" opacity="0.40" />
+        <Circle cx="36" cy="50" r="3"   fill="#606870" opacity="0.45" />
+        <Circle cx="37" cy="49" r="1.2" fill="#9AA2A6" opacity="0.35" />
+        <Circle cx="88" cy="55" r="3.5" fill="#5A6268" opacity="0.42" />
+        <Circle cx="89" cy="54" r="1.4" fill="#98A0A4" opacity="0.35" />
+        <Circle cx="60" cy="35" r="2.5" fill="#646C74" opacity="0.40" />
+        <Circle cx="61" cy="34" r="1"   fill="#9CA4A8" opacity="0.35" />
+        <Circle cx="78" cy="87" r="3"   fill="#5E6670" opacity="0.40" />
+        <Circle cx="28" cy="74" r="2"   fill="#626A72" opacity="0.38" />
+        <Circle cx="95" cy="44" r="2.5" fill="#606870" opacity="0.36" />
+        <Circle cx="50" cy="92" r="2"   fill="#5A6268" opacity="0.35" />
+        <Circle cx="82" cy="26" r="1.8" fill="#646C72" opacity="0.32" />
+        <Circle cx="20" cy="58" r="1.5" fill="#606870" opacity="0.30" />
+
+        <Circle cx="65" cy="65" r="54" fill="#1A2030" opacity="0.06" />
+        <Circle cx="33" cy="65" r="54" fill="#080B14" opacity="0.91" />
+        <Circle cx="65" cy="65" r="54" fill="transparent" stroke="#C8D4DC" strokeWidth="1.5" strokeOpacity="0.12" />
+      </G>
+
+      <Circle cx="65" cy="65" r="58" fill="transparent" stroke="#D4A843" strokeWidth="1.5" strokeOpacity="0.25" />
+      <Circle cx="65" cy="65" r="62" fill="transparent" stroke="#D4A843" strokeWidth="0.5" strokeOpacity="0.12" />
+    </Svg>
+  );
+}
 
 const STARS: { x: number; y: number; r: number; o: number }[] = [
   { x: 0.08, y: 0.06, r: 1.5, o: 0.55 },
@@ -92,7 +161,7 @@ export function AppSplashScreen({ onComplete }: Props) {
       <View style={styles.moonWrap}>
         <View style={styles.moonGlowOuter} />
         <View style={styles.moonGlowInner} />
-        <View style={styles.moonCircle} />
+        <RealisticMoon />
       </View>
 
       <View style={styles.titleBlock}>
@@ -180,7 +249,7 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: "Arial",
+    fontFamily: "Beasigne",
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,

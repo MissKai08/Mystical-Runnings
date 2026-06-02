@@ -42,6 +42,7 @@ function ClassicTabLayout() {
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+  const isAndroid = Platform.OS === "android";
 
   return (
     <Tabs
@@ -55,7 +56,8 @@ function ClassicTabLayout() {
           borderTopWidth: 1,
           borderTopColor: colors.border,
           elevation: 0,
-          height: isWeb ? 84 : 60,
+          height: isWeb ? 84 : isAndroid ? 76 : 60,
+          paddingBottom: isAndroid ? 16 : 0,
         },
         tabBarBackground: () =>
           isIOS ? (

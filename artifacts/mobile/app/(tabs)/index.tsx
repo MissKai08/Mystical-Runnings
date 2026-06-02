@@ -982,7 +982,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.4,
     textAlign: "center",
-    fontFamily: "Arial Rounded MT Bold",
+    fontFamily: "Beasigne",
   },
   brandSubtitle: {
     fontSize: 11,
