@@ -57,7 +57,6 @@ export default function RootLayout() {
                 <KeyboardProvider>
                   {!splashDone ? (
                     <AppSplashScreen
-                      fontsLoaded={fontsLoaded || !!fontError}
                       onComplete={() => setSplashDone(true)}
                     />
                   ) : (

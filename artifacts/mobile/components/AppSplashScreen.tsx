@@ -1,22 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Animated,
   Dimensions,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
-import Svg, {
-  Circle,
-  Ellipse,
-  Defs,
-  RadialGradient,
-  Stop,
-  ClipPath,
-  G,
-  Rect,
-} from "react-native-svg";
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
 
@@ -48,151 +37,40 @@ const STARS: { x: number; y: number; r: number; o: number }[] = [
   { x: 0.22, y: 0.48, r: 1.5, o: 0.5  },
 ];
 
-function RealisticMoon() {
-  return (
-    <Svg width={130} height={130} viewBox="0 0 130 130">
-      <Defs>
-        <RadialGradient id="moonSurface" cx="60%" cy="38%" r="62%">
-          <Stop offset="0%"   stopColor="#E8ECF0" stopOpacity="1" />
-          <Stop offset="30%"  stopColor="#CDD4DC" stopOpacity="1" />
-          <Stop offset="65%"  stopColor="#A5B0BC" stopOpacity="1" />
-          <Stop offset="100%" stopColor="#6A7480" stopOpacity="1" />
-        </RadialGradient>
-        <RadialGradient id="craterShade" cx="30%" cy="30%" r="70%">
-          <Stop offset="0%"   stopColor="#000000" stopOpacity="0.0" />
-          <Stop offset="100%" stopColor="#000000" stopOpacity="0.35" />
-        </RadialGradient>
-        <ClipPath id="moonClip">
-          <Circle cx="65" cy="65" r="54" />
-        </ClipPath>
-        <ClipPath id="crescentClip">
-          <Rect x="0" y="0" width="130" height="130" />
-        </ClipPath>
-      </Defs>
-
-      <G clipPath="url(#moonClip)">
-        <Circle cx="65" cy="65" r="54" fill="url(#moonSurface)" />
-
-        <Circle cx="65" cy="65" r="54" fill="url(#craterShade)" />
-
-        <Ellipse cx="44" cy="42" rx="16" ry="12" fill="#7A8590" opacity="0.45" />
-        <Ellipse cx="70" cy="52" rx="10" ry="8"  fill="#6E7880" opacity="0.38" />
-        <Ellipse cx="55" cy="72" rx="8"  ry="6"  fill="#727E88" opacity="0.35" />
-        <Ellipse cx="82" cy="38" rx="7"  ry="5"  fill="#788288" opacity="0.30" />
-        <Ellipse cx="36" cy="68" rx="5"  ry="4"  fill="#6E7A82" opacity="0.32" />
-        <Ellipse cx="90" cy="70" rx="9"  ry="6"  fill="#748088" opacity="0.28" />
-        <Ellipse cx="60" cy="88" rx="6"  ry="4"  fill="#707C84" opacity="0.30" />
-
-        <Circle cx="48" cy="56" r="5.5" fill="#606870" opacity="0.55" />
-        <Circle cx="49" cy="55" r="2"   fill="#A0AAAF" opacity="0.45" />
-
-        <Circle cx="72" cy="76" r="4"   fill="#58606A" opacity="0.50" />
-        <Circle cx="73" cy="75" r="1.5" fill="#9AA4A8" opacity="0.40" />
-
-        <Circle cx="36" cy="50" r="3"   fill="#606870" opacity="0.45" />
-        <Circle cx="37" cy="49" r="1.2" fill="#9AA2A6" opacity="0.35" />
-
-        <Circle cx="88" cy="55" r="3.5" fill="#5A6268" opacity="0.42" />
-        <Circle cx="89" cy="54" r="1.4" fill="#98A0A4" opacity="0.35" />
-
-        <Circle cx="60" cy="35" r="2.5" fill="#646C74" opacity="0.40" />
-        <Circle cx="61" cy="34" r="1"   fill="#9CA4A8" opacity="0.35" />
-
-        <Circle cx="78" cy="87" r="3"   fill="#5E6670" opacity="0.40" />
-        <Circle cx="28" cy="74" r="2"   fill="#626A72" opacity="0.38" />
-        <Circle cx="95" cy="44" r="2.5" fill="#606870" opacity="0.36" />
-        <Circle cx="50" cy="92" r="2"   fill="#5A6268" opacity="0.35" />
-        <Circle cx="82" cy="26" r="1.8" fill="#646C72" opacity="0.32" />
-        <Circle cx="20" cy="58" r="1.5" fill="#606870" opacity="0.30" />
-
-        <Circle cx="65" cy="65" r="54"
-          fill="#1A2030" opacity="0.06" />
-
-        <Circle cx="33" cy="65" r="54"
-          fill="#080B14" opacity="0.91" />
-
-        <Circle cx="65" cy="65" r="54"
-          fill="transparent"
-          stroke="#C8D4DC"
-          strokeWidth="1.5"
-          strokeOpacity="0.12"
-        />
-      </G>
-
-      <Circle cx="65" cy="65" r="58"
-        fill="transparent"
-        stroke="#D4A843"
-        strokeWidth="1.5"
-        strokeOpacity="0.25"
-      />
-      <Circle cx="65" cy="65" r="62"
-        fill="transparent"
-        stroke="#D4A843"
-        strokeWidth="0.5"
-        strokeOpacity="0.12"
-      />
-    </Svg>
-  );
-}
-
 interface Props {
-  fontsLoaded: boolean;
   onComplete: () => void;
 }
 
-export function AppSplashScreen({ fontsLoaded, onComplete }: Props) {
-  const containerOpacity = useRef(new Animated.Value(1)).current;
-  const progressAnim    = useRef(new Animated.Value(0)).current;
-  const titleOpacity    = useRef(new Animated.Value(0)).current;
-  const titleY          = useRef(new Animated.Value(24)).current;
-  const moonOpacity     = useRef(new Animated.Value(0)).current;
-  const moonScale       = useRef(new Animated.Value(0.75)).current;
-  const glowScale       = useRef(new Animated.Value(1)).current;
-  const [ready, setReady] = useState(false);
+export function AppSplashScreen({ onComplete }: Props) {
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // Hide the native Expo Go splash immediately so our custom UI shows
     SplashScreen.hideAsync().catch(() => {});
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setReady(true);
-    }, 700);
-    return () => clearTimeout(timer);
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressTimer);
+          return 100;
+        }
+        return prev + 2;
+      });
+    }, 50);
+
+    const doneTimer = setTimeout(() => {
+      onComplete();
+    }, 3000);
+
+    return () => {
+      clearInterval(progressTimer);
+      clearTimeout(doneTimer);
+    };
   }, []);
 
-  useEffect(() => {
-    if (!ready || !fontsLoaded) return;
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(glowScale, { toValue: 1.12, duration: 1600, useNativeDriver: true }),
-        Animated.timing(glowScale, { toValue: 1,    duration: 1600, useNativeDriver: true }),
-      ])
-    ).start();
-
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(moonOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.spring(moonScale, { toValue: 1, tension: 60, friction: 7, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(titleOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
-        Animated.timing(titleY,       { toValue: 0, duration: 550, useNativeDriver: true }),
-      ]),
-      Animated.timing(progressAnim, {
-        toValue: 1,
-        duration: 1600,
-        useNativeDriver: false,
-      }),
-      Animated.delay(350),
-      Animated.timing(containerOpacity, { toValue: 0, duration: 550, useNativeDriver: true }),
-    ]).start(() => onComplete());
-  }, [ready, fontsLoaded]);
-
   return (
-    <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
+    <View style={styles.container}>
       {STARS.map((s, i) => (
         <View
           key={i}
@@ -211,69 +89,42 @@ export function AppSplashScreen({ fontsLoaded, onComplete }: Props) {
 
       <View style={styles.bgGlow} />
 
-      <Animated.View
-        style={[
-          styles.moonWrap,
-          { opacity: moonOpacity, transform: [{ scale: moonScale }] },
-        ]}
-      >
-        <Animated.View
-          style={[styles.moonGlowOuter, { transform: [{ scale: glowScale }] }]}
-        />
+      <View style={styles.moonWrap}>
+        <View style={styles.moonGlowOuter} />
         <View style={styles.moonGlowInner} />
-        <RealisticMoon />
-      </Animated.View>
+        <View style={styles.moonCircle} />
+      </View>
 
-      {ready && (
-        <Animated.View
-          style={[
-            styles.titleBlock,
-            {
-              opacity:   titleOpacity,
-              transform: [{ translateY: titleY }],
-            },
-          ]}
-        >
-          <Text style={styles.titleLine}>MYSTICAL</Text>
-          <Text style={styles.titleLine}>RUNNINGS</Text>
+      <View style={styles.titleBlock}>
+        <Text style={styles.titleLine}>MYSTICAL</Text>
+        <Text style={styles.titleLine}>RUNNINGS</Text>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerStar}>✦</Text>
-            <View style={styles.dividerLine} />
-          </View>
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerStar}>✦</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
-          <Text style={styles.subtitle}>ALIGN WITH THE COSMOS</Text>
-        </Animated.View>
-      )}
+        <Text style={styles.subtitle}>ALIGN WITH THE COSMOS</Text>
+      </View>
 
       <View style={styles.progressSection}>
         <View style={styles.progressTrack}>
-          <Animated.View
+          <View
             style={[
               styles.progressFill,
-              {
-                width: progressAnim.interpolate({
-                  inputRange:  [0, 1],
-                  outputRange: ["0%", "100%"],
-                }),
-              },
+              { width: `${progress}%` },
             ]}
           />
-          <Animated.View
+          <View
             style={[
               styles.progressTip,
-              {
-                left: progressAnim.interpolate({
-                  inputRange:  [0, 1],
-                  outputRange: ["0%", "100%"],
-                }),
-              },
+              { left: `${progress}%`, marginLeft: -4 },
             ]}
           />
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
@@ -315,6 +166,14 @@ const styles = StyleSheet.create({
     borderRadius: 47.5,
     backgroundColor: "#A78BFA",
     opacity: 0.12,
+  },
+  moonCircle: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: "#2D1B4E",
+    borderWidth: 2,
+    borderColor: "#D4A84340",
   },
   titleBlock: {
     alignItems: "center",
@@ -391,7 +250,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: "#D4A843",
-    marginLeft: -4,
     shadowColor: "#D4A843",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 1,

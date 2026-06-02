@@ -1,4 +1,3 @@
-import * as Notifications from "expo-notifications";
 import {
   SABBATS,
   NAMED_FULL_MOONS,
@@ -28,15 +27,24 @@ import {
 } from "@/constants/religiousHolidays";
 import type { NotificationSettings } from "./notificationSettings";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Lazy import of expo-notifications so the module is not loaded on Android Expo Go
+// where push notifications are unavailable. Only loads when a notification function is called.
+let notificationsModule: typeof import("expo-notifications") | null = null;
+async function getNotifications() {
+  if (!notificationsModule) {
+    notificationsModule = await import("expo-notifications");
+    notificationsModule.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  }
+  return notificationsModule;
+}
 
 const MS_PER_DAY = 86_400_000;
 // April 26 2026 = Day 0 (Obatala) — must match spiritualData.ts anchor
@@ -388,20 +396,23 @@ function notifDate(eventDate: Date, advanceDays: number): Date {
 }
 
 export async function requestPermissions(): Promise<boolean> {
-  const { status: existing } = await Notifications.getPermissionsAsync();
+  const N = await getNotifications();
+  const { status: existing } = await N.getPermissionsAsync();
   if (existing === "granted") return true;
-  const { status } = await Notifications.requestPermissionsAsync();
+  const { status } = await N.requestPermissionsAsync();
   return status === "granted";
 }
 
 export async function cancelAllNotifications(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  const N = await getNotifications();
+  await N.cancelAllScheduledNotificationsAsync();
 }
 
 export async function scheduleAllNotifications(
   settings: NotificationSettings
 ): Promise<number> {
-  await cancelAllNotifications();
+  const N = await getNotifications();
+  await N.cancelAllScheduledNotificationsAsync();
 
   if (!settings.masterEnabled) return 0;
 
@@ -429,14 +440,14 @@ export async function scheduleAllNotifications(
 
   for (const evt of sorted) {
     try {
-      await Notifications.scheduleNotificationAsync({
+      await N.scheduleNotificationAsync({
         content: {
           title: evt.name,
           body: evt.body,
           sound: true,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          type: N.SchedulableTriggerInputTypes.DATE,
           date: evt.trigger,
         },
       });
@@ -457,14 +468,14 @@ export async function scheduleAllNotifications(
       trigger.setHours(7, 30, 0, 0);
       if (trigger <= now) continue;
       try {
-        await Notifications.scheduleNotificationAsync({
+        await N.scheduleNotificationAsync({
           content: {
             title: `✦ ${odu.name} · Daily Odu`,
             body: reflection,
             sound: true,
           },
           trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            type: N.SchedulableTriggerInputTypes.DATE,
             date: trigger,
           },
         });
@@ -477,24 +488,24 @@ export async function scheduleAllNotifications(
 
   // Daily Sacred Briefing — pre-schedule 30 days of 7 AM morning summaries
   if (settings.types.dailyBriefing) {
-    const now = new Date();
+    const now2 = new Date();
     for (let i = 0; i < 30 && scheduled < 62; i++) {
-      const date = addDays(now, i + 1);
+      const date = addDays(now2, i + 1);
       date.setHours(0, 0, 0, 0);
       const items = getDailyBriefingItems(date, settings);
       if (items.length === 0) continue;
       const trigger = new Date(date);
       trigger.setHours(7, 0, 0, 0);
-      if (trigger <= now) continue;
+      if (trigger <= now2) continue;
       try {
-        await Notifications.scheduleNotificationAsync({
+        await N.scheduleNotificationAsync({
           content: {
             title: `✦ Sacred Briefing · ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
             body: items.join(" · "),
             sound: true,
           },
           trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            type: N.SchedulableTriggerInputTypes.DATE,
             date: trigger,
           },
         });
@@ -508,14 +519,14 @@ export async function scheduleAllNotifications(
   // Weekly Ifa Prayer Day (Thursday = weekday 5 in Expo) — repeating trigger
   if (settings.types.ifaPrayerDays) {
     try {
-      await Notifications.scheduleNotificationAsync({
+      await N.scheduleNotificationAsync({
         content: {
           title: "🌟 Ifa Prayer Day",
           body: "Today is sacred for Ifa practice — open with gratitude to Olodumare and Ori, and carry that devotion through your day.",
           sound: true,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+          type: N.SchedulableTriggerInputTypes.WEEKLY,
           weekday: 5, // 1=Sun … 5=Thu in Expo's system
           hour: 7,
           minute: 0,
