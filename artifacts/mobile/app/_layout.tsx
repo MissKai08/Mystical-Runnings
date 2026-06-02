@@ -43,7 +43,14 @@ export default function RootLayout() {
     Beasigne: require("../assets/fonts/Beasigne.ttf"),
   });
 
-  const [splashDone, setSplashDone] = useState(false);
+  const [appReady, setAppReady] = useState(false);
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      const timer = setTimeout(() => setAppReady(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [fontsLoaded]);
 
   // Always render the custom splash screen immediately so it hides the native
   // Expo Go splash. The splash screen component itself calls hideAsync().
@@ -55,9 +62,10 @@ export default function RootLayout() {
             <UserProfileProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
-                  {!splashDone ? (
+                  {!appReady ? (
                     <AppSplashScreen
-                      onComplete={() => setSplashDone(true)}
+                      fontsLoaded={fontsLoaded}
+                      onComplete={() => {}}
                     />
                   ) : (
                     <RootLayoutNav />

@@ -309,64 +309,64 @@ export const SABBATS: WheelEvent[] = [
   },
 ];
 
-// 2026 Named Full Moons (source: Patheos / Heron Michelle)
+// 2026 Named Full Moons (aligned with USNO major-phase dates)
 export const NAMED_FULL_MOONS: WheelEvent[] = [
   { name: "Cold Full Moon", date: new Date(2026, 0, 3), type: "named-moon", description: "Full Moon in Cancer", sign: "Cancer" },
   { name: "Quickening Full Moon", date: new Date(2026, 1, 1), type: "named-moon", description: "Full Moon in Leo", sign: "Leo" },
   { name: "Storm Full Moon", date: new Date(2026, 2, 3), type: "named-moon", description: "Full Moon in Virgo — Lunar Eclipse", sign: "Virgo" },
-  { name: "Wind Full Moon", date: new Date(2026, 3, 1), type: "named-moon", description: "Full Moon in Libra", sign: "Libra" },
+  { name: "Wind Full Moon", date: new Date(2026, 3, 2), type: "named-moon", description: "Full Moon in Libra", sign: "Libra" },
   { name: "Flower Full Moon", date: new Date(2026, 4, 1), type: "named-moon", description: "Full Moon in Scorpio", sign: "Scorpio" },
   { name: "Strong Sun Full Moon", date: new Date(2026, 4, 31), type: "named-moon", description: "Full Moon in Sagittarius", sign: "Sagittarius" },
   { name: "Blessing Full Moon", date: new Date(2026, 5, 29), type: "named-moon", description: "Full Moon in Capricorn", sign: "Capricorn" },
   { name: "Corn Full Moon", date: new Date(2026, 6, 29), type: "named-moon", description: "Full Moon in Aquarius", sign: "Aquarius" },
-  { name: "Harvest Full Moon", date: new Date(2026, 7, 27), type: "named-moon", description: "Full Moon in Pisces — Lunar Eclipse", sign: "Pisces" },
+  { name: "Harvest Full Moon", date: new Date(2026, 7, 28), type: "named-moon", description: "Full Moon in Pisces — Lunar Eclipse", sign: "Pisces" },
   { name: "Blood Full Moon", date: new Date(2026, 8, 26), type: "named-moon", description: "Full Moon in Aries", sign: "Aries" },
-  { name: "Mourning Full Moon", date: new Date(2026, 9, 25), type: "named-moon", description: "Full Moon in Taurus", sign: "Taurus" },
+  { name: "Mourning Full Moon", date: new Date(2026, 9, 26), type: "named-moon", description: "Full Moon in Taurus", sign: "Taurus" },
   { name: "Long Nights Full Moon", date: new Date(2026, 10, 24), type: "named-moon", description: "Full Moon in Gemini", sign: "Gemini" },
 ];
 
-// 2026 Dark Moons (source: Patheos / Heron Michelle)
+// 2026 Dark Moons (aligned with USNO new-moon dates)
 export const DARK_MOONS: WheelEvent[] = [
   { name: "Dark Moon", date: new Date(2026, 0, 18), type: "dark-moon", description: "Dark Moon in Capricorn", sign: "Capricorn" },
   { name: "Dark Moon", date: new Date(2026, 1, 17), type: "dark-moon", description: "Dark Moon in Aquarius — Solar Eclipse / Lunar New Year (Year of the Horse)", sign: "Aquarius" },
-  { name: "Dark Moon", date: new Date(2026, 2, 18), type: "dark-moon", description: "Dark Moon in Pisces", sign: "Pisces" },
+  { name: "Dark Moon", date: new Date(2026, 2, 19), type: "dark-moon", description: "Dark Moon in Pisces", sign: "Pisces" },
   { name: "Dark Moon", date: new Date(2026, 3, 17), type: "dark-moon", description: "Dark Moon in Aries", sign: "Aries" },
   { name: "Dark Moon", date: new Date(2026, 4, 16), type: "dark-moon", description: "Dark Moon in Taurus", sign: "Taurus" },
-  { name: "Dark Moon", date: new Date(2026, 5, 14), type: "dark-moon", description: "Dark Moon in Gemini", sign: "Gemini" },
-  { name: "Dark Moon", date: new Date(2026, 6, 13), type: "dark-moon", description: "Dark Moon in Cancer", sign: "Cancer" },
+  { name: "Dark Moon", date: new Date(2026, 5, 15), type: "dark-moon", description: "Dark Moon in Gemini", sign: "Gemini" },
+  { name: "Dark Moon", date: new Date(2026, 6, 14), type: "dark-moon", description: "Dark Moon in Cancer", sign: "Cancer" },
   { name: "Dark Moon", date: new Date(2026, 7, 12), type: "dark-moon", description: "Dark Moon in Leo — Solar Eclipse", sign: "Leo" },
-  { name: "Dark Moon", date: new Date(2026, 8, 10), type: "dark-moon", description: "Dark Moon in Virgo", sign: "Virgo" },
-  { name: "Dark Moon", date: new Date(2026, 9, 9), type: "dark-moon", description: "Dark Moon in Libra", sign: "Libra" },
-  { name: "Dark Moon", date: new Date(2026, 10, 8), type: "dark-moon", description: "Dark Moon in Scorpio", sign: "Scorpio" },
-  { name: "Dark Moon", date: new Date(2026, 11, 8), type: "dark-moon", description: "Dark Moon in Sagittarius", sign: "Sagittarius" },
+  { name: "Dark Moon", date: new Date(2026, 8, 12), type: "dark-moon", description: "Dark Moon in Virgo", sign: "Virgo" },
+  { name: "Dark Moon", date: new Date(2026, 9, 11), type: "dark-moon", description: "Dark Moon in Libra", sign: "Libra" },
+  { name: "Dark Moon", date: new Date(2026, 10, 9), type: "dark-moon", description: "Dark Moon in Scorpio", sign: "Scorpio" },
+  { name: "Dark Moon", date: new Date(2026, 11, 9), type: "dark-moon", description: "Dark Moon in Sagittarius", sign: "Sagittarius" },
 ];
 
-// 2026 Eclipses (source: Patheos / Heron Michelle)
+// 2026 Eclipses (aligned with USNO major-phase dates)
 export const ECLIPSES: WheelEvent[] = [
   {
     name: "Solar Eclipse",
-    date: new Date(2026, 1, 16),
+    date: new Date(2026, 1, 17),
     type: "solar-eclipse",
     description: "Solar Eclipse — Dark Moon in Aquarius. Powerful portal for new beginnings. Also Lunar New Year (Year of the Horse).",
     sign: "Aquarius",
   },
   {
     name: "Lunar Eclipse",
-    date: new Date(2026, 2, 2),
+    date: new Date(2026, 2, 3),
     type: "lunar-eclipse",
     description: "Lunar Eclipse — Storm Full Moon in Virgo. Deep release and illumination of what must be healed.",
     sign: "Virgo",
   },
   {
     name: "Solar Eclipse",
-    date: new Date(2026, 7, 11),
+    date: new Date(2026, 7, 12),
     type: "solar-eclipse",
     description: "Solar Eclipse — Dark Moon in Leo. A powerful reset at the height of summer — bold intentions carry extra force.",
     sign: "Leo",
   },
   {
     name: "Lunar Eclipse",
-    date: new Date(2026, 7, 27),
+    date: new Date(2026, 7, 28),
     type: "lunar-eclipse",
     description: "Lunar Eclipse — Harvest Full Moon in Pisces. Dissolution of what no longer serves — surrender with trust.",
     sign: "Pisces",

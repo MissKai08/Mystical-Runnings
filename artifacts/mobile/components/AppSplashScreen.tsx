@@ -108,9 +108,10 @@ const STARS: { x: number; y: number; r: number; o: number }[] = [
 
 interface Props {
   onComplete: () => void;
+  fontsLoaded?: boolean;
 }
 
-export function AppSplashScreen({ onComplete }: Props) {
+export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
