@@ -22,8 +22,8 @@ function speak(text: string) {
   Speech.stop();
   Speech.speak(text, {
     language: "yo",
-    pitch: 1.0,
-    rate: 0.85,
+    pitch: 0.85,
+    rate: 0.78,
   });
 }
 
@@ -292,7 +292,12 @@ export default function PrayerScreen() {
               <View style={styles.oduHeaderLeft}>
                 <Text style={[styles.oduLabel, { color: "#7C3AED" }]}>TODAY'S ODU</Text>
                 <Text style={[styles.oduName, { color: colors.foreground }]}>{dailyOdu.name}</Text>
-                <Text style={[styles.oduYoruba, { color: colors.mutedForeground }]}>{dailyOdu.yoruba}</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text style={[styles.oduYoruba, { color: colors.mutedForeground }]}>{dailyOdu.yoruba}</Text>
+                  <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); speak(dailyOdu.yoruba); }} style={styles.speakBtn} hitSlop={8}>
+                    <Feather name="volume-2" size={12} color="#A78BFA" />
+                  </Pressable>
+                </View>
               </View>
               <View style={styles.oduHeaderRight}>
                 <Text style={[styles.oduSymbol, { color: "#7C3AED" }]}>{dailyOdu.symbol}</Text>
@@ -405,7 +410,12 @@ export default function PrayerScreen() {
                 <View style={styles.ibaList}>
                   {IBA_LIST.map((item, i) => (
                     <View key={i} style={[styles.ibaRow, { borderBottomColor: colors.border }]}>
-                      <Text style={[styles.ibaWord, { color: "#D4A843" }]}>{item.word}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[styles.ibaWord, { color: "#D4A843" }]}>{item.word}</Text>
+                        <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); speak(item.word); }} style={styles.speakBtn} hitSlop={8}>
+                          <Feather name="volume-2" size={12} color="#A78BFA" />
+                        </Pressable>
+                      </View>
                       <Text style={[styles.ibaMeaning, { color: colors.mutedForeground }]}>{item.meaning}</Text>
                     </View>
                   ))}
@@ -628,7 +638,12 @@ export default function PrayerScreen() {
                           </View>
                         )}
                       </View>
-                      <Text style={[styles.oduListYoruba, { color: colors.mutedForeground }]}>{odu.yoruba}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <Text style={[styles.oduListYoruba, { color: colors.mutedForeground }]}>{odu.yoruba}</Text>
+                        <Pressable onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); speak(odu.yoruba); }} style={styles.speakBtn} hitSlop={8}>
+                          <Feather name="volume-2" size={12} color="#A78BFA" />
+                        </Pressable>
+                      </View>
                     </View>
                   </View>
                   <Feather name={isExpanded ? "chevron-up" : "chevron-down"} size={16} color={colors.mutedForeground} />
