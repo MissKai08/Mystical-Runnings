@@ -245,10 +245,13 @@ export const IFA_FESTIVALS: IfaFestival[] = [
   { name: "Osun-Osogbo Festival", date: new Date(2025, 7, 8), description: "Sacred festival at the Osun Grove, UNESCO World Heritage site" },
   { name: "Olojo Festival", date: new Date(2025, 9, 3), description: "Festival honoring Ogun at Ile-Ife — the Ooni wears the sacred Aare crown" },
   { name: "Egungun Festival", date: new Date(2025, 5, 20), description: "Masquerade festival honoring and communing with ancestral spirits" },
+  { name: "Ọdún Tuntun — Yorùbá New Year", date: new Date(2025, 5, 3), description: "The Yorùbá New Year marks a fresh beginning in the traditional calendar. A time to honor ancestors, refresh the spirit, and embrace new beginnings. Reference: Embracing Ọdún Tuntun (share.google/Pq3abysIwxpmcpBZe)" },
   { name: "Ifa Festival", date: new Date(2026, 5, 6), description: "Annual celebration honoring Orunmila and the Ifa corpus" },
   { name: "Osun-Osogbo Festival", date: new Date(2026, 7, 14), description: "Sacred festival at the Osun Grove" },
   { name: "Olojo Festival", date: new Date(2026, 9, 16), description: "Festival honoring Ogun at Ile-Ife" },
   { name: "Egungun Festival", date: new Date(2026, 5, 19), description: "Masquerade festival honoring ancestral spirits" },
+  { name: "Ọdún Tuntun — Yorùbá New Year", date: new Date(2026, 5, 3), description: "The Yorùbá New Year marks a fresh beginning in the traditional calendar. A time to honor ancestors, refresh the spirit, and embrace new beginnings. Reference: Embracing Ọdún Tuntun (share.google/Pq3abysIwxpmcpBZe)" },
+  { name: "Ọdún Tuntun — Yorùbá New Year", date: new Date(2027, 5, 3), description: "The Yorùbá New Year marks a fresh beginning in the traditional calendar. A time to honor ancestors, refresh the spirit, and embrace new beginnings. Reference: Embracing Ọdún Tuntun (share.google/Pq3abysIwxpmcpBZe)" },
 ];
 
 // 2026 Wheel of the Year — Sabbats (source: Patheos / Heron Michelle)
