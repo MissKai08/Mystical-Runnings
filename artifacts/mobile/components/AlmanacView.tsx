@@ -9,6 +9,7 @@ import {
   IFA_FESTIVALS,
   MERCURY_RETROGRADES,
   SABBATS,
+  ASTRO_EVENTS,
   isSameDay,
   EVENT_COLORS,
   EventType,
@@ -40,6 +41,11 @@ const CATEGORY_LABEL: Record<string, string> = {
   retrograde: "PLANETARY",
   "ifa-festival": "IFA FESTIVAL",
   "ifa-prayer": "IFA PRAYER",
+  "meteor-shower": "METEOR SHOWER",
+  "planet-opposition": "PLANETARY",
+  "planet-elongation": "PLANETARY",
+  solstice: "SOLSTICE",
+  equinox: "EQUINOX",
   us: "U.S. HOLIDAY",
   mexico: "MEXICAN HOLIDAY",
   india: "INDIAN HOLIDAY",
@@ -73,6 +79,16 @@ const GUIDANCE: Record<string, string> = {
     "Pause major decisions and new commitments. Review, revise, and reconnect. Back up data and speak with extra care.",
   "ifa-festival":
     "Participate in the energy of this festival through prayer, offerings, music, and communal celebration. Connect with the Orisa honored today.",
+  "meteor-shower":
+    "Watch the sky in wonder. Meteor showers are the cosmos reminding us that we are made of starlight — the universe is alive, and it is beautiful.",
+  "planet-opposition":
+    "Gaze upon the brilliance of the wandering star. The planet is at its closest approach to Earth, and its sacred energy is magnified.",
+  "planet-elongation":
+    "Mercury or Venus dances at its furthest point from the Sun. These fleeting moments are windows for watching the inner planets.",
+  solstice:
+    "The turning of the Sun's journey. Honor the longest or shortest day — the threshold of light and shadow where the wheel shifts.",
+  equinox:
+    "Day and night stand equal in balance. A sacred time of equilibrium, perfect for reflection, rebalancing, and alignment.",
 };
 
 interface AlmanacEntry {
@@ -256,6 +272,43 @@ function buildYearEntries(year: number, today: Date): AlmanacEntry[] {
       type: "ifa-festival",
       description: f.description,
       isToday: isSameDay(f.date, today),
+    });
+  }
+
+  // Ifa Festivals
+  for (const f of IFA_FESTIVALS) {
+    if (f.date.getFullYear() !== year) continue;
+    entries.push({
+      date: f.date,
+      label: f.name,
+      category: "IFA FESTIVAL",
+      color: EVENT_COLORS["ifa-festival"],
+      emoji: "✦",
+      type: "ifa-festival",
+      description: f.description,
+      isToday: isSameDay(f.date, today),
+    });
+  }
+
+  // Astronomical Events
+  for (const e of ASTRO_EVENTS) {
+    if (e.date.getFullYear() !== year) continue;
+    const emojiMap: Record<string, string> = {
+      "meteor-shower": "✨",
+      "planet-opposition": "🪐",
+      "planet-elongation": "☿",
+      solstice: "🌞",
+      equinox: "⚖️",
+    };
+    entries.push({
+      date: e.date,
+      label: e.name,
+      category: CATEGORY_LABEL[e.type] ?? "ASTRONOMICAL",
+      color: EVENT_COLORS[e.type],
+      emoji: emojiMap[e.type] ?? "🔭",
+      type: e.type,
+      description: e.description,
+      isToday: isSameDay(e.date, today),
     });
   }
 

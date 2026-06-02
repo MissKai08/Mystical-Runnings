@@ -25,6 +25,7 @@ import {
   ECLIPSES,
   IFA_FESTIVALS,
   MERCURY_RETROGRADES,
+  ASTRO_EVENTS,
   OSE_GROUPS,
   EVENT_COLORS,
   EventType,
@@ -104,6 +105,14 @@ const SEARCH_INDEX: CalSearchResult[] = [
     description: `${r.label} · ends ${r.end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
     color: EVENT_COLORS.retrograde,
     type: "retrograde" as EventType,
+  })),
+  ...ASTRO_EVENTS.map((e, i) => ({
+    id: `astro-${i}`,
+    name: e.name,
+    date: e.date,
+    description: e.description,
+    color: EVENT_COLORS[e.type],
+    type: e.type,
   })),
   // Ose Calendar — compute the next occurrence of each of the 4 groups from today
   ...(() => {

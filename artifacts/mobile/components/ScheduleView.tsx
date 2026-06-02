@@ -47,6 +47,11 @@ const CATEGORY_LABELS: Partial<Record<EventType, string>> = {
   "solar-eclipse": "SOLAR ECLIPSE",
   "lunar-eclipse": "LUNAR ECLIPSE",
   "ose-day": "OSE CALENDAR",
+  "meteor-shower": "METEOR SHOWER",
+  "planet-opposition": "PLANETARY",
+  "planet-elongation": "PLANETARY",
+  solstice: "SOLSTICE",
+  equinox: "EQUINOX",
 };
 
 const GUIDANCE: Partial<Record<EventType, string>> = {

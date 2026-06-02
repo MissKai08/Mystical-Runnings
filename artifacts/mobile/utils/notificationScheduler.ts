@@ -5,11 +5,13 @@ import {
   ECLIPSES,
   IFA_FESTIVALS,
   MERCURY_RETROGRADES,
+  ASTRO_EVENTS,
   OSE_GROUPS,
   getMoonPhaseData,
   getNamedFullMoonForDate,
   getDarkMoonForDate,
   getEclipseForDate,
+  getAstroEventForDate,
   getSabbatForDate,
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
@@ -252,6 +254,11 @@ function getDailyBriefingItems(date: Date, settings: NotificationSettings): stri
   if (isIfaPrayerDay(date)) items.push("🌟 Ifa Prayer Day");
   const fv = getIfaFestivalForDate(date);
   if (fv) items.push(`✨ ${fv.name}`);
+  const astro = getAstroEventForDate(date);
+  if (astro) {
+    const emoji = astro.type === "meteor-shower" ? "✨" : astro.type === "planet-opposition" ? "🪐" : astro.type === "planet-elongation" ? "☿" : astro.type === "solstice" ? "🌞" : "⚖️";
+    items.push(`${emoji} ${astro.name}`);
+  }
   const holidays = getHolidaysForDate(date);
   for (const h of holidays) {
     if (h.region === "us" && settings.types.holidaysUs) items.push(`${HOLIDAY_REGION_FLAG["us"]} ${h.name}`);

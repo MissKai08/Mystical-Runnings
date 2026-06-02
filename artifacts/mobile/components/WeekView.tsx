@@ -12,6 +12,7 @@ import {
   getNamedFullMoonForDate,
   getDarkMoonForDate,
   getEclipseForDate,
+  getAstroEventForDate,
   getOseDay,
   EVENT_COLORS,
   OseGroup,
@@ -68,6 +69,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
             const namedMoon = getNamedFullMoonForDate(day);
             const darkMoon = getDarkMoonForDate(day);
             const eclipse = getEclipseForDate(day);
+            const astro = getAstroEventForDate(day);
             const oseDay = getOseDay(day);
             const holidays = getHolidaysForDate(day).filter((h) => enabledRegions.has(h.region));
 
@@ -121,6 +123,9 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                   {festival && (
                     <View style={[styles.dot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
                   )}
+                  {astro && (
+                    <View style={[styles.dot, { backgroundColor: EVENT_COLORS[astro.type] }]} />
+                  )}
                   {holidays.slice(0, 2).map((h, hi) => (
                     <View key={hi} style={[styles.dot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]} />
                   ))}
@@ -141,6 +146,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
             const namedMoon = getNamedFullMoonForDate(day);
             const darkMoon = getDarkMoonForDate(day);
             const eclipse = getEclipseForDate(day);
+            const astro = getAstroEventForDate(day);
             const oseDay = getOseDay(day);
             const holidays = getHolidaysForDate(day).filter((h) => enabledRegions.has(h.region));
             const hasEvents = moon.isMajorPhase || retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || holidays.length > 0;
@@ -316,6 +322,30 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
                     <Text style={[styles.chipText, { color: colors.foreground }]}>{festival.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                  </Pressable>
+                )}
+                {astro && (
+                  <Pressable
+                    onPress={() => setSelectedEvent({
+                      title: astro.name,
+                      category: astro.type === "meteor-shower" ? "METEOR SHOWER" : astro.type === "planet-opposition" ? "PLANETARY" : astro.type === "planet-elongation" ? "PLANETARY" : astro.type === "solstice" ? "SOLSTICE" : "EQUINOX",
+                      color: EVENT_COLORS[astro.type],
+                      description: astro.description,
+                      guidance: astro.type === "meteor-shower"
+                        ? "Watch the sky in wonder. The cosmos is alive and beautiful."
+                        : astro.type === "planet-opposition"
+                        ? "Gaze upon the brilliance of the wandering star. Its sacred energy is magnified."
+                        : astro.type === "planet-elongation"
+                        ? "Mercury or Venus dances at its furthest point from the Sun."
+                        : astro.type === "solstice"
+                        ? "Honor the turning of the Sun's journey. The threshold where light and shadow shift."
+                        : "Day and night stand equal. A sacred time of equilibrium and alignment.",
+                    })}
+                    style={({ pressed }) => [styles.eventChip, { backgroundColor: `${EVENT_COLORS[astro.type]}22`, opacity: pressed ? 0.8 : 1 }]}
+                  >
+                    <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS[astro.type] }]} />
+                    <Text style={[styles.chipText, { color: colors.foreground }]}>{astro.name}</Text>
                     <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
                   </Pressable>
                 )}

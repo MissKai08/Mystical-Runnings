@@ -15,7 +15,12 @@ export type EventType =
   | "sabbat"
   | "solar-eclipse"
   | "lunar-eclipse"
-  | "ose-day";
+  | "ose-day"
+  | "meteor-shower"
+  | "planet-opposition"
+  | "planet-elongation"
+  | "solstice"
+  | "equinox";
 
 export interface MoonPhaseData {
   phase: number;
@@ -74,6 +79,11 @@ export const EVENT_COLORS: Record<EventType, string> = {
   "solar-eclipse": "#F59E0B",
   "lunar-eclipse": "#EC4899",
   "ose-day": "#D4A843",
+  "meteor-shower": "#C084FC",
+  "planet-opposition": "#F59E0B",
+  "planet-elongation": "#FBBF24",
+  solstice: "#10B981",
+  equinox: "#34D399",
 };
 
 const LUNAR_CYCLE_DAYS = 29.53058867;
@@ -437,6 +447,7 @@ export function getEventsForDate(date: Date): SpiritualEvent[] {
   const namedMoon = getNamedFullMoonForDate(date);
   const darkMoon = getDarkMoonForDate(date);
   const eclipse = getEclipseForDate(date);
+  const astro = getAstroEventForDate(date);
 
   // Named full moons override the generic moon event if present
   if (namedMoon) {
@@ -524,7 +535,68 @@ export function getEventsForDate(date: Date): SpiritualEvent[] {
     });
   }
 
+  if (astro) {
+    events.push({
+      id: `astro-${date.toDateString()}`,
+      type: astro.type,
+      name: astro.name,
+      description: astro.description,
+      color: EVENT_COLORS[astro.type],
+      date,
+      endDate: astro.endDate,
+    });
+  }
+
   return events;
+}
+
+// ─── Astronomical Events (2026) — sourced from GO ASTRONOMY ───────────────────
+
+export interface AstronomicalEvent {
+  name: string;
+  date: Date;
+  type: EventType;
+  description: string;
+  endDate?: Date;
+}
+
+export const ASTRO_EVENTS: AstronomicalEvent[] = [
+  // Meteor Showers
+  { name: "Quadrantids Meteor Shower", date: new Date(2026, 0, 3), type: "meteor-shower", description: "One of the year's most reliable meteor showers, with up to 100 meteors per hour. Best viewing before dawn in the Northern Hemisphere.", endDate: new Date(2026, 0, 4) },
+  { name: "Lyrid Meteor Shower", date: new Date(2026, 3, 22), type: "meteor-shower", description: "Spring meteor shower originating from the constellation Lyra. Active April 16–25, peak night April 22–23.", endDate: new Date(2026, 3, 23) },
+  { name: "Eta Aquarid Meteor Shower", date: new Date(2026, 4, 6), type: "meteor-shower", description: "Meteor shower from Halley's Comet debris. Best seen in the Southern Hemisphere before dawn.", endDate: new Date(2026, 4, 7) },
+  { name: "Delta Aquarids Meteor Shower", date: new Date(2026, 6, 28), type: "meteor-shower", description: "Meteor shower from the constellation Aquarius. Best viewing in the Southern Hemisphere.", endDate: new Date(2026, 6, 29) },
+  { name: "Perseid Meteor Shower", date: new Date(2026, 7, 12), type: "meteor-shower", description: "The most famous annual meteor shower, with up to 60 meteors per hour. Best viewed in the Northern Hemisphere.", endDate: new Date(2026, 7, 13) },
+  { name: "Draconids Meteor Shower", date: new Date(2026, 9, 7), type: "meteor-shower", description: "Meteor shower from the constellation Draco. Best viewing in the early evening.", endDate: new Date(2026, 9, 7) },
+  { name: "Orionid Meteor Shower", date: new Date(2026, 9, 21), type: "meteor-shower", description: "Meteor shower from Halley's Comet debris. Best viewed before dawn.", endDate: new Date(2026, 9, 22) },
+  { name: "Taurids Meteor Shower", date: new Date(2026, 10, 4), type: "meteor-shower", description: "Long-duration meteor shower from the constellation Taurus. Known for exceptionally bright fireballs.", endDate: new Date(2026, 10, 5) },
+  { name: "Leonid Meteor Shower", date: new Date(2026, 10, 17), type: "meteor-shower", description: "Meteor shower from the constellation Leo. Known for spectacular meteor storms every 33 years.", endDate: new Date(2026, 10, 18) },
+  { name: "Geminid Meteor Shower", date: new Date(2026, 11, 13), type: "meteor-shower", description: "The year's most spectacular meteor shower, with up to 120 meteors per hour. Best viewing in the Northern Hemisphere.", endDate: new Date(2026, 11, 14) },
+  { name: "Ursid Meteor Shower", date: new Date(2026, 11, 21), type: "meteor-shower", description: "Winter meteor shower from the constellation Ursa Minor. Modest but consistent viewing.", endDate: new Date(2026, 11, 22) },
+  // Planet Oppositions
+  { name: "Jupiter at Opposition", date: new Date(2026, 0, 10), type: "planet-opposition", description: "Jupiter is at its brightest and closest approach to Earth, visible all night in the constellation Taurus." },
+  { name: "Saturn at Opposition", date: new Date(2026, 9, 4), type: "planet-opposition", description: "Saturn is at its brightest and closest approach to Earth, its rings visible with even a small telescope." },
+  { name: "Neptune at Opposition", date: new Date(2026, 8, 25), type: "planet-opposition", description: "Neptune is at its brightest and closest approach to Earth, visible in the constellation Aquarius." },
+  { name: "Uranus at Opposition", date: new Date(2026, 10, 25), type: "planet-opposition", description: "Uranus is at its brightest and closest approach to Earth, visible in the constellation Aries." },
+  // Planet Elongations
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2026, 0, 7), type: "planet-elongation", description: "Mercury is at its greatest western elongation, best seen in the eastern sky before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2026, 1, 19), type: "planet-elongation", description: "Mercury is at its greatest eastern elongation, best seen in the western sky after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2026, 3, 3), type: "planet-elongation", description: "Mercury is at its greatest western elongation, best seen in the eastern sky before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2026, 5, 15), type: "planet-elongation", description: "Mercury is at its greatest eastern elongation, best seen in the western sky after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2026, 7, 2), type: "planet-elongation", description: "Mercury is at its greatest western elongation, best seen in the eastern sky before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2026, 9, 12), type: "planet-elongation", description: "Mercury is at its greatest eastern elongation, best seen in the western sky after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2026, 10, 20), type: "planet-elongation", description: "Mercury is at its greatest western elongation, best seen in the eastern sky before sunrise." },
+  { name: "Venus at Greatest Eastern Elongation", date: new Date(2026, 7, 15), type: "planet-elongation", description: "Venus is at its greatest eastern elongation, shining as the 'Evening Star' in the western sky after sunset." },
+  // Solstices & Equinoxes
+  { name: "December Solstice", date: new Date(2025, 11, 21), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
+  { name: "March Equinox", date: new Date(2026, 2, 20), type: "equinox", description: "The spring equinox — day and night are equal in length. The Sun crosses the celestial equator moving northward." },
+  { name: "June Solstice", date: new Date(2026, 5, 21), type: "solstice", description: "The summer solstice — the longest day of the year in the Northern Hemisphere. The Sun reaches its northernmost point." },
+  { name: "September Equinox", date: new Date(2026, 8, 23), type: "equinox", description: "The autumn equinox — day and night are equal in length. The Sun crosses the celestial equator moving southward." },
+  { name: "December Solstice", date: new Date(2026, 11, 21), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
+];
+
+export function getAstroEventForDate(date: Date): AstronomicalEvent | null {
+  return ASTRO_EVENTS.find((e) => isSameDay(e.date, date)) ?? null;
 }
 
 // ─── Odu of Ifa ─────────────────────────────────────────────────────────────

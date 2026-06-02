@@ -10,6 +10,7 @@ import {
   getNamedFullMoonForDate,
   getDarkMoonForDate,
   getEclipseForDate,
+  getAstroEventForDate,
   getOseDay,
   formatDateLong,
   EVENT_COLORS,
@@ -40,6 +41,7 @@ export function DayView({ date, birthdayName }: Props) {
   const namedMoon = getNamedFullMoonForDate(date);
   const darkMoon = getDarkMoonForDate(date);
   const eclipse = getEclipseForDate(date);
+  const astro = getAstroEventForDate(date);
   const oseDay = getOseDay(date);
   const holidays = getHolidaysForDate(date);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
@@ -208,6 +210,56 @@ export function DayView({ date, birthdayName }: Props) {
               {eclipse.type === "solar-eclipse"
                 ? "A powerful portal for bold new beginnings. Set intentions with full awareness."
                 : "Deep illumination and release. What the eclipse reveals cannot be unseen — trust the process."}
+            </Text>
+          </View>
+        </Pressable>
+      )}
+
+      {/* Astronomical Event */}
+      {astro && (
+        <Pressable
+          onPress={() => setSelectedEvent({
+            title: astro.name,
+            category: astro.type === "meteor-shower" ? "METEOR SHOWER" : astro.type === "planet-opposition" ? "PLANETARY" : astro.type === "planet-elongation" ? "PLANETARY" : astro.type === "solstice" ? "SOLSTICE" : "EQUINOX",
+            color: EVENT_COLORS[astro.type],
+            description: astro.description,
+            guidance: astro.type === "meteor-shower"
+              ? "Watch the sky in wonder. Meteor showers are the cosmos reminding us that we are made of starlight — the universe is alive, and it is beautiful."
+              : astro.type === "planet-opposition"
+              ? "Gaze upon the brilliance of the wandering star. The planet is at its closest approach to Earth, and its sacred energy is magnified."
+              : astro.type === "planet-elongation"
+              ? "Mercury or Venus dances at its furthest point from the Sun. These fleeting moments are windows for watching the inner planets."
+              : astro.type === "solstice"
+              ? "The turning of the Sun's journey. Honor the longest or shortest day — the threshold of light and shadow where the wheel shifts."
+              : "Day and night stand equal in balance. A sacred time of equilibrium, perfect for reflection, rebalancing, and alignment.",
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: `${EVENT_COLORS[astro.type]}55`, opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS[astro.type] }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>
+              {astro.type === "meteor-shower" ? "METEOR SHOWER" : astro.type === "planet-opposition" ? "PLANETARY" : astro.type === "planet-elongation" ? "PLANETARY" : astro.type === "solstice" ? "SOLSTICE" : "EQUINOX"}
+            </Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>{astro.name}</Text>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+            {astro.description}
+          </Text>
+          <View style={[styles.infoBox, { backgroundColor: `${EVENT_COLORS[astro.type]}11` }]}>
+            <Text style={[styles.infoText, { color: EVENT_COLORS[astro.type] }]}>
+              {astro.type === "meteor-shower"
+                ? "Watch the sky in wonder. The cosmos is alive and beautiful."
+                : astro.type === "planet-opposition"
+                ? "Gaze upon the brilliance of the wandering star. Its sacred energy is magnified."
+                : astro.type === "planet-elongation"
+                ? "Mercury or Venus dances at its furthest point from the Sun."
+                : astro.type === "solstice"
+                ? "Honor the turning of the Sun's journey. The threshold where light and shadow shift."
+                : "Day and night stand equal. A sacred time of equilibrium and alignment."}
             </Text>
           </View>
         </Pressable>
