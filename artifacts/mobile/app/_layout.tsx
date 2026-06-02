@@ -45,15 +45,8 @@ export default function RootLayout() {
 
   const [splashDone, setSplashDone] = useState(false);
 
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      // Hide native splash — our custom overlay takes over immediately
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
-
-  if (!fontsLoaded && !fontError) return null;
-
+  // Always render the custom splash screen immediately so it hides the native
+  // Expo Go splash. The splash screen component itself calls hideAsync().
   return (
     <SafeAreaProvider>
       <ErrorBoundary>
@@ -63,7 +56,10 @@ export default function RootLayout() {
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
                   {!splashDone ? (
-                    <AppSplashScreen onComplete={() => setSplashDone(true)} />
+                    <AppSplashScreen
+                      fontsLoaded={fontsLoaded || !!fontError}
+                      onComplete={() => setSplashDone(true)}
+                    />
                   ) : (
                     <RootLayoutNav />
                   )}

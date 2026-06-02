@@ -6,6 +6,7 @@ import {
   Animated,
   Dimensions,
 } from "react-native";
+import * as SplashScreen from "expo-splash-screen";
 import Svg, {
   Circle,
   Ellipse,
@@ -135,10 +136,11 @@ function RealisticMoon() {
 }
 
 interface Props {
+  fontsLoaded: boolean;
   onComplete: () => void;
 }
 
-export function AppSplashScreen({ onComplete }: Props) {
+export function AppSplashScreen({ fontsLoaded, onComplete }: Props) {
   const containerOpacity = useRef(new Animated.Value(1)).current;
   const progressAnim    = useRef(new Animated.Value(0)).current;
   const titleOpacity    = useRef(new Animated.Value(0)).current;
@@ -146,19 +148,22 @@ export function AppSplashScreen({ onComplete }: Props) {
   const moonOpacity     = useRef(new Animated.Value(0)).current;
   const moonScale       = useRef(new Animated.Value(0.75)).current;
   const glowScale       = useRef(new Animated.Value(1)).current;
-  const [titleMounted, setTitleMounted] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const mountTimer = setTimeout(() => {
-      setTitleMounted(true);
-    }, 700);
-    return () => {
-      clearTimeout(mountTimer);
-    };
+    // Hide the native Expo Go splash immediately so our custom UI shows
+    SplashScreen.hideAsync().catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!titleMounted) return;
+    const timer = setTimeout(() => {
+      setReady(true);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!ready || !fontsLoaded) return;
 
     Animated.loop(
       Animated.sequence([
@@ -184,7 +189,7 @@ export function AppSplashScreen({ onComplete }: Props) {
       Animated.delay(350),
       Animated.timing(containerOpacity, { toValue: 0, duration: 550, useNativeDriver: true }),
     ]).start(() => onComplete());
-  }, [titleMounted]);
+  }, [ready, fontsLoaded]);
 
   return (
     <Animated.View style={[styles.container, { opacity: containerOpacity }]}>
@@ -219,7 +224,7 @@ export function AppSplashScreen({ onComplete }: Props) {
         <RealisticMoon />
       </Animated.View>
 
-      {titleMounted && (
+      {ready && (
         <Animated.View
           style={[
             styles.titleBlock,
