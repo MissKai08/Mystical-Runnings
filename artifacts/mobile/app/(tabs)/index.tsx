@@ -978,11 +978,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   brandTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-    letterSpacing: 0.4,
+    fontSize: 42,
+    letterSpacing: 0.5,
     textAlign: "center",
-    fontFamily: "Genos_900Black",
+    fontFamily: "Genos_600SemiBold",
   },
   brandSubtitle: {
     fontSize: 11,

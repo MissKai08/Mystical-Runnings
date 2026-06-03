@@ -166,8 +166,8 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
       </View>
 
       <View style={styles.titleBlock}>
-        <Text style={styles.titleLine}>MYSTICAL</Text>
-        <Text style={styles.titleLine}>RUNNINGS</Text>
+        <Text style={styles.titleLine}>Mystical</Text>
+        <Text style={styles.titleLine}>Runnings</Text>
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: "Genos_900Black",
+    fontFamily: "Genos_600SemiBold",
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,
