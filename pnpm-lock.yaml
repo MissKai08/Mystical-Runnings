@@ -215,6 +215,9 @@ importers:
 
   artifacts/mobile:
     dependencies:
+      '@expo-google-fonts/genos':
+        specifier: ^0.4.1
+        version: 0.4.1
       '@expo-google-fonts/orbitron':
         specifier: ^0.4.2
         version: 0.4.2
@@ -1129,6 +1132,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [linux]
+
+  '@expo-google-fonts/genos@0.4.1':
+    resolution: {integrity: sha512-dSONgShUdOH4KRrUkSqVXkYL69nviE7AdCklB06KLU0jbKyRUvXHLAnmmkPpAfwvB+9UjEB5IeDaK02y7QCDXw==}
 
   '@expo-google-fonts/inter@0.4.2':
     resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
@@ -6426,6 +6432,8 @@ snapshots:
 
   '@esbuild/linux-x64@0.27.3':
     optional: true
+
+  '@expo-google-fonts/genos@0.4.1': {}
 
   '@expo-google-fonts/inter@0.4.2': {}
 

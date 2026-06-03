@@ -5,7 +5,8 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import { Orbitron_700Bold, Orbitron_900Black } from "@expo-google-fonts/orbitron";
+import { Orbitron_700Bold } from "@expo-google-fonts/orbitron";
+import { Genos_900Black } from "@expo-google-fonts/genos";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -39,7 +40,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     Orbitron_700Bold,
-    Orbitron_900Black,
+    Genos_900Black,
   });
 
   const [appReady, setAppReady] = useState(false);

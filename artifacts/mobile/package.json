@@ -56,6 +56,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
+    "@expo-google-fonts/genos": "^0.4.1",
     "@expo-google-fonts/orbitron": "^0.4.2",
     "expo-notifications": "~0.32.17",
     "expo-speech": "~13.1.7",

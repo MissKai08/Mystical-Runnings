@@ -982,7 +982,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: 0.4,
     textAlign: "center",
-    fontFamily: "Orbitron_900Black",
+    fontFamily: "Genos_900Black",
   },
   brandSubtitle: {
     fontSize: 11,
