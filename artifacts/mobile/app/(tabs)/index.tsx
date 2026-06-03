@@ -851,7 +851,7 @@ export default function HomeScreen() {
           style={{ width: "100%" }}
         >
           <Pressable
-            style={styles.intentionModalSheet}
+            style={[styles.intentionModalSheet, { paddingBottom: Math.max(24, insets.bottom + 16) }]}
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.intentionModalHandle} />
@@ -905,7 +905,7 @@ export default function HomeScreen() {
     >
       <Pressable style={styles.intentionOverlay} onPress={() => setProfileOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
-          <Pressable style={styles.intentionModalSheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.intentionModalSheet, { paddingBottom: Math.max(24, insets.bottom + 16) }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.intentionModalHandle} />
             <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
             <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
