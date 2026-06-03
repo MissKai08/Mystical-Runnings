@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: "Beasigne",
+    fontFamily: "Orbitron_900Black",
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,

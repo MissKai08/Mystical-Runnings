@@ -30,14 +30,7 @@
           "origin": "https://replit.com/"
         }
       ],
-      [
-        "expo-font",
-        {
-          "fonts": [
-            "./assets/fonts/Beasigne.ttf"
-          ]
-        }
-      ],
+      "expo-font",
       "expo-web-browser"
     ],
     "experiments": {
