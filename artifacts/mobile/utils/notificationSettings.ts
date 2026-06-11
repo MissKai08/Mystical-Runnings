@@ -6,6 +6,7 @@ export interface NotifTypeSettings {
   dailyBriefing: boolean;
   oduReflection: boolean;
   journalPrompt: boolean;
+  sacredIntentionReminder: boolean;
   namedMoons: boolean;
   darkMoons: boolean;
   majorPhases: boolean;
@@ -34,6 +35,7 @@ export const DEFAULT_SETTINGS: NotificationSettings = {
     dailyBriefing: false,
     oduReflection: true,
     journalPrompt: false,
+    sacredIntentionReminder: false,
     namedMoons: true,
     darkMoons: true,
     majorPhases: true,

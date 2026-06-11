@@ -523,6 +523,33 @@ export async function scheduleAllNotifications(
     }
   }
 
+  // Daily Sacred Intention Reminder — pre-schedule 30 days at 8 PM
+  if (settings.types.sacredIntentionReminder) {
+    for (let i = 0; i < 30 && scheduled < 62; i++) {
+      const date = addDays(now, i + 1);
+      date.setHours(0, 0, 0, 0);
+      const trigger = new Date(date);
+      trigger.setHours(20, 0, 0, 0);
+      if (trigger <= now) continue;
+      try {
+        await N.scheduleNotificationAsync({
+          content: {
+            title: "✦ Sacred Intentions",
+            body: "Take a moment to reflect on your intentions — check in, offer gratitude, and realign with what you called into being.",
+            sound: true,
+          },
+          trigger: {
+            type: N.SchedulableTriggerInputTypes.DATE,
+            date: trigger,
+          },
+        });
+        scheduled++;
+      } catch {
+        // skip
+      }
+    }
+  }
+
   // Weekly Ifa Prayer Day (Thursday = weekday 5 in Expo) — repeating trigger
   if (settings.types.ifaPrayerDays) {
     try {

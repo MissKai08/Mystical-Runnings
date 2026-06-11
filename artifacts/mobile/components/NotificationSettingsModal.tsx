@@ -127,6 +127,13 @@ const BRIEFING_ROWS: TypeRow[] = [
     color: "#A78BFA",
     emoji: "✍️",
   },
+  {
+    key: "sacredIntentionReminder",
+    label: "Sacred Intention Check-In",
+    description: "8 PM daily nudge to reflect on your active intentions",
+    color: "#7C3AED",
+    emoji: "🌟",
+  },
 ];
 
 const HOLIDAY_ROWS: TypeRow[] = [

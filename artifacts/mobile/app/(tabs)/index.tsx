@@ -46,6 +46,7 @@ import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { LunarProgressBar } from "@/components/LunarProgressBar";
 import { TodayWidget } from "@/components/TodayWidget";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
+import { BackupRestoreModal } from "@/components/BackupRestoreModal";
 import { OseDetailModal } from "@/components/OseDetailModal";
 import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
 import MoonWaterModal from "@/components/MoonWaterModal";
@@ -80,6 +81,7 @@ export default function HomeScreen() {
   const oseDay = useMemo(() => getOseDay(today), [today]);
 
   const [notifOpen, setNotifOpen] = useState(false);
+  const [backupOpen, setBackupOpen] = useState(false);
   const [oseModalGroup, setOseModalGroup] = useState<import("@/constants/spiritualData").OseGroup | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [intentionModalOpen, setIntentionModalOpen] = useState(false);
@@ -403,6 +405,13 @@ export default function HomeScreen() {
             <Feather name="user" size={20} color={colors.mutedForeground} />
           </Pressable>
           <Pressable
+            onPress={() => { Haptics.selectionAsync(); setBackupOpen(true); }}
+            style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+            hitSlop={8}
+          >
+            <Feather name="database" size={20} color={colors.mutedForeground} />
+          </Pressable>
+          <Pressable
             onPress={() => { Haptics.selectionAsync(); setNotifOpen(true); }}
             style={[styles.iconBtn, { backgroundColor: colors.card, borderColor: "#D4A84366" }]}
             hitSlop={8}
@@ -413,6 +422,7 @@ export default function HomeScreen() {
       </View>
 
       <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
+      <BackupRestoreModal visible={backupOpen} onClose={() => setBackupOpen(false)} />
 
       {/* Today Widget — moon · ose · next event */}
       <TodayWidget today={today} />
