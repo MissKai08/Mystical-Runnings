@@ -303,7 +303,7 @@ export default function HomeScreen() {
             </Text>
           ) : (
             <Text style={[styles.appName, { color: colors.foreground, fontSize: fs(26) }]}>
-              {profile ? `Welcome, ${profile.firstName}` : "Mystical Runnings"}
+              {profile ? `Welcome, ${profile.firstName}` : "Welcome"}
             </Text>
           )}
         </View>

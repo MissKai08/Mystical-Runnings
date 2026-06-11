@@ -504,7 +504,7 @@ export default function CalendarScreen() {
             )}
             {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} />}
             {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} />}
-            {calView === "almanac" && <AlmanacView />}
+            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} />}
             {specialEntries.length > 0 && calView !== "almanac" && (
               <View style={styles.specialSection}>
                 <Text style={[styles.specialHeading, { color: colors.mutedForeground }]}>SPECIAL DAYS</Text>

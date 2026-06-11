@@ -275,21 +275,6 @@ function buildYearEntries(year: number, today: Date): AlmanacEntry[] {
     });
   }
 
-  // Ifa Festivals
-  for (const f of IFA_FESTIVALS) {
-    if (f.date.getFullYear() !== year) continue;
-    entries.push({
-      date: f.date,
-      label: f.name,
-      category: "IFA FESTIVAL",
-      color: EVENT_COLORS["ifa-festival"],
-      emoji: "✦",
-      type: "ifa-festival",
-      description: f.description,
-      isToday: isSameDay(f.date, today),
-    });
-  }
-
   // Astronomical Events
   for (const e of ASTRO_EVENTS) {
     if (e.date.getFullYear() !== year) continue;
@@ -361,10 +346,16 @@ function buildEventDetail(entry: AlmanacEntry): EventDetail {
   };
 }
 
-export function AlmanacView() {
+interface AlmanacViewProps {
+  targetYear?: number;
+  targetMonth?: number;
+}
+
+export function AlmanacView({ targetYear, targetMonth }: AlmanacViewProps = {}) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
-  const year = today.getFullYear();
+  const year = targetYear ?? today.getFullYear();
+  const scrollMonth = targetMonth ?? today.getMonth();
 
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
 
@@ -372,16 +363,22 @@ export function AlmanacView() {
   const months = useMemo(() => groupByMonth(allEntries), [allEntries]);
 
   const scrollRef = useRef<ScrollView>(null);
-  const todayOffset = useRef<number | null>(null);
+  const monthOffsets = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    monthOffsets.current.clear();
+  }, [year]);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      if (todayOffset.current !== null) {
-        scrollRef.current?.scrollTo({ y: Math.max(0, todayOffset.current - 48), animated: false });
+      const key = `${year}-${scrollMonth}`;
+      const offset = monthOffsets.current.get(key);
+      if (offset !== undefined) {
+        scrollRef.current?.scrollTo({ y: Math.max(0, offset - 48), animated: true });
       }
-    }, 120);
+    }, 150);
     return () => clearTimeout(t);
-  }, []);
+  }, [year, scrollMonth]);
 
   return (
     <>
@@ -402,9 +399,7 @@ export function AlmanacView() {
             <View
               key={`${group.year}-${group.month}`}
               onLayout={(e) => {
-                if (isCurrentMonth && todayOffset.current === null) {
-                  todayOffset.current = e.nativeEvent.layout.y;
-                }
+                monthOffsets.current.set(`${group.year}-${group.month}`, e.nativeEvent.layout.y);
               }}
             >
               {/* Month section header */}
