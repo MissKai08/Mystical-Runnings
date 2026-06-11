@@ -47,6 +47,8 @@ import { LunarProgressBar } from "@/components/LunarProgressBar";
 import { TodayWidget } from "@/components/TodayWidget";
 import { NotificationSettingsModal } from "@/components/NotificationSettingsModal";
 import { BackupRestoreModal } from "@/components/BackupRestoreModal";
+import { SunMoonBar } from "@/components/SunMoonBar";
+import { useSunMoon } from "@/hooks/useSunMoon";
 import { OseDetailModal } from "@/components/OseDetailModal";
 import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
 import MoonWaterModal from "@/components/MoonWaterModal";
@@ -79,6 +81,8 @@ export default function HomeScreen() {
   const darkMoon = useMemo(() => getDarkMoonForDate(today), [today]);
   const eclipse = useMemo(() => getEclipseForDate(today), [today]);
   const oseDay = useMemo(() => getOseDay(today), [today]);
+
+  const { times: sunMoonTimes, status: sunMoonStatus, retry: sunMoonRetry } = useSunMoon(today);
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [backupOpen, setBackupOpen] = useState(false);
@@ -420,6 +424,8 @@ export default function HomeScreen() {
           </Pressable>
         </View>
       </View>
+
+      <SunMoonBar times={sunMoonTimes} status={sunMoonStatus} onRetry={sunMoonRetry} />
 
       <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
       <BackupRestoreModal visible={backupOpen} onClose={() => setBackupOpen(false)} />

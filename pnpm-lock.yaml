@@ -221,6 +221,9 @@ importers:
       '@expo-google-fonts/zen-dots':
         specifier: ^0.4.2
         version: 0.4.2
+      '@types/suncalc':
+        specifier: ^1.9.2
+        version: 1.9.2
       expo-document-picker:
         specifier: ^14.0.8
         version: 14.0.8(expo@54.0.34)
@@ -236,6 +239,9 @@ importers:
       react-native-webview:
         specifier: ^13.15.0
         version: 13.15.0(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
+      suncalc:
+        specifier: ^1.9.0
+        version: 1.9.0
     devDependencies:
       '@babel/core':
         specifier: ^7.25.2
@@ -2470,6 +2476,9 @@ packages:
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
+
+  '@types/suncalc@1.9.2':
+    resolution: {integrity: sha512-ATAGBHHfA1TlE2tjfidLyTcysjoT2JHHEAmWRULh73SU9UTn++j5fqHEW16X6Y/2Li87jEQXzgu4R/OOdlDqzw==}
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
@@ -5349,6 +5358,9 @@ packages:
     resolution: {integrity: sha512-DhuTmvZWux4H1UOnWMB3sk0sbaCVOoQZjv8u1rDoTV0HTdGem9hkAZtl4JZy8P2z4Bg0nT+YMeOFyVr4zcG5Tw==}
     engines: {node: '>=16 || 14 >=14.17'}
     hasBin: true
+
+  suncalc@1.9.0:
+    resolution: {integrity: sha512-vMJ8Byp1uIPoj+wb9c1AdK4jpkSKVAywgHX0lqY7zt6+EWRRC3Z+0Ucfjy/0yxTVO1hwwchZe4uoFNqrIC24+A==}
 
   supports-color@5.5.0:
     resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
@@ -8466,6 +8478,8 @@ snapshots:
       '@types/node': 25.3.5
 
   '@types/stack-utils@2.0.3': {}
+
+  '@types/suncalc@1.9.2': {}
 
   '@types/unist@3.0.3': {}
 
@@ -11669,6 +11683,8 @@ snapshots:
       pirates: 4.0.7
       tinyglobby: 0.2.15
       ts-interface-checker: 0.1.13
+
+  suncalc@1.9.0: {}
 
   supports-color@5.5.0:
     dependencies:

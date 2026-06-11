@@ -58,10 +58,12 @@
   "dependencies": {
     "@expo-google-fonts/genos": "^0.4.1",
     "@expo-google-fonts/zen-dots": "^0.4.2",
+    "@types/suncalc": "^1.9.2",
     "expo-document-picker": "^14.0.8",
     "expo-file-system": "^19.0.23",
     "expo-notifications": "~0.32.17",
     "expo-speech": "~13.1.7",
-    "react-native-webview": "^13.15.0"
+    "react-native-webview": "^13.15.0",
+    "suncalc": "^1.9.0"
   }
 }
