@@ -1,7 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Share, Alert } from "react-native";
+import { File, Paths } from "expo-file-system";
+import * as DocumentPicker from "expo-document-picker";
+import { Share, Alert, Platform } from "react-native";
 
 const BACKUP_VERSION = 1;
+const BACKUP_FILENAME = "mystical-runnings-backup.json";
 
 const BACKUP_KEYS = [
   "@mystical_journal_entries",
@@ -26,7 +29,7 @@ export interface BackupData {
   data: Record<string, string | null>;
 }
 
-export async function buildBackupData(): Promise<BackupData> {
+async function buildBackupData(): Promise<BackupData> {
   const pairs = await AsyncStorage.multiGet(BACKUP_KEYS);
   const data: Record<string, string | null> = {};
   for (const [key, value] of pairs) {
@@ -40,16 +43,55 @@ export async function buildBackupData(): Promise<BackupData> {
   };
 }
 
+function getBackupFile(): File {
+  return new File(Paths.document, BACKUP_FILENAME);
+}
+
+export async function getLastBackupDate(): Promise<Date | null> {
+  try {
+    const file = getBackupFile();
+    if (!file.exists) return null;
+    const json = await file.text();
+    const parsed = JSON.parse(json) as BackupData;
+    return new Date(parsed.exportedAt);
+  } catch {
+    return null;
+  }
+}
+
 export async function exportBackup(): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
-  await Share.share({
-    message: json,
-    title: "mystical-runnings-backup.json",
-  });
+
+  // Save to Documents directory (auto-syncs with iCloud/Google Drive)
+  const file = getBackupFile();
+  file.write(json);
+
+  // Open native share sheet so user can also send it anywhere
+  if (Platform.OS === "ios") {
+    await Share.share({ url: file.uri, title: BACKUP_FILENAME });
+  } else {
+    await Share.share({ message: json, title: BACKUP_FILENAME });
+  }
 }
 
-export async function importBackupFromJson(json: string): Promise<void> {
+export async function importBackupFromFile(): Promise<void> {
+  const result = await DocumentPicker.getDocumentAsync({
+    type: ["application/json", "text/plain", "*/*"],
+    copyToCacheDirectory: true,
+  });
+
+  if (result.canceled || !result.assets || result.assets.length === 0) return;
+
+  const asset = result.assets[0];
+  // Read the picked file using the new File API
+  const pickedFile = new File(asset.uri);
+  const json = await pickedFile.text();
+
+  await restoreFromJson(json);
+}
+
+async function restoreFromJson(json: string): Promise<void> {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -64,7 +106,7 @@ export async function importBackupFromJson(json: string): Promise<void> {
     !("data" in parsed) ||
     (parsed as BackupData).appName !== "Mystical Runnings"
   ) {
-    throw new Error("Invalid backup file — not a Mystical Runnings backup.");
+    throw new Error("Invalid file — not a Mystical Runnings backup.");
   }
 
   const backup = parsed as BackupData;

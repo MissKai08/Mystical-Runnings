@@ -58,6 +58,8 @@
   "dependencies": {
     "@expo-google-fonts/genos": "^0.4.1",
     "@expo-google-fonts/zen-dots": "^0.4.2",
+    "expo-document-picker": "^56.0.4",
+    "expo-file-system": "^56.0.7",
     "expo-notifications": "~0.32.17",
     "expo-speech": "~13.1.7",
     "react-native-webview": "^13.15.0"
