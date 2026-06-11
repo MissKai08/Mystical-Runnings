@@ -14,6 +14,7 @@ interface Props {
   height: number;
   strokeColor?: string;
   strokeWidth?: number;
+  initialPaths?: string[];
 }
 
 function pointsToPath(points: [number, number][]): string {
@@ -27,14 +28,14 @@ function pointsToPath(points: [number, number][]): string {
 }
 
 export const DrawingCanvas = forwardRef<DrawingCanvasRef, Props>(function DrawingCanvas(
-  { width, height, strokeColor = "#D4A843", strokeWidth = 2.5 },
+  { width, height, strokeColor = "#D4A843", strokeWidth = 2.5, initialPaths = [] },
   ref
 ) {
   const colors = useColors();
-  const [completedPaths, setCompletedPaths] = useState<string[]>([]);
+  const [completedPaths, setCompletedPaths] = useState<string[]>(initialPaths);
   const [currentPoints, setCurrentPoints] = useState<[number, number][]>([]);
   const currentPointsRef = useRef<[number, number][]>([]);
-  const completedPathsRef = useRef<string[]>([]);
+  const completedPathsRef = useRef<string[]>(initialPaths);
 
   useImperativeHandle(ref, () => ({
     getPaths: () => completedPathsRef.current,

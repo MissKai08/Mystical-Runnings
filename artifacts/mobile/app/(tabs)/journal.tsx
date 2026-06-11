@@ -608,6 +608,8 @@ export default function JournalScreen() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  const [editInitialPaths, setEditInitialPaths] = useState<string[]>([]);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [inputMode, setInputMode] = useState<InputMode>("text");
   const [textValue, setTextValue] = useState("");
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
@@ -750,13 +752,13 @@ export default function JournalScreen() {
   const openComposer = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setEditingEntryId(null);
+    setEditInitialPaths([]);
     setComposerDate(null);
     setSelectedMoods([]);
     setSelectedTags([]);
     setTextValue("");
     setInputMode("text");
     setShowDatePicker(false);
-    drawingRef.current?.clear();
     // Seed prompt to a deterministic daily index so it varies day-to-day
     const now = new Date();
     setPickerYear(now.getFullYear());
@@ -768,13 +770,13 @@ export default function JournalScreen() {
   const openComposerForDate = (date: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setEditingEntryId(null);
+    setEditInitialPaths([]);
     setComposerDate(date);
     setSelectedMoods([]);
     setSelectedTags([]);
     setTextValue("");
     setInputMode("text");
     setShowDatePicker(false);
-    drawingRef.current?.clear();
     const [y, m, d] = date.split("-").map(Number);
     const parsedDate = new Date(y, m - 1, d);
     setPickerYear(parsedDate.getFullYear());
@@ -837,13 +839,13 @@ export default function JournalScreen() {
   const openComposerForEdit = useCallback((entry: JournalEntry) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setEditingEntryId(entry.id);
+    setEditInitialPaths(entry.inputType === "drawing" ? (entry.drawingData?.paths ?? []) : []);
     setComposerDate(entry.date);
     setInputMode(entry.inputType);
     setTextValue(entry.textContent ?? "");
     setSelectedMoods(entry.mood ?? []);
     setSelectedTags(entry.tags ?? []);
     setShowDatePicker(false);
-    drawingRef.current?.clear();
     const [y, m, d] = entry.date.split("-").map(Number);
     const parsedDate = new Date(y, m - 1, d);
     setPickerYear(parsedDate.getFullYear());
@@ -1069,11 +1071,11 @@ export default function JournalScreen() {
   const openComposerWithSeed = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setComposerDate(null);
+    setEditInitialPaths([]);
     setSelectedMoods([]);
     setSelectedTags([]);
     setTextValue(`"${todayWisdom.text}"\n— ${todayWisdom.source}\n\n`);
     setInputMode("text");
-    drawingRef.current?.clear();
     const now = new Date();
     setPromptIdx((now.getDate() + now.getMonth() * 31) % 3);
     setComposerOpen(true);
@@ -1581,6 +1583,7 @@ export default function JournalScreen() {
                     key={entry.id}
                     entry={entry}
                     colors={colors}
+                    onPress={() => setSelectedEntry(entry)}
                     onEdit={() => openComposerForEdit(entry)}
                     onDelete={() => handleDelete(entry.id)}
                   />
@@ -1600,6 +1603,30 @@ export default function JournalScreen() {
           <Feather name="edit-3" size={22} color="#080714" />
         </Pressable>
       )}
+
+      {/* Entry Detail Modal */}
+      <Modal
+        visible={selectedEntry !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setSelectedEntry(null)}
+      >
+        {selectedEntry && (
+          <EntryDetailSheet
+            entry={selectedEntry}
+            colors={colors}
+            onClose={() => setSelectedEntry(null)}
+            onEdit={() => {
+              setSelectedEntry(null);
+              openComposerForEdit(selectedEntry);
+            }}
+            onDelete={() => {
+              setSelectedEntry(null);
+              handleDelete(selectedEntry.id);
+            }}
+          />
+        )}
+      </Modal>
 
       {/* Sacred Intentions Modal */}
       <IntentionsModal
@@ -1957,6 +1984,7 @@ export default function JournalScreen() {
                   height={canvasSize.height}
                   strokeColor="#D4A843"
                   strokeWidth={2.5}
+                  initialPaths={editInitialPaths}
                 />
               )}
             </View>
@@ -1968,7 +1996,7 @@ export default function JournalScreen() {
   );
 }
 
-function EntryCard({ entry, colors, onEdit, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onEdit: () => void; onDelete: () => void }) {
+function EntryCard({ entry, colors, onPress, onEdit, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onPress: () => void; onEdit: () => void; onDelete: () => void }) {
   const { fs } = useFontScale();
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
@@ -1981,7 +2009,7 @@ function EntryCard({ entry, colors, onEdit, onDelete }: { entry: JournalEntry; c
   const moonEmoji = moonPhaseEmoji(entry.moonPhase);
 
   return (
-    <View style={[styles.entryCard, { backgroundColor: colors.card, borderColor: entry.isLunarLetter ? "#D4A84366" : colors.border }]}>
+    <Pressable onPress={onPress} style={[styles.entryCard, { backgroundColor: colors.card, borderColor: entry.isLunarLetter ? "#D4A84366" : colors.border }]}>
       {/* Lunar Letter banner */}
       {entry.isLunarLetter && (
         <View style={[styles.lunarLetterCardBanner, { backgroundColor: "#D4A84318", borderBottomColor: "#D4A84333" }]}>
@@ -2111,9 +2139,377 @@ function EntryCard({ entry, colors, onEdit, onDelete }: { entry: JournalEntry; c
           </Text>
         </View>
       )}
+      <View style={detailStyles.tapHint}>
+        <Feather name="chevron-right" size={12} color="#D4A84355" />
+      </View>
+    </Pressable>
+  );
+}
+
+function EntryDetailSheet({
+  entry, colors, onClose, onEdit, onDelete,
+}: {
+  entry: JournalEntry;
+  colors: ReturnType<typeof useColors>;
+  onClose: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { fs } = useFontScale();
+  const insets = useSafeAreaInsets();
+  const topPad = Platform.OS === "web" ? 67 : insets.top;
+  const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const moonEmoji = moonPhaseEmoji(entry.moonPhase);
+  const entryOdu = useMemo(() => {
+    const [y, m, d] = entry.date.split("-").map(Number);
+    return getDailyOdu(new Date(y, m - 1, d));
+  }, [entry.date]);
+
+  return (
+    <View style={[detailStyles.sheet, { backgroundColor: colors.background }]}>
+      {/* Sheet header */}
+      <View style={[detailStyles.sheetHeader, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
+        <View style={detailStyles.sheetHeaderLeft}>
+          <View style={[detailStyles.typeBadge, {
+            backgroundColor: entry.isLunarLetter ? "#D4A84322" : entry.inputType === "drawing" ? "#7C3AED22" : "#D4A84322",
+            borderColor: entry.isLunarLetter ? "#D4A84355" : entry.inputType === "drawing" ? "#7C3AED55" : "#D4A84355",
+          }]}>
+            <Feather
+              name={entry.isLunarLetter ? "mail" : entry.inputType === "drawing" ? "edit-2" : "type"}
+              size={11}
+              color={entry.isLunarLetter ? "#D4A843" : entry.inputType === "drawing" ? "#A78BFA" : "#D4A843"}
+            />
+            <Text style={[detailStyles.typeBadgeText, { color: entry.isLunarLetter ? "#D4A843" : entry.inputType === "drawing" ? "#A78BFA" : "#D4A843" }]}>
+              {entry.isLunarLetter ? "Lunar Letter" : entry.inputType === "drawing" ? "Handwritten" : "Text Entry"}
+            </Text>
+          </View>
+          <Text style={[detailStyles.sheetTime, { color: colors.mutedForeground }]}>{time}</Text>
+        </View>
+        <Pressable onPress={onClose} hitSlop={12} style={detailStyles.closeBtn}>
+          <Feather name="x" size={20} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: bottomPad + 120 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Date */}
+        <View style={[detailStyles.dateRow, { borderBottomColor: colors.border }]}>
+          <Text style={[detailStyles.dateText, { color: colors.foreground }]}>
+            {formatEntryDate(entry.date)}
+          </Text>
+        </View>
+
+        {/* Lunar history row */}
+        <View style={[detailStyles.lunarRow, { backgroundColor: "#0D0B1E", borderColor: "#1E1A3A" }]}>
+          <View style={detailStyles.lunarItem}>
+            <Text style={[detailStyles.lunarLabel, { color: colors.mutedForeground }]}>MOON</Text>
+            <View style={detailStyles.lunarValue}>
+              <Text style={detailStyles.lunarEmoji}>{moonEmoji}</Text>
+              <Text style={[detailStyles.lunarText, { color: "#A78BFA" }]} numberOfLines={1}>{entry.moonPhase}</Text>
+            </View>
+          </View>
+          <View style={[detailStyles.lunarDivider, { backgroundColor: "#1E1A3A" }]} />
+          <View style={detailStyles.lunarItem}>
+            <Text style={[detailStyles.lunarLabel, { color: colors.mutedForeground }]}>ODU</Text>
+            <View style={detailStyles.lunarValue}>
+              <Text style={detailStyles.lunarEmoji}>✦</Text>
+              <Text style={[detailStyles.lunarText, { color: "#D4A843" }]} numberOfLines={1}>{entryOdu.name}</Text>
+            </View>
+          </View>
+          <View style={[detailStyles.lunarDivider, { backgroundColor: "#1E1A3A" }]} />
+          <View style={detailStyles.lunarItem}>
+            <Text style={[detailStyles.lunarLabel, { color: colors.mutedForeground }]}>ORISHA</Text>
+            <Text style={[detailStyles.lunarText, { color: colors.mutedForeground }]} numberOfLines={1}>{entryOdu.orisha}</Text>
+          </View>
+        </View>
+
+        {/* Spiritual context chips */}
+        {entry.spiritualContext.length > 0 && (
+          <View style={[detailStyles.chipsSection, { borderBottomColor: colors.border }]}>
+            <View style={detailStyles.chips}>
+              {entry.spiritualContext.map((c, i) => (
+                <View key={i} style={[detailStyles.chip, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+                  <Text style={[detailStyles.chipText, { color: colors.mutedForeground }]}>{c}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Mood badges */}
+        {(entry.mood ?? []).length > 0 && (
+          <View style={[detailStyles.badgesSection, { borderBottomColor: colors.border }]}>
+            <Text style={[detailStyles.sectionLabel, { color: colors.mutedForeground }]}>MOOD</Text>
+            <View style={detailStyles.chips}>
+              {(entry.mood ?? []).map((id) => {
+                const m = MOODS.find((x) => x.id === id);
+                if (!m) return null;
+                return (
+                  <View key={id} style={[detailStyles.moodBadge, { borderColor: m.color + "66", backgroundColor: m.color + "18" }]}>
+                    <Text style={detailStyles.moodEmoji}>{m.emoji}</Text>
+                    <Text style={[detailStyles.moodLabel, { color: m.color }]}>{m.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Tag badges */}
+        {(entry.tags ?? []).length > 0 && (
+          <View style={[detailStyles.badgesSection, { borderBottomColor: colors.border }]}>
+            <Text style={[detailStyles.sectionLabel, { color: colors.mutedForeground }]}>TAGS</Text>
+            <View style={detailStyles.chips}>
+              {(entry.tags ?? []).map((id) => {
+                const t = ENTRY_TAGS.find((x) => x.id === id);
+                if (!t) return null;
+                return (
+                  <View key={id} style={[detailStyles.tagBadge, { borderColor: t.color + "66", backgroundColor: t.color + "18" }]}>
+                    <Text style={[detailStyles.tagText, { color: t.color }]}># {t.label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Full content */}
+        <View style={detailStyles.contentSection}>
+          {entry.inputType === "text" && entry.textContent ? (
+            <Text style={[detailStyles.fullText, { color: colors.foreground, fontSize: fs(15), lineHeight: fs(15) * 1.65 }]}>
+              {entry.textContent}
+            </Text>
+          ) : entry.inputType === "drawing" && entry.drawingData ? (
+            <View style={detailStyles.fullDrawing}>
+              <DrawingThumbnail data={entry.drawingData} size={280} />
+              <Text style={[detailStyles.drawingMeta, { color: colors.mutedForeground }]}>
+                {entry.drawingData.paths.length} stroke{entry.drawingData.paths.length === 1 ? "" : "s"}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </ScrollView>
+
+      {/* Action buttons */}
+      <View style={[detailStyles.actions, { borderTopColor: colors.border, paddingBottom: bottomPad + 16 }]}>
+        <Pressable
+          onPress={onEdit}
+          style={[detailStyles.editBtn, { backgroundColor: "#D4A843" }]}
+        >
+          <Feather name="edit-2" size={16} color="#080714" />
+          <Text style={detailStyles.editBtnText}>Edit Entry</Text>
+        </Pressable>
+        <Pressable
+          onPress={onDelete}
+          style={[detailStyles.deleteBtn, { borderColor: "#EF444466" }]}
+        >
+          <Feather name="trash-2" size={16} color="#EF4444" />
+          <Text style={[detailStyles.deleteBtnText, { color: "#EF4444" }]}>Delete</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
+
+const detailStyles = StyleSheet.create({
+  tapHint: {
+    position: "absolute",
+    right: 12,
+    bottom: 12,
+  },
+  sheet: {
+    flex: 1,
+  },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+  },
+  sheetHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  typeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  typeBadgeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+  sheetTime: {
+    fontSize: 12,
+  },
+  closeBtn: {
+    padding: 4,
+  },
+  dateRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  dateText: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+  lunarRow: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 12,
+  },
+  lunarItem: {
+    flex: 1,
+    gap: 4,
+  },
+  lunarLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  lunarValue: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  lunarEmoji: {
+    fontSize: 12,
+  },
+  lunarText: {
+    fontSize: 11,
+    fontWeight: "500",
+    flex: 1,
+  },
+  lunarDivider: {
+    width: 1,
+    marginHorizontal: 8,
+  },
+  chipsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  chips: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  chip: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  badgesSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 8,
+  },
+  sectionLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+  },
+  moodBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  moodEmoji: {
+    fontSize: 14,
+  },
+  moodLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  tagBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  contentSection: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  fullText: {
+    fontStyle: "italic",
+  },
+  fullDrawing: {
+    alignItems: "center",
+    gap: 10,
+  },
+  drawingMeta: {
+    fontSize: 12,
+    fontStyle: "italic",
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+  },
+  editBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  editBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#080714",
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  deleteBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+});
 
 function moonPhaseEmoji(phase: string): string {
   const p = phase.toLowerCase();
