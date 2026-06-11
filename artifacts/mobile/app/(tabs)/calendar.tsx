@@ -167,6 +167,7 @@ export default function CalendarScreen() {
   const [enabledRegions, setEnabledRegions] = useState<Set<HolidayRegion>>(
     new Set(ALL_REGIONS)
   );
+  const [ifaEnabled, setIfaEnabled] = useState(true);
 
   const toggleRegion = (region: HolidayRegion) => {
     Haptics.selectionAsync();
@@ -176,6 +177,11 @@ export default function CalendarScreen() {
       else next.add(region);
       return next;
     });
+  };
+
+  const toggleIfa = () => {
+    Haptics.selectionAsync();
+    setIfaEnabled((prev) => !prev);
   };
 
   const year = displayDate.getFullYear();
@@ -428,10 +434,27 @@ export default function CalendarScreen() {
           {/* View Switcher */}
           <ViewSwitcher mode={calView} onModeChange={setCalView} />
 
-          {/* Holiday Region Filter */}
+          {/* Category + Holiday Region Filter — sorted alphabetically */}
           {calView !== "almanac" && (
             <View style={styles.regionFilter}>
-              {ALL_REGIONS.map((region) => {
+              {/* Ifa (first alphabetically) */}
+              <Pressable
+                onPress={toggleIfa}
+                style={[
+                  styles.regionChip,
+                  {
+                    backgroundColor: ifaEnabled ? EVENT_COLORS["ifa-prayer"] + "22" : "transparent",
+                    borderColor: ifaEnabled ? EVENT_COLORS["ifa-prayer"] : colors.border,
+                  },
+                ]}
+              >
+                <Text style={styles.regionChipFlag}>🔮</Text>
+                <Text style={[styles.regionChipLabel, { color: ifaEnabled ? EVENT_COLORS["ifa-prayer"] : colors.mutedForeground }]}>
+                  Ifa
+                </Text>
+              </Pressable>
+              {/* Holiday regions — India, Jewish, Mexico, US */}
+              {(["india", "jewish", "mexico", "us"] as HolidayRegion[]).map((region) => {
                 const active = enabledRegions.has(region);
                 return (
                   <Pressable
@@ -470,6 +493,7 @@ export default function CalendarScreen() {
                   journaledDates={journaledDates}
                   journalMoonColors={journalMoonColors}
                   specialEntries={specialEntries}
+                  ifaEnabled={ifaEnabled}
                 />
               </View>
             )}
@@ -480,11 +504,12 @@ export default function CalendarScreen() {
                 onSelectDate={(d) => { setSelectedDate(d); setDisplayDate(d); }}
                 enabledRegions={enabledRegions}
                 specialEntries={specialEntries}
+                ifaEnabled={ifaEnabled}
               />
             )}
-            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} specialEntries={specialEntries} />}
-            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} specialEntries={specialEntries} />}
-            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} specialEntries={specialEntries} />}
+            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} specialEntries={specialEntries} ifaEnabled={ifaEnabled} />}
+            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} specialEntries={specialEntries} ifaEnabled={ifaEnabled} />}
+            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} specialEntries={specialEntries} ifaEnabled={ifaEnabled} />}
           </View>
 
           <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => setSpecialModalOpen(false)}>

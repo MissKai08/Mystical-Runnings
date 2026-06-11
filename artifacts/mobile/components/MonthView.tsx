@@ -35,11 +35,12 @@ interface Props {
   journaledDates?: Set<string>;
   journalMoonColors?: Record<string, string>;
   specialEntries?: SpecialCalendarEntry[];
+  ifaEnabled?: boolean;
 }
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay, journaledDates, journalMoonColors, specialEntries = [] }: Props) {
+export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay, journaledDates, journalMoonColors, specialEntries = [], ifaEnabled = true }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
@@ -108,8 +109,8 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
                 <View style={styles.dotsRow}>
                   {moon.isMajorPhase && <EventDot type={moon.eventType} size={4} />}
                   {retrograde && <EventDot type="retrograde" size={4} />}
-                  {prayerDay && <EventDot type="ifa-prayer" size={4} />}
-                  {festival && <EventDot type="ifa-festival" size={4} />}
+                  {prayerDay && ifaEnabled && <EventDot type="ifa-prayer" size={4} />}
+                  {festival && ifaEnabled && <EventDot type="ifa-festival" size={4} />}
                   {holidays.slice(0, 2).map((h, hi) => (
                     <View
                       key={hi}

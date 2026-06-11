@@ -29,6 +29,7 @@ interface Props {
   startDate: Date;
   enabledRegions: Set<HolidayRegion>;
   specialEntries?: SpecialCalendarEntry[];
+  ifaEnabled?: boolean;
 }
 
 const CATEGORY_LABELS: Partial<Record<EventType, string>> = {
@@ -112,7 +113,7 @@ function buildHolidayDetail(h: ReligiousHoliday): EventDetail {
 
 const LOAD_CHUNK = 30;
 
-export function ScheduleView({ startDate, enabledRegions, specialEntries = [] }: Props) {
+export function ScheduleView({ startDate, enabledRegions, specialEntries = [], ifaEnabled = true }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
@@ -136,7 +137,8 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [] }:
           e.type !== "waxing-crescent" &&
           e.type !== "waning-crescent" &&
           e.type !== "waxing-gibbous" &&
-          e.type !== "waning-gibbous"
+          e.type !== "waning-gibbous" &&
+          (ifaEnabled || (e.type !== "ifa-festival" && e.type !== "ifa-prayer"))
       );
       const holidays = getHolidaysForDate(date).filter((h) => enabledRegions.has(h.region));
       const daySpecialEntries = getSpecialEntriesForDate(specialEntries, date);

@@ -31,9 +31,10 @@ interface Props {
   date: Date;
   birthdayName?: string;
   specialEntries?: SpecialCalendarEntry[];
+  ifaEnabled?: boolean;
 }
 
-export function DayView({ date, birthdayName, specialEntries = [] }: Props) {
+export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = true }: Props) {
   const colors = useColors();
   const moon = getMoonPhaseData(date);
   const retrograde = getMercuryRetrogradeInfo(date);
@@ -338,7 +339,7 @@ export function DayView({ date, birthdayName, specialEntries = [] }: Props) {
       )}
 
       {/* Ifa Prayer Day */}
-      {prayerDay && (
+      {prayerDay && ifaEnabled && (
         <Pressable
           onPress={() => setSelectedEvent({
             title: "Ojo Orunmila",
@@ -374,7 +375,7 @@ export function DayView({ date, birthdayName, specialEntries = [] }: Props) {
       )}
 
       {/* Ifa Festival */}
-      {festival && (
+      {festival && ifaEnabled && (
         <Pressable
           onPress={() => setSelectedEvent({
             title: festival.name,

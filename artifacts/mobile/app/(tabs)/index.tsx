@@ -278,7 +278,7 @@ export default function HomeScreen() {
   const dailyProverb = useMemo(() => getDailyProverb(today), [today]);
 
   const upcomingDays = useMemo(() => {
-    const result: { date: Date; events: { label: string; dotColor: string }[] }[] = [];
+    const result: { date: Date; events: { label: string; dotColor: string; detail: EventDetail }[] }[] = [];
     for (let i = 1; i <= 21; i++) {
       const d = addDays(today, i);
       const m = getMoonPhaseData(d);
@@ -290,21 +290,51 @@ export default function HomeScreen() {
       const dm = getDarkMoonForDate(d);
       const ec = getEclipseForDate(d);
       const holidays = getHolidaysForDate(d);
-      const events: { label: string; dotColor: string }[] = [];
+      const events: { label: string; dotColor: string; detail: EventDetail }[] = [];
 
-      if (nm) events.push({ label: nm.name, dotColor: EVENT_COLORS["named-moon"] });
+      if (nm) events.push({
+        label: nm.name, dotColor: EVENT_COLORS["named-moon"],
+        detail: { title: nm.name, category: "FULL MOON", color: EVENT_COLORS["named-moon"], description: nm.description, guidance: "Full moons illuminate what was hidden and call for release, gratitude, and completion.", rows: nm.sign ? [{ label: "Sign", value: nm.sign }] : [] },
+      });
       else if (dm) {
-        events.push({ label: "Dark Moon" + (dm.sign ? ` — ${dm.sign}` : ""), dotColor: EVENT_COLORS["dark-moon"] });
-        if (m.isMajorPhase && m.eventType === "new-moon") events.push({ label: "New Moon", dotColor: EVENT_COLORS["new-moon"] });
-      } else if (m.isMajorPhase) events.push({ label: m.name, dotColor: EVENT_COLORS["full-moon"] });
+        events.push({
+          label: "Dark Moon" + (dm.sign ? ` — ${dm.sign}` : ""), dotColor: EVENT_COLORS["dark-moon"],
+          detail: { title: "Dark Moon", category: "DARK MOON", color: EVENT_COLORS["dark-moon"], description: dm.sign ? `The Dark Moon rests in ${dm.sign} — a liminal threshold between endings and new beginnings.` : "A liminal threshold between endings and new beginnings.", guidance: "Rest, retreat, and turn inward. Release what no longer serves.", rows: dm.sign ? [{ label: "Sign", value: dm.sign }] : [] },
+        });
+        if (m.isMajorPhase && m.eventType === "new-moon") events.push({
+          label: "New Moon", dotColor: EVENT_COLORS["new-moon"],
+          detail: { title: "New Moon", category: "NEW MOON", color: EVENT_COLORS["new-moon"], description: "The New Moon opens a portal of new beginnings — set intentions for the cycle ahead.", guidance: "Plant seeds of intention. A time for fresh starts and powerful new beginnings." },
+        });
+      } else if (m.isMajorPhase) events.push({
+        label: m.name, dotColor: EVENT_COLORS[m.eventType ?? "full-moon"],
+        detail: { title: m.name, category: (m.eventType ?? "lunar").replace(/-/g, " ").toUpperCase(), color: EVENT_COLORS[m.eventType ?? "full-moon"], description: `${m.name} — ${m.illumination}% illuminated.`, guidance: "Align with the moon's sacred cycle." },
+      });
 
-      if (ec) events.push({ label: ec.name, dotColor: EVENT_COLORS[ec.type] });
-      if (s) events.push({ label: s.name.split(" —")[0], dotColor: EVENT_COLORS.sabbat });
-      if (r && !getMercuryRetrogradeInfo(addDays(today, i - 1))) events.push({ label: "Mercury Retrograde begins", dotColor: EVENT_COLORS.retrograde });
-      if (p) events.push({ label: "Ifa Prayer Day", dotColor: EVENT_COLORS["ifa-prayer"] });
-      if (f) events.push({ label: f.name, dotColor: EVENT_COLORS["ifa-festival"] });
+      if (ec) events.push({
+        label: ec.name, dotColor: EVENT_COLORS[ec.type],
+        detail: { title: ec.name, category: ec.type === "solar-eclipse" ? "SOLAR ECLIPSE" : "LUNAR ECLIPSE", color: EVENT_COLORS[ec.type], description: ec.description, guidance: ec.type === "solar-eclipse" ? "A powerful portal for bold new beginnings. Set intentions with full awareness." : "Deep illumination and release. Trust the profound process of transformation." },
+      });
+      if (s) events.push({
+        label: s.name.split(" —")[0], dotColor: EVENT_COLORS.sabbat,
+        detail: { title: s.name, category: "WHEEL OF THE YEAR", color: EVENT_COLORS.sabbat, description: s.description, guidance: "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy." },
+      });
+      if (r && !getMercuryRetrogradeInfo(addDays(today, i - 1))) events.push({
+        label: "Mercury Retrograde begins", dotColor: EVENT_COLORS.retrograde,
+        detail: { title: "Mercury Retrograde", category: "PLANETARY", color: EVENT_COLORS.retrograde, description: `${r.label}. Mercury governs communication, technology, contracts, and travel.`, guidance: "Pause major decisions and new commitments. Review, revise, and reconnect.", rows: [{ label: "Active Until", value: r.end.toLocaleDateString("en-US", { month: "long", day: "numeric" }) }] },
+      });
+      if (p) events.push({
+        label: "Ifa Prayer Day", dotColor: EVENT_COLORS["ifa-prayer"],
+        detail: { title: "Ojo Orunmila", category: "IFA PRAYER", color: EVENT_COLORS["ifa-prayer"], description: "A sacred prayer day honoring Orunmila (Ifa), the Orisa of wisdom, destiny, and divination.", guidance: "A powerful day for prayer, divination, and deep spiritual reflection.", rows: [{ label: "Sacred to", value: "Orunmila · Ifa" }, { label: "Offerings", value: "Kola nuts, palm oil, cool water" }] },
+      });
+      if (f) events.push({
+        label: f.name, dotColor: EVENT_COLORS["ifa-festival"],
+        detail: { title: f.name, category: "IFA FESTIVAL", color: EVENT_COLORS["ifa-festival"], description: f.description, guidance: "Participate in the energy of this festival through prayer, offerings, music, and communal celebration." },
+      });
       for (const h of holidays) {
-        events.push({ label: `${HOLIDAY_REGION_FLAG[h.region]} ${h.name}`, dotColor: HOLIDAY_REGION_COLOR[h.region] });
+        events.push({
+          label: `${HOLIDAY_REGION_FLAG[h.region]} ${h.name}`, dotColor: HOLIDAY_REGION_COLOR[h.region],
+          detail: { title: h.name, category: HOLIDAY_REGION_LABEL[h.region], color: HOLIDAY_REGION_COLOR[h.region], description: h.description },
+        });
       }
 
       if (events.length > 0) result.push({ date: d, events });
@@ -864,10 +894,14 @@ export default function HomeScreen() {
               </View>
               <View style={styles.upcomingEvents}>
                 {events.map((e, ei) => (
-                  <View key={ei} style={styles.upcomingEventRow}>
+                  <Pressable
+                    key={ei}
+                    onPress={() => { Haptics.selectionAsync(); setSelectedEvent(e.detail); }}
+                    style={({ pressed }) => [styles.upcomingEventRow, { opacity: pressed ? 0.72 : 1 }]}
+                  >
                     <View style={[styles.upcomingDot, { backgroundColor: e.dotColor }]} />
                     <Text style={[styles.upcomingEventText, { color: colors.foreground }]}>{e.label}</Text>
-                  </View>
+                  </Pressable>
                 ))}
               </View>
             </View>

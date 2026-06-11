@@ -36,6 +36,7 @@ interface Props {
   onSelectDate: (date: Date) => void;
   enabledRegions: Set<HolidayRegion>;
   specialEntries?: SpecialCalendarEntry[];
+  ifaEnabled?: boolean;
 }
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -47,7 +48,7 @@ const HOLIDAY_GUIDANCE: Record<HolidayRegion, string> = {
   jewish: "Jewish sacred days are portals of memory, renewal, and covenant — a cycle of return and recommitment.",
 };
 
-export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions, specialEntries = [] }: Props) {
+export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions, specialEntries = [], ifaEnabled = true }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
@@ -120,10 +121,10 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                   {retrograde && (
                     <View style={[styles.dot, { backgroundColor: EVENT_COLORS.retrograde }]} />
                   )}
-                  {prayerDay && (
+                  {prayerDay && ifaEnabled && (
                     <View style={[styles.dot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
                   )}
-                  {festival && (
+                  {festival && ifaEnabled && (
                     <View style={[styles.dot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
                   )}
                   {astro && (
@@ -156,7 +157,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
             const oseDay = getOseDay(day);
             const holidays = getHolidaysForDate(day).filter((h) => enabledRegions.has(h.region));
             const daySpecial = getSpecialEntriesForDate(specialEntries, day);
-            const hasEvents = moon.isMajorPhase || retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || holidays.length > 0 || daySpecial.length > 0;
+            const hasEvents = moon.isMajorPhase || retrograde || (prayerDay && ifaEnabled) || (festival && ifaEnabled) || sabbat || namedMoon || darkMoon || eclipse || holidays.length > 0 || daySpecial.length > 0;
 
             if (!hasEvents) {
               return (
@@ -296,7 +297,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
                   </Pressable>
                 )}
-                {prayerDay && (
+                {prayerDay && ifaEnabled && (
                   <Pressable
                     onPress={() => setSelectedEvent({
                       title: "Ojo Orunmila",
@@ -316,7 +317,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
                   </Pressable>
                 )}
-                {festival && (
+                {festival && ifaEnabled && (
                   <Pressable
                     onPress={() => setSelectedEvent({
                       title: festival.name,

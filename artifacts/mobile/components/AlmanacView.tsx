@@ -104,7 +104,7 @@ interface AlmanacEntry {
   isToday: boolean;
 }
 
-function buildYearEntries(year: number, today: Date, specialEntries: SpecialCalendarEntry[] = []): AlmanacEntry[] {
+function buildYearEntries(year: number, today: Date, specialEntries: SpecialCalendarEntry[] = [], ifaEnabled = true): AlmanacEntry[] {
   const entries: AlmanacEntry[] = [];
 
   const namedMoonKeys = new Set(
@@ -262,7 +262,7 @@ function buildYearEntries(year: number, today: Date, specialEntries: SpecialCale
   }
 
   // Ifa Festivals
-  for (const f of IFA_FESTIVALS) {
+  if (ifaEnabled) for (const f of IFA_FESTIVALS) {
     if (f.date.getFullYear() !== year) continue;
     entries.push({
       date: f.date,
@@ -368,9 +368,10 @@ interface AlmanacViewProps {
   targetYear?: number;
   targetMonth?: number;
   specialEntries?: SpecialCalendarEntry[];
+  ifaEnabled?: boolean;
 }
 
-export function AlmanacView({ targetYear, targetMonth, specialEntries = [] }: AlmanacViewProps = {}) {
+export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaEnabled = true }: AlmanacViewProps = {}) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const year = targetYear ?? today.getFullYear();
@@ -378,7 +379,7 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [] }: Al
 
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
 
-  const allEntries = useMemo(() => buildYearEntries(year, today, specialEntries), [year, specialEntries]);
+  const allEntries = useMemo(() => buildYearEntries(year, today, specialEntries, ifaEnabled), [year, specialEntries, ifaEnabled]);
   const months = useMemo(() => groupByMonth(allEntries), [allEntries]);
 
   const scrollRef = useRef<ScrollView>(null);
