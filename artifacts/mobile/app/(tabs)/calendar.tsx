@@ -157,6 +157,7 @@ export default function CalendarScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialEntries, setSpecialEntries] = useState<SpecialCalendarEntry[]>([]);
   const [specialModalOpen, setSpecialModalOpen] = useState(false);
+  const [specialEditingId, setSpecialEditingId] = useState<string | null>(null);
   const [specialTitle, setSpecialTitle] = useState("");
   const [specialNote, setSpecialNote] = useState("");
   const [specialDate, setSpecialDate] = useState(() => {
@@ -292,24 +293,74 @@ export default function CalendarScreen() {
     setSearchQuery("");
   };
 
+  const openSpecialForNew = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSpecialEditingId(null);
+    setSpecialTitle("");
+    setSpecialNote("");
+    setSpecialCategory("Loved One");
+    const d = new Date();
+    setSpecialDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+    setSpecialModalOpen(true);
+  };
+
+  const openSpecialForEdit = (entry: SpecialCalendarEntry) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setSpecialEditingId(entry.id);
+    setSpecialTitle(entry.title);
+    setSpecialNote(entry.note ?? "");
+    setSpecialCategory(entry.category);
+    setSpecialDate(entry.date);
+    setSpecialModalOpen(true);
+  };
+
   const handleSaveSpecialEntry = async () => {
     if (!specialTitle.trim()) {
       Alert.alert("Missing title", "Add a name or special occasion.");
       return;
     }
-    const entry: SpecialCalendarEntry = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      title: specialTitle.trim(),
-      date: specialDate,
-      category: specialCategory.trim() || "Loved One",
-      note: specialNote.trim() || undefined,
-    };
-    const next = [entry, ...specialEntries].sort((a, b) => a.date.localeCompare(b.date));
+    let next: SpecialCalendarEntry[];
+    if (specialEditingId) {
+      next = specialEntries.map((e) =>
+        e.id === specialEditingId
+          ? { ...e, title: specialTitle.trim(), category: specialCategory.trim() || "Loved One", note: specialNote.trim() || undefined, date: specialDate }
+          : e
+      );
+    } else {
+      const entry: SpecialCalendarEntry = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        title: specialTitle.trim(),
+        date: specialDate,
+        category: specialCategory.trim() || "Loved One",
+        note: specialNote.trim() || undefined,
+      };
+      next = [entry, ...specialEntries];
+    }
+    next = next.sort((a, b) => a.date.localeCompare(b.date));
     setSpecialEntries(next);
     await saveSpecialCalendarEntries(next);
     setSpecialModalOpen(false);
+    setSpecialEditingId(null);
     setSpecialTitle("");
     setSpecialNote("");
+  };
+
+  const handleDeleteSpecialEntry = (id: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    Alert.alert("Delete Event", "Remove this personal event permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          const next = specialEntries.filter((e) => e.id !== id);
+          setSpecialEntries(next);
+          await saveSpecialCalendarEntries(next);
+          setSpecialModalOpen(false);
+          setSpecialEditingId(null);
+        },
+      },
+    ]);
   };
 
   const openSearch = () => {
@@ -371,7 +422,7 @@ export default function CalendarScreen() {
             <Pressable onPress={handleNext} style={styles.navBtn} hitSlop={8}>
               <Feather name="chevron-right" size={22} color={colors.foreground} />
             </Pressable>
-            <Pressable onPress={() => setSpecialModalOpen(true)} style={styles.navBtn} hitSlop={8}>
+            <Pressable onPress={openSpecialForNew} style={styles.navBtn} hitSlop={8}>
               <Feather name="plus" size={20} color={colors.foreground} />
             </Pressable>
           </View>
@@ -507,15 +558,17 @@ export default function CalendarScreen() {
                 ifaEnabled={ifaEnabled}
               />
             )}
-            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} specialEntries={specialEntries} ifaEnabled={ifaEnabled} />}
-            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} specialEntries={specialEntries} ifaEnabled={ifaEnabled} />}
-            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} specialEntries={specialEntries} ifaEnabled={ifaEnabled} />}
+            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} specialEntries={specialEntries} ifaEnabled={ifaEnabled} onSpecialEntryPress={openSpecialForEdit} />}
+            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} specialEntries={specialEntries} ifaEnabled={ifaEnabled} onSpecialEntryPress={openSpecialForEdit} />}
+            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} specialEntries={specialEntries} ifaEnabled={ifaEnabled} onSpecialEntryPress={(id) => { const e = specialEntries.find((x) => x.id === id); if (e) openSpecialForEdit(e); }} />}
           </View>
 
-          <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => setSpecialModalOpen(false)}>
+          <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => { setSpecialModalOpen(false); setSpecialEditingId(null); }}>
             <View style={styles.modalBackdrop}>
               <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Calendar Entry</Text>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                  {specialEditingId ? "Edit Calendar Entry" : "New Calendar Entry"}
+                </Text>
                 <TextInput
                   value={specialTitle}
                   onChangeText={setSpecialTitle}
@@ -531,6 +584,13 @@ export default function CalendarScreen() {
                   style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
                 />
                 <TextInput
+                  value={specialDate}
+                  onChangeText={setSpecialDate}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colors.mutedForeground}
+                  style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
+                />
+                <TextInput
                   value={specialNote}
                   onChangeText={setSpecialNote}
                   placeholder="Optional note"
@@ -538,9 +598,14 @@ export default function CalendarScreen() {
                   style={[styles.input, { color: colors.foreground, borderColor: colors.border }]}
                 />
                 <Pressable onPress={handleSaveSpecialEntry} style={styles.saveSpecialBtn}>
-                  <Text style={styles.saveSpecialText}>Save</Text>
+                  <Text style={styles.saveSpecialText}>{specialEditingId ? "Save Changes" : "Save"}</Text>
                 </Pressable>
-                <Pressable onPress={() => setSpecialModalOpen(false)} style={styles.cancelSpecialBtn}>
+                {specialEditingId && (
+                  <Pressable onPress={() => handleDeleteSpecialEntry(specialEditingId)} style={styles.deleteSpecialBtn}>
+                    <Text style={styles.deleteSpecialText}>Delete Event</Text>
+                  </Pressable>
+                )}
+                <Pressable onPress={() => { setSpecialModalOpen(false); setSpecialEditingId(null); }} style={styles.cancelSpecialBtn}>
                   <Text style={[styles.cancelSpecialText, { color: colors.mutedForeground }]}>Cancel</Text>
                 </Pressable>
               </View>
@@ -712,8 +777,19 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
+    marginBottom: 8,
   },
   saveSpecialText: { color: "#080714", fontWeight: "800" },
+  deleteSpecialBtn: {
+    backgroundColor: "#7F1D1D22",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#EF444444",
+    paddingVertical: 12,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  deleteSpecialText: { color: "#EF4444", fontWeight: "700" },
   cancelSpecialBtn: {
     alignItems: "center",
     paddingVertical: 8,

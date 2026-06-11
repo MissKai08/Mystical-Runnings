@@ -30,6 +30,7 @@ interface Props {
   enabledRegions: Set<HolidayRegion>;
   specialEntries?: SpecialCalendarEntry[];
   ifaEnabled?: boolean;
+  onSpecialEntryPress?: (entry: SpecialCalendarEntry) => void;
 }
 
 const CATEGORY_LABELS: Partial<Record<EventType, string>> = {
@@ -113,7 +114,7 @@ function buildHolidayDetail(h: ReligiousHoliday): EventDetail {
 
 const LOAD_CHUNK = 30;
 
-export function ScheduleView({ startDate, enabledRegions, specialEntries = [], ifaEnabled = true }: Props) {
+export function ScheduleView({ startDate, enabledRegions, specialEntries = [], ifaEnabled = true, onSpecialEntryPress }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
@@ -265,12 +266,18 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                 {daySpecialEntries.map((entry, sei) => (
                   <Pressable
                     key={`sp-${sei}`}
-                    onPress={() => setSelectedEvent({
-                      title: entry.title,
-                      category: entry.category.toUpperCase(),
-                      color: isPast ? colors.border : SPECIAL_EVENT_COLOR,
-                      description: entry.note ?? `A special occasion: ${entry.title}.`,
-                    })}
+                    onPress={() => {
+                      if (onSpecialEntryPress) {
+                        onSpecialEntryPress(entry);
+                      } else {
+                        setSelectedEvent({
+                          title: entry.title,
+                          category: entry.category.toUpperCase(),
+                          color: isPast ? colors.border : SPECIAL_EVENT_COLOR,
+                          description: entry.note ?? `A special occasion: ${entry.title}.`,
+                        });
+                      }
+                    }}
                     style={({ pressed }) => [
                       styles.eventCard,
                       {
@@ -284,7 +291,7 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                       <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : SPECIAL_EVENT_COLOR }]}>
                         ✨ {entry.category.toUpperCase()}
                       </Text>
-                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap to edit</Text>
                     </View>
                     <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>
                       {entry.title}

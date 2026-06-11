@@ -102,6 +102,7 @@ interface AlmanacEntry {
   description: string;
   rows?: { label: string; value: string }[];
   isToday: boolean;
+  specialEntryId?: string;
 }
 
 function buildYearEntries(year: number, today: Date, specialEntries: SpecialCalendarEntry[] = [], ifaEnabled = true): AlmanacEntry[] {
@@ -327,6 +328,7 @@ function buildYearEntries(year: number, today: Date, specialEntries: SpecialCale
       description: e.note ?? `A special occasion: ${e.title}.`,
       rows: [],
       isToday: isSameDay(entryDate, today),
+      specialEntryId: e.id,
     });
   }
 
@@ -369,9 +371,10 @@ interface AlmanacViewProps {
   targetMonth?: number;
   specialEntries?: SpecialCalendarEntry[];
   ifaEnabled?: boolean;
+  onSpecialEntryPress?: (id: string) => void;
 }
 
-export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaEnabled = true }: AlmanacViewProps = {}) {
+export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaEnabled = true, onSpecialEntryPress }: AlmanacViewProps = {}) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const year = targetYear ?? today.getFullYear();
@@ -448,7 +451,13 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaE
               {group.entries.map((entry, i) => (
                 <Pressable
                   key={i}
-                  onPress={() => setSelectedEvent(buildEventDetail(entry))}
+                  onPress={() => {
+                    if (entry.type === "custom" && entry.specialEntryId && onSpecialEntryPress) {
+                      onSpecialEntryPress(entry.specialEntryId);
+                    } else {
+                      setSelectedEvent(buildEventDetail(entry));
+                    }
+                  }}
                   style={({ pressed }) => [
                     styles.card,
                     {

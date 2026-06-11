@@ -583,6 +583,18 @@ export default function HomeScreen() {
       <View style={[styles.wisdomCard, { backgroundColor: colors.card, borderColor: "#D4A84333" }]}>
         <View style={styles.wisdomHeader}>
           <Text style={[styles.wisdomLabel, { color: "#D4A843" }]}>✦ THIS DAY IN SPIRIT</Text>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              Share.share({
+                message: `"${dailyWisdom.text}"\n\n— ${dailyWisdom.source}\n\nMystical Runnings`,
+              });
+            }}
+            hitSlop={10}
+            style={[styles.shareBtn, { backgroundColor: "#D4A84318", borderColor: "#D4A84344" }]}
+          >
+            <Feather name="share" size={13} color="#D4A843" />
+          </Pressable>
         </View>
         <Text style={[styles.wisdomText, { color: colors.foreground }]}>"{dailyWisdom.text}"</Text>
         <Text style={[styles.wisdomSource, { color: colors.mutedForeground }]}>— {dailyWisdom.source}</Text>
@@ -1330,6 +1342,9 @@ const styles = StyleSheet.create({
     borderStyle: "dashed",
   },
   wisdomHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 12,
   },
   wisdomLabel: {
