@@ -5,7 +5,6 @@ import {
   Inter_700Bold,
   useFonts,
 } from "@expo-google-fonts/inter";
-import { Orbitron_700Bold } from "@expo-google-fonts/orbitron";
 import { ZenDots_400Regular } from "@expo-google-fonts/zen-dots";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
@@ -39,7 +38,6 @@ export default function RootLayout() {
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
-    Orbitron_700Bold,
     ZenDots_400Regular,
   });
 

@@ -182,7 +182,7 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
           <View style={styles.dividerLine} />
         </View>
 
-        <Text style={[styles.subtitle, fontsLoaded ? { fontFamily: "Orbitron_700Bold" } : { fontFamily: undefined }]}>ALIGN WITH THE COSMOS</Text>
+        <Text style={styles.subtitle}>ALIGN WITH THE COSMOS</Text>
       </View>
 
       <View style={styles.progressSection}>
