@@ -221,6 +221,9 @@ importers:
       '@expo-google-fonts/orbitron':
         specifier: ^0.4.2
         version: 0.4.2
+      '@expo-google-fonts/zen-dots':
+        specifier: ^0.4.2
+        version: 0.4.2
       expo-notifications:
         specifier: ~0.32.17
         version: 0.32.17(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)(typescript@5.9.3)
@@ -1141,6 +1144,9 @@ packages:
 
   '@expo-google-fonts/orbitron@0.4.2':
     resolution: {integrity: sha512-lp92oZ6FF1tA9dzJxKYPHae8hVxfVJzh5jRvjPCN8P1kkF615n/mq0U4ZQ7EXiEJvO7Cpwg+lZlkSbRw7CiDug==}
+
+  '@expo-google-fonts/zen-dots@0.4.2':
+    resolution: {integrity: sha512-1GzjQRDVZcAX/wViEJFPrhY5/NM9effvCm2VVC+CUeqr/w63IYg+ry6MkfEDdxsmM4IRc03FUqRATYn9bK9nrg==}
 
   '@expo/cli@54.0.23':
     resolution: {integrity: sha512-km0h72SFfQCmVycH/JtPFTVy69w6Lx1cHNDmfLfQqgKFYeeHTjx7LVDP4POHCtNxFP2UeRazrygJhlh4zz498g==}
@@ -6438,6 +6444,8 @@ snapshots:
   '@expo-google-fonts/inter@0.4.2': {}
 
   '@expo-google-fonts/orbitron@0.4.2': {}
+
+  '@expo-google-fonts/zen-dots@0.4.2': {}
 
   '@expo/cli@54.0.23(expo-router@6.0.23)(expo@54.0.34)(react-native@0.81.5(@babel/core@7.29.0)(@types/react@19.1.17)(react@19.1.0))(typescript@5.9.3)':
     dependencies:

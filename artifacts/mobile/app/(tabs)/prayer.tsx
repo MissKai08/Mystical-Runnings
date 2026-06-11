@@ -21,9 +21,9 @@ import { useFontScale } from "@/contexts/FontScaleContext";
 function speak(text: string) {
   Speech.stop();
   Speech.speak(text, {
-    language: "yo",
+    language: "en-NG",
     pitch: 0.85,
-    rate: 0.78,
+    rate: 0.65,
   });
 }
 

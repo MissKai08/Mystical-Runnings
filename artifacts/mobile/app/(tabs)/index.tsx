@@ -981,7 +981,7 @@ const styles = StyleSheet.create({
     fontSize: 42,
     letterSpacing: 0.5,
     textAlign: "center",
-    fontFamily: "Genos_600SemiBold",
+    fontFamily: "ZenDots_400Regular",
   },
   brandSubtitle: {
     fontSize: 11,

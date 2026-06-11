@@ -127,11 +127,11 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
         }
         return prev + 2;
       });
-    }, 50);
+    }, 100);
 
     const doneTimer = setTimeout(() => {
       onComplete();
-    }, 3000);
+    }, 5500);
 
     return () => {
       clearInterval(progressTimer);
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: "Genos_600SemiBold",
+    fontFamily: "ZenDots_400Regular",
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,
