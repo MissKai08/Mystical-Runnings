@@ -218,9 +218,6 @@ importers:
       '@expo-google-fonts/genos':
         specifier: ^0.4.1
         version: 0.4.1
-      '@expo-google-fonts/orbitron':
-        specifier: ^0.4.2
-        version: 0.4.2
       '@expo-google-fonts/zen-dots':
         specifier: ^0.4.2
         version: 0.4.2
@@ -1141,9 +1138,6 @@ packages:
 
   '@expo-google-fonts/inter@0.4.2':
     resolution: {integrity: sha512-syfiImMaDmq7cFi0of+waE2M4uSCyd16zgyWxdPOY7fN2VBmSLKEzkfbZgeOjJq61kSqPBNNtXjggiQiSD6gMQ==}
-
-  '@expo-google-fonts/orbitron@0.4.2':
-    resolution: {integrity: sha512-lp92oZ6FF1tA9dzJxKYPHae8hVxfVJzh5jRvjPCN8P1kkF615n/mq0U4ZQ7EXiEJvO7Cpwg+lZlkSbRw7CiDug==}
 
   '@expo-google-fonts/zen-dots@0.4.2':
     resolution: {integrity: sha512-1GzjQRDVZcAX/wViEJFPrhY5/NM9effvCm2VVC+CUeqr/w63IYg+ry6MkfEDdxsmM4IRc03FUqRATYn9bK9nrg==}
@@ -6442,8 +6436,6 @@ snapshots:
   '@expo-google-fonts/genos@0.4.1': {}
 
   '@expo-google-fonts/inter@0.4.2': {}
-
-  '@expo-google-fonts/orbitron@0.4.2': {}
 
   '@expo-google-fonts/zen-dots@0.4.2': {}
 
