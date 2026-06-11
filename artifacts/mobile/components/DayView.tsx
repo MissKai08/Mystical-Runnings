@@ -25,13 +25,15 @@ import { MoonPhaseCircle } from "./MoonPhaseCircle";
 import { OseDetailModal } from "./OseDetailModal";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
 import type { OseGroup } from "@/constants/spiritualData";
+import { SpecialCalendarEntry, getSpecialEntriesForDate, SPECIAL_EVENT_COLOR } from "@/utils/specialCalendar";
 
 interface Props {
   date: Date;
   birthdayName?: string;
+  specialEntries?: SpecialCalendarEntry[];
 }
 
-export function DayView({ date, birthdayName }: Props) {
+export function DayView({ date, birthdayName, specialEntries = [] }: Props) {
   const colors = useColors();
   const moon = getMoonPhaseData(date);
   const retrograde = getMercuryRetrogradeInfo(date);
@@ -437,6 +439,34 @@ export function DayView({ date, birthdayName }: Props) {
           <Text style={[styles.cardDescription, { color: colors.mutedForeground }]} numberOfLines={3}>
             {h.description}
           </Text>
+        </Pressable>
+      ))}
+
+      {getSpecialEntriesForDate(specialEntries, date).map((entry, ei) => (
+        <Pressable
+          key={`sp-${ei}`}
+          onPress={() => setSelectedEvent({
+            title: entry.title,
+            category: entry.category.toUpperCase(),
+            color: SPECIAL_EVENT_COLOR,
+            description: entry.note ?? `A special occasion: ${entry.title}.`,
+          })}
+          style={({ pressed }) => [
+            styles.card,
+            { backgroundColor: colors.card, borderColor: SPECIAL_EVENT_COLOR + "44", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardDot, { backgroundColor: SPECIAL_EVENT_COLOR }]} />
+            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>{entry.category.toUpperCase()}</Text>
+            <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+          </View>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>✨ {entry.title}</Text>
+          {entry.note ? (
+            <Text style={[styles.cardDescription, { color: colors.mutedForeground }]} numberOfLines={3}>
+              {entry.note}
+            </Text>
+          ) : null}
         </Pressable>
       ))}
 

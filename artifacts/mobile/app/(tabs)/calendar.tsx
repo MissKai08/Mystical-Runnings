@@ -42,6 +42,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { loadEntries, type JournalEntry } from "@/utils/journalStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Modal, TextInput, Alert } from "react-native";
+import { SpecialCalendarEntry, SPECIAL_CALENDAR_KEY, loadSpecialCalendarEntries, saveSpecialCalendarEntries } from "@/utils/specialCalendar";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -143,29 +144,6 @@ const REGION_LABEL: Record<HolidayRegion, string> = {
   us: "US", mexico: "Mexico", india: "India", jewish: "Jewish",
 };
 
-interface SpecialCalendarEntry {
-  id: string;
-  title: string;
-  date: string;
-  category: string;
-  note?: string;
-}
-
-const SPECIAL_CALENDAR_KEY = "@mystical_special_calendar_entries";
-
-async function loadSpecialCalendarEntries(): Promise<SpecialCalendarEntry[]> {
-  try {
-    const raw = await AsyncStorage.getItem(SPECIAL_CALENDAR_KEY);
-    if (!raw) return [];
-    return JSON.parse(raw) as SpecialCalendarEntry[];
-  } catch {
-    return [];
-  }
-}
-
-async function saveSpecialCalendarEntries(entries: SpecialCalendarEntry[]): Promise<void> {
-  await AsyncStorage.setItem(SPECIAL_CALENDAR_KEY, JSON.stringify(entries));
-}
 
 export default function CalendarScreen() {
   const colors = useColors();
@@ -491,6 +469,7 @@ export default function CalendarScreen() {
                   birthdayDay={profile?.birthDay}
                   journaledDates={journaledDates}
                   journalMoonColors={journalMoonColors}
+                  specialEntries={specialEntries}
                 />
               </View>
             )}
@@ -500,38 +479,12 @@ export default function CalendarScreen() {
                 selectedDate={selectedDate}
                 onSelectDate={(d) => { setSelectedDate(d); setDisplayDate(d); }}
                 enabledRegions={enabledRegions}
+                specialEntries={specialEntries}
               />
             )}
-            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} />}
-            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} />}
-            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} />}
-            {specialEntries.length > 0 && calView !== "almanac" && (
-              <View style={styles.specialSection}>
-                <Text style={[styles.specialHeading, { color: colors.mutedForeground }]}>SPECIAL DAYS</Text>
-                {specialEntries
-                  .filter((e) => {
-                    const [y, m, d] = e.date.split("-").map(Number);
-                    const target = new Date(y, m - 1, d);
-                    return calView === "month"
-                      ? target.getMonth() === month && target.getFullYear() === year
-                      : calView === "week"
-                        ? target >= weekStart && target <= new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6)
-                        : calView === "day"
-                          ? target.toDateString() === selectedDate.toDateString()
-                          : true;
-                  })
-                  .map((e) => (
-                    <View key={e.id} style={[styles.specialCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                      <Text style={[styles.specialDate, { color: "#D4A843" }]}>{e.date}</Text>
-                      <Text style={[styles.specialTitle, { color: colors.foreground }]}>{e.title}</Text>
-                      <Text style={[styles.specialCategory, { color: colors.mutedForeground }]}>
-                        {e.category}
-                        {e.note ? ` · ${e.note}` : ""}
-                      </Text>
-                    </View>
-                  ))}
-              </View>
-            )}
+            {calView === "day" && <DayView date={selectedDate} birthdayName={birthdayNameForDate} specialEntries={specialEntries} />}
+            {calView === "schedule" && <ScheduleView startDate={displayDate} enabledRegions={enabledRegions} specialEntries={specialEntries} />}
+            {calView === "almanac" && <AlmanacView targetYear={year} targetMonth={month} specialEntries={specialEntries} />}
           </View>
 
           <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => setSpecialModalOpen(false)}>

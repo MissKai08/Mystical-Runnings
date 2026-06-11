@@ -22,6 +22,7 @@ import {
 } from "@/constants/religiousHolidays";
 import { EventDot } from "./EventDot";
 import * as Haptics from "expo-haptics";
+import { SpecialCalendarEntry, getSpecialEntriesForDate, SPECIAL_EVENT_COLOR } from "@/utils/specialCalendar";
 
 interface Props {
   year: number;
@@ -33,11 +34,12 @@ interface Props {
   birthdayDay?: number;
   journaledDates?: Set<string>;
   journalMoonColors?: Record<string, string>;
+  specialEntries?: SpecialCalendarEntry[];
 }
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
-export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay, journaledDates, journalMoonColors }: Props) {
+export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay, journaledDates, journalMoonColors, specialEntries = [] }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
@@ -116,6 +118,9 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
                   ))}
                   {isBirthday && (
                     <View style={[styles.holidayDot, { backgroundColor: "#D4A843" }]} />
+                  )}
+                  {getSpecialEntriesForDate(specialEntries, day).length > 0 && (
+                    <View style={[styles.holidayDot, { backgroundColor: SPECIAL_EVENT_COLOR }]} />
                   )}
                   {journaledDates?.has(dateKey) && (
                     <View style={[

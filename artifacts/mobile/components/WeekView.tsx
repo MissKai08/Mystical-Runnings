@@ -28,11 +28,14 @@ import * as Haptics from "expo-haptics";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
 import { OseDetailModal } from "./OseDetailModal";
 
+import { SpecialCalendarEntry, getSpecialEntriesForDate, SPECIAL_EVENT_COLOR } from "@/utils/specialCalendar";
+
 interface Props {
   startDate: Date;
   selectedDate: Date;
   onSelectDate: (date: Date) => void;
   enabledRegions: Set<HolidayRegion>;
+  specialEntries?: SpecialCalendarEntry[];
 }
 
 const SHORT_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -44,7 +47,7 @@ const HOLIDAY_GUIDANCE: Record<HolidayRegion, string> = {
   jewish: "Jewish sacred days are portals of memory, renewal, and covenant — a cycle of return and recommitment.",
 };
 
-export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions }: Props) {
+export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions, specialEntries = [] }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
@@ -129,6 +132,9 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                   {holidays.slice(0, 2).map((h, hi) => (
                     <View key={hi} style={[styles.dot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]} />
                   ))}
+                  {getSpecialEntriesForDate(specialEntries, day).length > 0 && (
+                    <View style={[styles.dot, { backgroundColor: SPECIAL_EVENT_COLOR }]} />
+                  )}
                   <View style={[styles.dot, { backgroundColor: oseDay.color }]} />
                 </View>
               </Pressable>
@@ -149,7 +155,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
             const astro = getAstroEventForDate(day);
             const oseDay = getOseDay(day);
             const holidays = getHolidaysForDate(day).filter((h) => enabledRegions.has(h.region));
-            const hasEvents = moon.isMajorPhase || retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || holidays.length > 0;
+            const daySpecial = getSpecialEntriesForDate(specialEntries, day);
+            const hasEvents = moon.isMajorPhase || retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || holidays.length > 0 || daySpecial.length > 0;
 
             if (!hasEvents) {
               return (
@@ -365,6 +372,22 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     <Text style={[styles.chipText, { color: colors.foreground }]}>
                       {HOLIDAY_REGION_FLAG[h.region]} {h.emoji} {h.name}
                     </Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                  </Pressable>
+                ))}
+                {daySpecial.map((entry, ei) => (
+                  <Pressable
+                    key={`sp-${ei}`}
+                    onPress={() => setSelectedEvent({
+                      title: entry.title,
+                      category: entry.category.toUpperCase(),
+                      color: SPECIAL_EVENT_COLOR,
+                      description: entry.note ?? `A special occasion: ${entry.title}.`,
+                    })}
+                    style={({ pressed }) => [styles.eventChip, { backgroundColor: SPECIAL_EVENT_COLOR + "22", opacity: pressed ? 0.8 : 1 }]}
+                  >
+                    <View style={[styles.chipDot, { backgroundColor: SPECIAL_EVENT_COLOR }]} />
+                    <Text style={[styles.chipText, { color: colors.foreground }]}>✨ {entry.title}</Text>
                     <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
                   </Pressable>
                 ))}

@@ -23,10 +23,12 @@ import {
 } from "@/constants/religiousHolidays";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
 import { OseDetailModal } from "./OseDetailModal";
+import { SpecialCalendarEntry, getSpecialEntriesForDate, SPECIAL_EVENT_COLOR } from "@/utils/specialCalendar";
 
 interface Props {
   startDate: Date;
   enabledRegions: Set<HolidayRegion>;
+  specialEntries?: SpecialCalendarEntry[];
 }
 
 const CATEGORY_LABELS: Partial<Record<EventType, string>> = {
@@ -110,7 +112,7 @@ function buildHolidayDetail(h: ReligiousHoliday): EventDetail {
 
 const LOAD_CHUNK = 30;
 
-export function ScheduleView({ startDate, enabledRegions }: Props) {
+export function ScheduleView({ startDate, enabledRegions, specialEntries = [] }: Props) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
@@ -123,6 +125,7 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
       events: SpiritualEvent[];
       holidays: ReligiousHoliday[];
       oseDay: OseGroup;
+      daySpecialEntries: SpecialCalendarEntry[];
       isPast: boolean;
     }[] = [];
     for (let i = -pastDays; i < 60; i++) {
@@ -136,18 +139,20 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
           e.type !== "waning-gibbous"
       );
       const holidays = getHolidaysForDate(date).filter((h) => enabledRegions.has(h.region));
-      if (notable.length > 0 || holidays.length > 0) {
+      const daySpecialEntries = getSpecialEntriesForDate(specialEntries, date);
+      if (notable.length > 0 || holidays.length > 0 || daySpecialEntries.length > 0) {
         entries.push({
           date,
           events: notable,
           holidays,
+          daySpecialEntries,
           oseDay: getOseDay(date),
           isPast: date < today && !isSameDay(date, today),
         });
       }
     }
     return entries;
-  }, [startDate, enabledRegions, pastDays, today]);
+  }, [startDate, enabledRegions, pastDays, today, specialEntries]);
 
   const canLoadMore = pastDays < 180;
 
@@ -177,7 +182,7 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
           </Pressable>
         )}
 
-        {schedule.map(({ date, events, holidays, oseDay, isPast }, i) => {
+        {schedule.map(({ date, events, holidays, oseDay, daySpecialEntries, isPast }, i) => {
           const isToday = isSameDay(date, today);
           return (
             <View
@@ -252,6 +257,41 @@ export function ScheduleView({ startDate, enabledRegions }: Props) {
                     <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
                       {h.description}
                     </Text>
+                  </Pressable>
+                ))}
+
+                {daySpecialEntries.map((entry, sei) => (
+                  <Pressable
+                    key={`sp-${sei}`}
+                    onPress={() => setSelectedEvent({
+                      title: entry.title,
+                      category: entry.category.toUpperCase(),
+                      color: isPast ? colors.border : SPECIAL_EVENT_COLOR,
+                      description: entry.note ?? `A special occasion: ${entry.title}.`,
+                    })}
+                    style={({ pressed }) => [
+                      styles.eventCard,
+                      {
+                        backgroundColor: colors.card,
+                        borderLeftColor: isPast ? colors.border : SPECIAL_EVENT_COLOR,
+                        opacity: pressed ? 0.82 : 1,
+                      },
+                    ]}
+                  >
+                    <View style={styles.eventCardHeader}>
+                      <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : SPECIAL_EVENT_COLOR }]}>
+                        ✨ {entry.category.toUpperCase()}
+                      </Text>
+                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    </View>
+                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>
+                      {entry.title}
+                    </Text>
+                    {entry.note ? (
+                      <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                        {entry.note}
+                      </Text>
+                    ) : null}
                   </Pressable>
                 ))}
 

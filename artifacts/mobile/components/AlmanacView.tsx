@@ -21,6 +21,7 @@ import {
   HOLIDAY_REGION_FLAG,
 } from "@/constants/religiousHolidays";
 import { EventDetailModal, EventDetail } from "./EventDetailModal";
+import { SpecialCalendarEntry, SPECIAL_EVENT_COLOR } from "@/utils/specialCalendar";
 
 const MONTH_NAMES = [
   "January","February","March","April","May","June",
@@ -103,7 +104,7 @@ interface AlmanacEntry {
   isToday: boolean;
 }
 
-function buildYearEntries(year: number, today: Date): AlmanacEntry[] {
+function buildYearEntries(year: number, today: Date, specialEntries: SpecialCalendarEntry[] = []): AlmanacEntry[] {
   const entries: AlmanacEntry[] = [];
 
   const namedMoonKeys = new Set(
@@ -312,6 +313,23 @@ function buildYearEntries(year: number, today: Date): AlmanacEntry[] {
     });
   }
 
+  for (const e of specialEntries) {
+    const [y, mo, d] = e.date.split("-").map(Number);
+    if (y !== year) continue;
+    const entryDate = new Date(y, mo - 1, d, 12, 0, 0);
+    entries.push({
+      date: entryDate,
+      label: e.title,
+      category: e.category.toUpperCase(),
+      color: SPECIAL_EVENT_COLOR,
+      emoji: "✨",
+      type: "custom",
+      description: e.note ?? `A special occasion: ${e.title}.`,
+      rows: [],
+      isToday: isSameDay(entryDate, today),
+    });
+  }
+
   return entries.sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
@@ -349,9 +367,10 @@ function buildEventDetail(entry: AlmanacEntry): EventDetail {
 interface AlmanacViewProps {
   targetYear?: number;
   targetMonth?: number;
+  specialEntries?: SpecialCalendarEntry[];
 }
 
-export function AlmanacView({ targetYear, targetMonth }: AlmanacViewProps = {}) {
+export function AlmanacView({ targetYear, targetMonth, specialEntries = [] }: AlmanacViewProps = {}) {
   const colors = useColors();
   const today = useMemo(() => new Date(), []);
   const year = targetYear ?? today.getFullYear();
@@ -359,7 +378,7 @@ export function AlmanacView({ targetYear, targetMonth }: AlmanacViewProps = {}) 
 
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
 
-  const allEntries = useMemo(() => buildYearEntries(year, today), [year]);
+  const allEntries = useMemo(() => buildYearEntries(year, today, specialEntries), [year, specialEntries]);
   const months = useMemo(() => groupByMonth(allEntries), [allEntries]);
 
   const scrollRef = useRef<ScrollView>(null);

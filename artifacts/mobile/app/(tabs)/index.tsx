@@ -139,6 +139,8 @@ export default function HomeScreen() {
   const todayHolidays = useMemo(() => getHolidaysForDate(today), [today]);
   const hasAnyAlert = !!(retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || todayHolidays.length > 0);
 
+  const [selectedWeekDay, setSelectedWeekDay] = useState<EventDetail | null>(null);
+
   const weekStrip = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = addDays(today, i);
@@ -163,12 +165,43 @@ export default function HomeScreen() {
       if (pr) dots.push({ color: EVENT_COLORS["ifa-prayer"], key: "prayer" });
       if (fv) dots.push({ color: EVENT_COLORS["ifa-festival"], key: "festival" });
 
-      // Build a short label for the most notable event
       let highlight = nm?.name ?? (dm ? `Dark Moon` : m.isMajorPhase ? m.name : null);
       if (!highlight && ec) highlight = ec.name;
       if (!highlight && sb) highlight = sb.name.split(" —")[0];
 
-      return { date: d, dots, highlight };
+      const eventDetailColor = nm ? EVENT_COLORS["named-moon"]
+        : dm ? EVENT_COLORS["dark-moon"]
+        : ec ? EVENT_COLORS[ec.type]
+        : sb ? EVENT_COLORS.sabbat
+        : rt ? EVENT_COLORS.retrograde
+        : fv ? EVENT_COLORS["ifa-festival"]
+        : "#A78BFA";
+
+      const eventDetailDesc = nm?.description
+        ?? (dm ? `Dark Moon${dm.sign ? ` in ${dm.sign}` : ""} — a liminal threshold between cycles.` : null)
+        ?? ec?.description
+        ?? sb?.description
+        ?? (rt ? `${rt.label} is currently active.` : null)
+        ?? fv?.description
+        ?? `${m.name} · ${m.illumination}% illuminated.`;
+
+      const holidays = getHolidaysForDate(d);
+      const eventDetail: EventDetail = {
+        title: d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" }),
+        category: "DAY OVERVIEW",
+        color: eventDetailColor,
+        description: eventDetailDesc ?? `${m.name} · ${m.illumination}% illuminated.`,
+        rows: [
+          { label: "MOON", value: `${nm?.name ?? (dm ? "Dark Moon" : m.name)} · ${m.illumination}% lit` },
+          ...(ec ? [{ label: ec.type === "solar-eclipse" ? "SOLAR ECLIPSE" : "LUNAR ECLIPSE", value: ec.name }] : []),
+          ...(sb ? [{ label: "WHEEL OF THE YEAR", value: sb.name.split(" —")[0] }] : []),
+          ...(rt ? [{ label: "PLANETARY", value: "Mercury Retrograde active" }] : []),
+          ...(fv ? [{ label: "IFA FESTIVAL", value: fv.name }] : []),
+          ...holidays.map((h) => ({ label: HOLIDAY_REGION_LABEL[h.region], value: h.name })),
+        ],
+      };
+
+      return { date: d, dots, highlight, eventDetail };
     });
   }, [today]);
 
@@ -395,10 +428,14 @@ export default function HomeScreen() {
       {/* This Week at a Glance */}
       <Text style={[styles.sectionTitle, { color: colors.foreground }]}>This Week</Text>
       <View style={[styles.weekStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {weekStrip.map(({ date, dots, highlight }, i) => {
+        {weekStrip.map(({ date, dots, highlight, eventDetail }, i) => {
           const isToday = isSameDay(date, today);
           return (
-            <View key={i} style={styles.weekDay}>
+            <Pressable
+              key={i}
+              style={({ pressed }) => [styles.weekDay, { opacity: pressed ? 0.75 : 1 }]}
+              onPress={() => { Haptics.selectionAsync(); setSelectedWeekDay(eventDetail); }}
+            >
               <Text style={[styles.weekDayName, { color: isToday ? "#D4A843" : colors.mutedForeground }]}>
                 {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
               </Text>
@@ -429,7 +466,7 @@ export default function HomeScreen() {
                   {highlight}
                 </Text>
               )}
-            </View>
+            </Pressable>
           );
         })}
       </View>
@@ -804,6 +841,7 @@ export default function HomeScreen() {
       </View>
       <OseDetailModal group={oseModalGroup} onClose={() => setOseModalGroup(null)} />
       <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      <EventDetailModal event={selectedWeekDay} onClose={() => setSelectedWeekDay(null)} />
       <MoonWaterModal
         visible={moonWaterOpen}
         onClose={() => setMoonWaterOpen(false)}
