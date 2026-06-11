@@ -1062,16 +1062,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   brandTitle: {
-    fontSize: 42,
+    fontSize: 46,
     letterSpacing: 0.5,
     textAlign: "center",
     fontFamily: "ZenDots_400Regular",
   },
   brandSubtitle: {
-    fontSize: 11,
+    fontSize: 13,
     marginTop: 2,
     letterSpacing: 1.2,
-    textTransform: "lowercase",
     textAlign: "center",
   },
   greetingRow: {

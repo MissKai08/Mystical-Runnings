@@ -84,6 +84,17 @@ export async function updateStatus(
   await save(intentions);
 }
 
+export async function updateIntentionText(
+  intentionId: string,
+  text: string
+): Promise<void> {
+  const intentions = await load();
+  const idx = intentions.findIndex((i) => i.id === intentionId);
+  if (idx === -1) return;
+  intentions[idx].text = text.trim();
+  await save(intentions);
+}
+
 export async function deleteIntentionById(intentionId: string): Promise<void> {
   const intentions = await load();
   await save(intentions.filter((i) => i.id !== intentionId));

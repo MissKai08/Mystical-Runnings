@@ -18,6 +18,7 @@ import {
   addIntention,
   addCheckIn,
   updateStatus,
+  updateIntentionText,
   deleteIntentionById,
   SacredIntention,
   IntentionStatus,
@@ -299,6 +300,110 @@ const ai = StyleSheet.create({
   saveTxt: { fontSize: 14, fontWeight: "800", color: "#fff" },
 });
 
+// ─── Edit Intention Modal ─────────────────────────────────────────────────────
+
+function EditIntentionModal({
+  visible,
+  intention,
+  onSave,
+  onClose,
+}: {
+  visible: boolean;
+  intention: SacredIntention | null;
+  onSave: (id: string, text: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const colors = useColors();
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { if (visible && intention) setText(intention.text); }, [visible, intention]);
+
+  const handleSave = async () => {
+    if (!text.trim() || !intention) return;
+    setSaving(true);
+    await onSave(intention.id, text.trim());
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
+      <Pressable style={ei.overlay} onPress={onClose}>
+        <Pressable style={[ei.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Text style={[ei.title, { color: colors.foreground }]}>Edit Intention</Text>
+          <TextInput
+            style={[ei.input, { color: colors.foreground, borderColor: colors.border }]}
+            placeholder="I intend to…"
+            placeholderTextColor={colors.mutedForeground}
+            multiline
+            value={text}
+            onChangeText={setText}
+            textAlignVertical="top"
+            autoFocus
+          />
+          <View style={ei.btnRow}>
+            <Pressable onPress={onClose} style={[ei.cancelBtn, { borderColor: colors.border }]}>
+              <Text style={[ei.cancelTxt, { color: colors.mutedForeground }]}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSave}
+              disabled={!text.trim() || saving}
+              style={[ei.saveBtn, { backgroundColor: "#D4A843", opacity: !text.trim() || saving ? 0.5 : 1 }]}
+            >
+              {saving
+                ? <ActivityIndicator color="#080714" size="small" />
+                : <Text style={ei.saveTxt}>Save Changes</Text>}
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+const ei = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "#00000088",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  sheet: {
+    width: "100%",
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 20,
+    gap: 14,
+  },
+  title: { fontSize: 17, fontWeight: "700" },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    lineHeight: 24,
+    minHeight: 100,
+  },
+  btnRow: { flexDirection: "row", gap: 10 },
+  cancelBtn: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  cancelTxt: { fontSize: 14, fontWeight: "600" },
+  saveBtn: {
+    flex: 2,
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: "center",
+  },
+  saveTxt: { fontSize: 14, fontWeight: "800", color: "#080714" },
+});
+
 // ─── Intention Card ───────────────────────────────────────────────────────────
 
 function IntentionCard({
@@ -307,12 +412,14 @@ function IntentionCard({
   onCheckIn,
   onStatusChange,
   onDelete,
+  onEdit,
 }: {
   intention: SacredIntention;
   colors: ReturnType<typeof useColors>;
   onCheckIn: () => void;
   onStatusChange: (status: IntentionStatus) => void;
   onDelete: () => void;
+  onEdit: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[intention.status];
@@ -406,16 +513,32 @@ function IntentionCard({
         </View>
       )}
 
-      {/* Actions */}
-      {isActive && (
+      {/* Actions row */}
+      <View style={[s.actionsRow, { borderTopColor: colors.border }]}>
+        {isActive && (
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); onCheckIn(); }}
+            style={s.actionBtn}
+          >
+            <Feather name="plus-circle" size={13} color="#A78BFA" />
+            <Text style={[s.actionBtnTxt, { color: "#A78BFA" }]}>Check In</Text>
+          </Pressable>
+        )}
         <Pressable
-          onPress={() => { Haptics.selectionAsync(); onCheckIn(); }}
-          style={[s.checkInBtn, { borderTopColor: colors.border }]}
+          onPress={() => { Haptics.selectionAsync(); onEdit(); }}
+          style={s.actionBtn}
         >
-          <Feather name="plus-circle" size={13} color="#A78BFA" />
-          <Text style={[s.checkInBtnTxt, { color: "#A78BFA" }]}>Check In</Text>
+          <Feather name="edit-2" size={13} color={colors.mutedForeground} />
+          <Text style={[s.actionBtnTxt, { color: colors.mutedForeground }]}>Edit</Text>
         </Pressable>
-      )}
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDelete(); }}
+          style={s.actionBtn}
+        >
+          <Feather name="trash-2" size={13} color="#EF4444" />
+          <Text style={[s.actionBtnTxt, { color: "#EF4444" }]}>Delete</Text>
+        </Pressable>
+      </View>
     </Pressable>
   );
 }
@@ -431,6 +554,7 @@ export default function IntentionsModal({ visible, onClose }: Props) {
   const colors = useColors();
   const [intentions, setIntentions] = useState<SacredIntention[]>([]);
   const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<SacredIntention | null>(null);
   const [checkInTarget, setCheckInTarget] = useState<SacredIntention | null>(null);
   const [showPast, setShowPast] = useState(false);
 
@@ -466,6 +590,11 @@ export default function IntentionsModal({ visible, onClose }: Props) {
   const handleStatus = async (id: string, status: IntentionStatus) => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     await updateStatus(id, status);
+    await reload();
+  };
+
+  const handleEdit = async (id: string, text: string) => {
+    await updateIntentionText(id, text);
     await reload();
   };
 
@@ -551,6 +680,7 @@ export default function IntentionsModal({ visible, onClose }: Props) {
                 onCheckIn={() => setCheckInTarget(intention)}
                 onStatusChange={(status) => handleStatus(intention.id, status)}
                 onDelete={() => handleDelete(intention.id)}
+                onEdit={() => setEditTarget(intention)}
               />
             ))
           )}
@@ -580,6 +710,7 @@ export default function IntentionsModal({ visible, onClose }: Props) {
                   onCheckIn={() => setCheckInTarget(intention)}
                   onStatusChange={(status) => handleStatus(intention.id, status)}
                   onDelete={() => handleDelete(intention.id)}
+                  onEdit={() => setEditTarget(intention)}
                 />
               ))}
             </>
@@ -611,6 +742,13 @@ export default function IntentionsModal({ visible, onClose }: Props) {
         intentionText={checkInTarget?.text ?? ""}
         onSave={handleCheckIn}
         onClose={() => setCheckInTarget(null)}
+      />
+
+      <EditIntentionModal
+        visible={editTarget !== null}
+        intention={editTarget}
+        onSave={handleEdit}
+        onClose={() => setEditTarget(null)}
       />
     </Modal>
   );
@@ -723,15 +861,19 @@ const s = StyleSheet.create({
   },
   checkInText: { fontSize: 13, lineHeight: 21 },
   checkInDate: { fontSize: 10 },
-  checkInBtn: {
+  actionsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    paddingHorizontal: 14,
-    paddingVertical: 11,
     borderTopWidth: 1,
   },
-  checkInBtnTxt: { fontSize: 13, fontWeight: "600" },
+  actionBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 11,
+  },
+  actionBtnTxt: { fontSize: 12, fontWeight: "600" },
   pastToggle: {
     flexDirection: "row",
     alignItems: "center",
