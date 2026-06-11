@@ -113,6 +113,7 @@ interface Props {
 
 export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
   const [progress, setProgress] = useState(0);
+  const [timerDone, setTimerDone] = useState(false);
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
@@ -130,7 +131,7 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
     }, 100);
 
     const doneTimer = setTimeout(() => {
-      onComplete();
+      setTimerDone(true);
     }, 5500);
 
     return () => {
@@ -138,6 +139,12 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
       clearTimeout(doneTimer);
     };
   }, []);
+
+  useEffect(() => {
+    if (timerDone && fontsLoaded) {
+      onComplete();
+    }
+  }, [timerDone, fontsLoaded]);
 
   return (
     <View style={styles.container}>

@@ -45,12 +45,6 @@ export default function RootLayout() {
 
   const [appReady, setAppReady] = useState(false);
 
-  useEffect(() => {
-    if (fontsLoaded) {
-      const timer = setTimeout(() => setAppReady(true), 500);
-      return () => clearTimeout(timer);
-    }
-  }, [fontsLoaded]);
 
   // Always render the custom splash screen immediately so it hides the native
   // Expo Go splash. The splash screen component itself calls hideAsync().
@@ -64,8 +58,8 @@ export default function RootLayout() {
                 <KeyboardProvider>
                   {!appReady ? (
                     <AppSplashScreen
-                      fontsLoaded={fontsLoaded}
-                      onComplete={() => {}}
+                      fontsLoaded={fontsLoaded ?? false}
+                      onComplete={() => setAppReady(true)}
                     />
                   ) : (
                     <RootLayoutNav />
