@@ -173,8 +173,8 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
       </View>
 
       <View style={styles.titleBlock}>
-        <Text style={styles.titleLine}>Mystical</Text>
-        <Text style={styles.titleLine}>Runnings</Text>
+        <Text style={[styles.titleLine, fontsLoaded ? { fontFamily: "ZenDots_400Regular" } : { fontFamily: undefined }]}>Mystical</Text>
+        <Text style={[styles.titleLine, fontsLoaded ? { fontFamily: "ZenDots_400Regular" } : { fontFamily: undefined }]}>Runnings</Text>
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
@@ -182,7 +182,7 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
           <View style={styles.dividerLine} />
         </View>
 
-        <Text style={styles.subtitle}>ALIGN WITH THE COSMOS</Text>
+        <Text style={[styles.subtitle, fontsLoaded ? { fontFamily: "Orbitron_700Bold" } : { fontFamily: undefined }]}>ALIGN WITH THE COSMOS</Text>
       </View>
 
       <View style={styles.progressSection}>
@@ -257,7 +257,6 @@ const styles = StyleSheet.create({
     marginBottom: 52,
   },
   titleLine: {
-    fontFamily: "ZenDots_400Regular",
     fontSize: 36,
     color: "#D4A843",
     letterSpacing: 3,
@@ -285,7 +284,6 @@ const styles = StyleSheet.create({
     color: "#7C3AED",
   },
   subtitle: {
-    fontFamily: "Orbitron_700Bold",
     fontSize: 9,
     color: "#A78BFA",
     letterSpacing: 4,
