@@ -17,7 +17,7 @@ function fmt(d: Date | null): string {
 
 const ITEMS = [
   { key: "sunrise" as const, label: "Sunrise",  emoji: "☀️" },
-  { key: "sunset"  as const, label: "Sunset",   emoji: "🌤️" },
+  { key: "sunset"  as const, label: "Sunset",   emoji: "🔅" },
   { key: "moonrise"as const, label: "Moonrise", emoji: "🌕" },
   { key: "moonset" as const, label: "Moonset",  emoji: "🌑" },
 ];
