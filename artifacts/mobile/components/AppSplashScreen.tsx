@@ -54,7 +54,7 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
     <View style={[styles.container, { width, height }]}>
       <Image
         source={SPLASH_IMAGE}
-        style={StyleSheet.absoluteFillObject}
+        style={{ position: "absolute", top: 0, left: 0, width, height }}
         resizeMode="contain"
       />
       <View style={[styles.progressSection, { width: width - 88 }]}>
