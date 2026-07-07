@@ -279,14 +279,19 @@ export default function CalendarScreen() {
     setDisplayDate(today);
   };
 
+  const handlePrevRef = useRef(handlePrev);
+  const handleNextRef = useRef(handleNext);
+  useEffect(() => { handlePrevRef.current = handlePrev; });
+  useEffect(() => { handleNextRef.current = handleNext; });
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gs) =>
         Math.abs(gs.dx) > 12 && Math.abs(gs.dy) < Math.abs(gs.dx),
       onPanResponderRelease: (_, gs) => {
         if (Math.abs(gs.dx) < 40) return;
-        if (gs.dx < 0) handleNext();
-        else handlePrev();
+        if (gs.dx < 0) handleNextRef.current();
+        else handlePrevRef.current();
       },
     })
   ).current;

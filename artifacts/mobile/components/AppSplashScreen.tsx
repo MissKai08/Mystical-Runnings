@@ -9,7 +9,7 @@ import * as SplashScreen from "expo-splash-screen";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 
-const SPLASH_IMAGE = require("../assets/images/icon.png");
+const SPLASH_IMAGE = require("../assets/images/splash.png");
 
 interface Props {
   onComplete: () => void;
