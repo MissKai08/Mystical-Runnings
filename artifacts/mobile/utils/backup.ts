@@ -1,5 +1,4 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { File, Paths } from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
 import { Share, Alert, Platform } from "react-native";
 
@@ -43,17 +42,34 @@ async function buildBackupData(): Promise<BackupData> {
   };
 }
 
-function getBackupFile(): File {
-  return new File(Paths.document, BACKUP_FILENAME);
-}
+const LAST_MANUAL_EXPORT_KEY = "@mystical_last_manual_export_ts";
+const AUTO_BACKUP_FREQ_KEY = "@mystical_auto_backup_frequency";
+const LAST_AUTO_BACKUP_KEY = "@mystical_last_auto_backup_ts";
 
 export async function getLastBackupDate(): Promise<Date | null> {
   try {
-    const file = getBackupFile();
-    if (!file.exists) return null;
-    const json = await file.text();
-    const parsed = JSON.parse(json) as BackupData;
-    return new Date(parsed.exportedAt);
+    if (Platform.OS !== "web") {
+      // Native: try reading the file using dynamic import to avoid web errors
+      const { File, Paths } = await import("expo-file-system");
+      const file = new File(Paths.document, BACKUP_FILENAME);
+      if (file.exists) {
+        const json = await file.text();
+        const parsed = JSON.parse(json) as BackupData;
+        return new Date(parsed.exportedAt);
+      }
+    }
+    // Web and fallback: read timestamp from AsyncStorage
+    const raw = await AsyncStorage.getItem(LAST_MANUAL_EXPORT_KEY);
+    return raw ? new Date(parseInt(raw, 10)) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getLastAutoBackupDate(): Promise<Date | null> {
+  try {
+    const raw = await AsyncStorage.getItem(LAST_AUTO_BACKUP_KEY);
+    return raw ? new Date(parseInt(raw, 10)) : null;
   } catch {
     return null;
   }
@@ -63,11 +79,27 @@ export async function exportBackup(): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
 
-  // Save to Documents directory (auto-syncs with iCloud/Google Drive)
-  const file = getBackupFile();
-  file.write(json);
+  if (Platform.OS === "web") {
+    // Browser download API
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = BACKUP_FILENAME;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
+    return;
+  }
 
-  // Open native share sheet so user can also send it anywhere
+  // Native: save to Documents directory (auto-syncs with iCloud/Google Drive)
+  const { File, Paths } = await import("expo-file-system");
+  const file = new File(Paths.document, BACKUP_FILENAME);
+  file.write(json);
+  await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
+
   if (Platform.OS === "ios") {
     await Share.share({ url: file.uri, title: BACKUP_FILENAME });
   } else {
@@ -84,9 +116,17 @@ export async function importBackupFromFile(): Promise<void> {
   if (result.canceled || !result.assets || result.assets.length === 0) return;
 
   const asset = result.assets[0];
-  // Read the picked file using the new File API
-  const pickedFile = new File(asset.uri);
-  const json = await pickedFile.text();
+
+  let json: string;
+  if (Platform.OS === "web") {
+    // On web, DocumentPicker returns a blob URL — use fetch to read it
+    const response = await fetch(asset.uri);
+    json = await response.text();
+  } else {
+    const { File } = await import("expo-file-system");
+    const pickedFile = new File(asset.uri);
+    json = await pickedFile.text();
+  }
 
   await restoreFromJson(json);
 }
@@ -124,9 +164,6 @@ async function restoreFromJson(json: string): Promise<void> {
   await AsyncStorage.multiSet(pairs);
 }
 
-const AUTO_BACKUP_FREQ_KEY = "@mystical_auto_backup_frequency";
-const LAST_AUTO_BACKUP_KEY = "@mystical_last_auto_backup_ts";
-
 export type AutoBackupFrequency = "daily" | "weekly" | "manual";
 
 export async function getAutoBackupFrequency(): Promise<AutoBackupFrequency> {
@@ -146,8 +183,11 @@ export async function setAutoBackupFrequency(freq: AutoBackupFrequency): Promise
 async function exportBackupSilent(): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
-  const file = getBackupFile();
-  file.write(json);
+  if (Platform.OS !== "web") {
+    const { File, Paths } = await import("expo-file-system");
+    const file = new File(Paths.document, BACKUP_FILENAME);
+    file.write(json);
+  }
   await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
 }
 
@@ -222,6 +262,17 @@ export async function getCloudBackupDate(): Promise<Date | null> {
 }
 
 export function confirmRestore(onConfirm: () => void): void {
+  if (Platform.OS === "web") {
+    // window.confirm works reliably on web (including in iframes)
+    if (
+      window.confirm(
+        "This will overwrite your current data with the backup. This cannot be undone. Are you sure?"
+      )
+    ) {
+      onConfirm();
+    }
+    return;
+  }
   Alert.alert(
     "Restore Backup",
     "This will overwrite your current data with the backup. This cannot be undone. Are you sure?",

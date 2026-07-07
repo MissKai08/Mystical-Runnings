@@ -20,6 +20,7 @@ import {
   importBackupFromFile,
   confirmRestore,
   getLastBackupDate,
+  getLastAutoBackupDate,
   getAutoBackupFrequency,
   setAutoBackupFrequency,
   AutoBackupFrequency,
@@ -35,6 +36,28 @@ interface Props {
 
 type Tab = "export" | "import" | "cloud";
 
+function formatDate(d: Date | null, fallback = "Never"): string {
+  if (!d) return fallback;
+  return d.toLocaleString(undefined, {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit",
+  });
+}
+
+function nextRunLabel(freq: AutoBackupFrequency, lastAuto: Date | null): string {
+  if (freq === "manual") return "Off";
+  if (!lastAuto) return "Next app open";
+  const ms = freq === "daily" ? 23 * 3600 * 1000 : 6 * 24 * 3600 * 1000;
+  const next = new Date(lastAuto.getTime() + ms);
+  if (next <= new Date()) return "Next app open";
+  const diffMs = next.getTime() - Date.now();
+  const hours = Math.floor(diffMs / 3600000);
+  const mins = Math.floor((diffMs % 3600000) / 60000);
+  if (hours >= 24) return `In ~${Math.floor(hours / 24)}d`;
+  if (hours > 0) return `In ~${hours}h`;
+  return `In ~${mins}m`;
+}
+
 export function BackupRestoreModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -44,26 +67,26 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   const [cloudUploading, setCloudUploading] = useState(false);
   const [cloudRestoring, setCloudRestoring] = useState(false);
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
+  const [lastAutoBackup, setLastAutoBackup] = useState<Date | null>(null);
   const [cloudBackupDate, setCloudBackupDate] = useState<Date | null>(null);
   const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("manual");
 
-  const refreshLastBackup = useCallback(async () => {
-    const d = await getLastBackupDate();
-    setLastBackup(d);
-  }, []);
-
-  const refreshCloudDate = useCallback(async () => {
-    const d = await getCloudBackupDate();
-    setCloudBackupDate(d);
+  const refreshAll = useCallback(async () => {
+    const [manual, auto, cloud, freq] = await Promise.allSettled([
+      getLastBackupDate(),
+      getLastAutoBackupDate(),
+      getCloudBackupDate(),
+      getAutoBackupFrequency(),
+    ]);
+    if (manual.status === "fulfilled") setLastBackup(manual.value);
+    if (auto.status === "fulfilled") setLastAutoBackup(auto.value);
+    if (cloud.status === "fulfilled") setCloudBackupDate(cloud.value);
+    if (freq.status === "fulfilled") setAutoFreq(freq.value);
   }, []);
 
   useEffect(() => {
-    if (visible) {
-      refreshLastBackup();
-      refreshCloudDate();
-      getAutoBackupFrequency().then(setAutoFreq).catch(() => {});
-    }
-  }, [visible, refreshLastBackup, refreshCloudDate]);
+    if (visible) refreshAll();
+  }, [visible, refreshAll]);
 
   async function handleFreqChange(freq: AutoBackupFrequency) {
     Haptics.selectionAsync();
@@ -76,7 +99,10 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     setExporting(true);
     try {
       await exportBackup();
-      await refreshLastBackup();
+      await refreshAll();
+      if (Platform.OS !== "web") {
+        Alert.alert("✦ Exported", "Your backup file has been saved.");
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Export failed.";
       Alert.alert("Export Failed", msg);
@@ -90,7 +116,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     setCloudUploading(true);
     try {
       await uploadBackupToCloud();
-      await refreshCloudDate();
+      await refreshAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("✦ Saved", "Your backup has been saved to the cloud.");
     } catch (e: unknown) {
@@ -158,6 +184,24 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
         </Pressable>
       </View>
 
+      {/* Status strip */}
+      <View style={s.statusStrip}>
+        <View style={s.statusItem}>
+          <Text style={s.statusLabel}>Manual export</Text>
+          <Text style={s.statusValue}>{formatDate(lastBackup)}</Text>
+        </View>
+        <View style={s.statusDivider} />
+        <View style={s.statusItem}>
+          <Text style={s.statusLabel}>Auto-backup</Text>
+          <Text style={s.statusValue}>{formatDate(lastAutoBackup)}</Text>
+        </View>
+        <View style={s.statusDivider} />
+        <View style={s.statusItem}>
+          <Text style={s.statusLabel}>Cloud backup</Text>
+          <Text style={s.statusValue}>{formatDate(cloudBackupDate)}</Text>
+        </View>
+      </View>
+
       {/* Tabs */}
       <View style={s.tabRow}>
         {(["export", "import", "cloud"] as Tab[]).map((t) => (
@@ -190,30 +234,37 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </Text>
             </View>
 
-            <View style={s.cloudCard}>
-              <Text style={s.cloudTitle}>☁ Cloud Sync</Text>
-              <Text style={s.cloudBody}>
-                The backup is saved to your device's Documents folder —
-                automatically included in{" "}
-                <Text style={s.highlight}>iCloud Drive</Text> on iOS and{" "}
-                <Text style={s.highlight}>Google Drive</Text> on Android.
-                The share sheet also lets you send it anywhere: Files,
-                email, or AirDrop.
-              </Text>
-            </View>
-
-            {lastBackup != null && (
-              <View style={s.lastRow}>
-                <Feather name="check-circle" size={13} color="#4ADE80" />
-                <Text style={s.lastText}>
-                  Last backup: {lastBackup.toLocaleString()}
+            {Platform.OS !== "web" && (
+              <View style={s.cloudCard}>
+                <Text style={s.cloudTitle}>☁ Cloud Sync</Text>
+                <Text style={s.cloudBody}>
+                  The backup is saved to your device's Documents folder —
+                  automatically included in{" "}
+                  <Text style={s.highlight}>iCloud Drive</Text> on iOS and{" "}
+                  <Text style={s.highlight}>Google Drive</Text> on Android.
+                </Text>
+              </View>
+            )}
+            {Platform.OS === "web" && (
+              <View style={s.cloudCard}>
+                <Text style={s.cloudTitle}>⬇ Browser Download</Text>
+                <Text style={s.cloudBody}>
+                  Downloads <Text style={s.highlight}>mystical-runnings-backup.json</Text> directly
+                  to your Downloads folder.
                 </Text>
               </View>
             )}
 
             {/* Auto-backup frequency */}
             <View style={s.freqCard}>
-              <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
+              <View style={s.freqTitleRow}>
+                <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
+                {autoFreq !== "manual" && (
+                  <Text style={s.nextRunBadge}>
+                    Next: {nextRunLabel(autoFreq, lastAutoBackup)}
+                  </Text>
+                )}
+              </View>
               <View style={s.freqRow}>
                 {(["manual", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
                   <Pressable
@@ -229,11 +280,19 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </View>
               <Text style={s.freqHint}>
                 {autoFreq === "manual"
-                  ? "Backups only happen when you tap Export."
+                  ? "Backups only happen when you tap Export below."
                   : autoFreq === "daily"
-                  ? "A silent backup is saved to your Documents folder each day on app open."
-                  : "A silent backup is saved once per week on app open."}
+                  ? "A silent backup runs once per day when you open the app."
+                  : "A silent backup runs once per week when you open the app."}
               </Text>
+              {lastAutoBackup && (
+                <View style={s.lastAutoRow}>
+                  <Feather name="clock" size={12} color={colors.mutedForeground} />
+                  <Text style={s.lastAutoText}>
+                    Last auto-backup: {formatDate(lastAutoBackup)}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <Pressable
@@ -245,14 +304,17 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <ActivityIndicator color="#0D0D1A" />
               ) : (
                 <>
-                  <Feather name="share" size={18} color="#0D0D1A" />
-                  <Text style={s.primaryBtnText}>Export Backup</Text>
+                  <Feather name={Platform.OS === "web" ? "download" : "share"} size={18} color="#0D0D1A" />
+                  <Text style={s.primaryBtnText}>
+                    {Platform.OS === "web" ? "Download Backup" : "Export Backup"}
+                  </Text>
                 </>
               )}
             </Pressable>
             <Text style={s.hint}>
-              Opens the share sheet — save to Files, iCloud Drive, Google
-              Drive, email, or AirDrop.
+              {Platform.OS === "web"
+                ? "Saves mystical-runnings-backup.json to your Downloads folder."
+                : "Opens the share sheet — save to Files, iCloud Drive, Google Drive, email, or AirDrop."}
             </Text>
           </>
         ) : tab === "cloud" ? (
@@ -266,11 +328,18 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </Text>
             </View>
 
-            {cloudBackupDate != null && (
+            {cloudBackupDate != null ? (
               <View style={s.lastRow}>
                 <Feather name="check-circle" size={13} color="#4ADE80" />
                 <Text style={s.lastText}>
-                  Last cloud backup: {cloudBackupDate.toLocaleString()}
+                  Last cloud backup: {formatDate(cloudBackupDate)}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.lastRow}>
+                <Feather name="alert-circle" size={13} color={colors.mutedForeground} />
+                <Text style={[s.lastText, { color: colors.mutedForeground }]}>
+                  No cloud backup found for this device yet.
                 </Text>
               </View>
             )}
@@ -328,15 +397,14 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               <Text style={s.stepsTitle}>How it works</Text>
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>1</Text>
-                <Text style={s.stepText}>
-                  Tap "Choose Backup File" below.
-                </Text>
+                <Text style={s.stepText}>Tap "Choose Backup File" below.</Text>
               </View>
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>2</Text>
                 <Text style={s.stepText}>
-                  Navigate to where you saved your backup — iCloud Drive,
-                  Google Drive, Files, email attachment, etc.
+                  {Platform.OS === "web"
+                    ? "Select your backup file from wherever you saved it."
+                    : "Navigate to where you saved your backup — iCloud Drive, Google Drive, Files, email attachment, etc."}
                 </Text>
               </View>
               <View style={s.stepRow}>
@@ -364,8 +432,9 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               )}
             </Pressable>
             <Text style={s.hint}>
-              Opens your device file browser — navigate to iCloud Drive,
-              Google Drive, or wherever you stored the backup.
+              {Platform.OS === "web"
+                ? "Opens your browser's file picker — select your backup JSON file."
+                : "Opens your device file browser — navigate to iCloud Drive, Google Drive, or wherever you stored the backup."}
             </Text>
           </>
         )}
@@ -376,7 +445,10 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   if (Platform.OS === "web") {
     if (!visible) return null;
     return (
-      <View style={s.webOverlay} pointerEvents="box-none">
+      <View
+        style={[s.webOverlay, { position: "fixed" as unknown as "absolute" }]}
+        pointerEvents="box-none"
+      >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
           {sheetContent}
         </KeyboardAvoidingView>
@@ -405,12 +477,11 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 function styles(colors: any) {
   return StyleSheet.create({
     webOverlay: {
-      position: "absolute",
       top: 0,
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: "rgba(0,0,0,0.6)",
+      backgroundColor: "rgba(0,0,0,0.75)",
       zIndex: 9999,
     },
     container: {
@@ -439,10 +510,43 @@ function styles(colors: any) {
     closeBtn: {
       padding: 4,
     },
+    statusStrip: {
+      flexDirection: "row",
+      marginHorizontal: 20,
+      marginTop: 12,
+      backgroundColor: colors.card,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 10,
+      gap: 0,
+    },
+    statusItem: {
+      flex: 1,
+      alignItems: "center",
+      gap: 3,
+    },
+    statusDivider: {
+      width: 1,
+      backgroundColor: colors.border,
+      marginVertical: 2,
+    },
+    statusLabel: {
+      fontSize: 10,
+      color: colors.mutedForeground,
+      fontWeight: "500",
+      textAlign: "center",
+    },
+    statusValue: {
+      fontSize: 11,
+      color: colors.foreground,
+      fontWeight: "600",
+      textAlign: "center",
+    },
     tabRow: {
       flexDirection: "row",
       marginHorizontal: 20,
-      marginTop: 16,
+      marginTop: 12,
       marginBottom: 4,
       borderRadius: 10,
       backgroundColor: colors.card,
@@ -611,10 +715,24 @@ function styles(colors: any) {
       padding: 14,
       gap: 10,
     },
+    freqTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
     freqTitle: {
       fontSize: 13,
       fontWeight: "600",
       color: colors.foreground,
+    },
+    nextRunBadge: {
+      fontSize: 11,
+      color: "#D4A843",
+      fontWeight: "600",
+      backgroundColor: "#D4A84322",
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
     },
     freqRow: {
       flexDirection: "row",
@@ -646,6 +764,15 @@ function styles(colors: any) {
       fontSize: 12,
       color: colors.mutedForeground,
       lineHeight: 17,
+    },
+    lastAutoRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    lastAutoText: {
+      fontSize: 11,
+      color: colors.mutedForeground,
     },
   });
 }
