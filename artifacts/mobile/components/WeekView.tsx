@@ -16,6 +16,7 @@ import {
   getOseDay,
   EVENT_COLORS,
   OseGroup,
+  getTidalRows,
 } from "@/constants/spiritualData";
 import {
   getHolidaysForDate,
@@ -190,7 +191,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                       color: EVENT_COLORS["named-moon"],
                       description: namedMoon.description,
                       guidance: "Full moons illuminate what was hidden and call for release, gratitude, and completion. A sacred time for ritual and reflection.",
-                      rows: namedMoon.sign ? [{ label: "Sign", value: namedMoon.sign }] : [],
+                      rows: getTidalRows(namedMoon),
                     })}
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#A78BFA22", opacity: pressed ? 0.8 : 1 }]}
                   >
@@ -209,7 +210,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                         ? `The Dark Moon rests in ${darkMoon.sign} — a liminal threshold between endings and new beginnings.`
                         : "A liminal threshold between endings and new beginnings. The sky is void of moonlight.",
                       guidance: "Rest, retreat, and turn inward. Release what no longer serves. The next cycle begins soon — allow space for renewal.",
-                      rows: darkMoon.sign ? [{ label: "Sign", value: darkMoon.sign }] : [],
+                      rows: getTidalRows(darkMoon),
                     })}
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#4C1D9522", opacity: pressed ? 0.8 : 1 }]}
                   >
@@ -269,7 +270,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                       category: "WHEEL OF THE YEAR",
                       color: EVENT_COLORS.sabbat,
                       description: sabbat.description,
-                      guidance: "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy.",
+                      guidance: "Honor this turning of the wheel by lighting a candle, working with the land, and attuning to the season's elemental energy. Each sabbat opens a new tidal season — a distinct magical current of element, polarity, and intent.",
+                      rows: getTidalRows(sabbat),
                     })}
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#34D39922", opacity: pressed ? 0.8 : 1 }]}
                   >

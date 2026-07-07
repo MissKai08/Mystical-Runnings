@@ -706,6 +706,18 @@ export function getEclipseForDate(date: Date): WheelEvent | null {
   return ECLIPSES.find((e) => isSameDay(e.date, date)) ?? null;
 }
 
+/** Build the structured metadata rows for any WheelEvent (sabbat, named moon, dark moon). */
+export function getTidalRows(event: WheelEvent): { label: string; value: string }[] {
+  const rows: { label: string; value: string }[] = [];
+  if (event.sign)     rows.push({ label: "Sign",     value: event.sign });
+  if (event.tide)     rows.push({ label: "Tide",     value: event.tide });
+  if (event.polarity) rows.push({ label: "Polarity", value: event.polarity });
+  if (event.element)  rows.push({ label: "Element",  value: event.element });
+  if (event.intent)   rows.push({ label: "Intent",   value: event.intent });
+  if (event.timing)   rows.push({ label: "Timing",   value: event.timing });
+  return rows;
+}
+
 export function getStartOfWeek(date: Date): Date {
   const d = new Date(date);
   d.setDate(d.getDate() - d.getDay());

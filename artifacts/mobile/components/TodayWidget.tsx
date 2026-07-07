@@ -15,6 +15,7 @@ import {
   getEclipseForDate,
   addDays,
   EVENT_COLORS,
+  getTidalRows,
   type OseGroup,
 } from "@/constants/spiritualData";
 import * as Haptics from "expo-haptics";
@@ -47,7 +48,7 @@ function findNextEvent(today: Date): NextEvent | null {
           description: nm.description,
           guidance:
             "Full moons illuminate what was hidden and call for release, gratitude, and completion. A sacred time for ritual and reflection.",
-          rows: nm.sign ? [{ label: "Sign", value: nm.sign }] : [],
+          rows: getTidalRows(nm),
         },
       };
     }
@@ -69,7 +70,7 @@ function findNextEvent(today: Date): NextEvent | null {
             : "A liminal threshold between endings and new beginnings. The sky is void of moonlight.",
           guidance:
             "Rest, retreat, and turn inward. Release what no longer serves. The next cycle begins soon — allow space for renewal.",
-          rows: dm.sign ? [{ label: "Sign", value: dm.sign }] : [],
+          rows: getTidalRows(dm),
         },
       };
     }
@@ -109,7 +110,8 @@ function findNextEvent(today: Date): NextEvent | null {
           color: EVENT_COLORS.sabbat,
           description: sb.description,
           guidance:
-            "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy.",
+            "Honor this turning of the wheel by lighting a candle, working with the land, and attuning to the season's elemental energy. Each sabbat opens a new tidal season — a distinct magical current of element, polarity, and intent.",
+          rows: getTidalRows(sb),
         },
       };
     }

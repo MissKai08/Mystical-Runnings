@@ -14,6 +14,7 @@ import {
   getOseDay,
   formatDateLong,
   EVENT_COLORS,
+  getTidalRows,
 } from "@/constants/spiritualData";
 import {
   getHolidaysForDate,
@@ -59,7 +60,7 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
         description: namedMoon.description,
         guidance:
           "Full moons illuminate what was hidden and call for release, gratitude, and completion. A sacred time for ritual and reflection.",
-        rows: namedMoon.sign ? [{ label: "Sign", value: namedMoon.sign }] : [],
+        rows: getTidalRows(namedMoon),
       }
     : darkMoon
     ? {
@@ -71,7 +72,7 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
           : "A liminal threshold between endings and new beginnings. The sky is void of moonlight.",
         guidance:
           "Rest, retreat, and turn inward. Release what no longer serves. The next cycle begins soon — allow space for renewal.",
-        rows: darkMoon.sign ? [{ label: "Sign", value: darkMoon.sign }] : [],
+        rows: getTidalRows(darkMoon),
       }
     : {
         title: moon.name,
@@ -277,7 +278,8 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
             category: "WHEEL OF THE YEAR",
             color: "#34D399",
             description: sabbat.description,
-            guidance: "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy.",
+            guidance: "Honor this turning of the wheel by lighting a candle, working with the land, and attuning to the season's elemental energy. Each sabbat opens a new tidal season — a distinct magical current of element, polarity, and intent.",
+            rows: getTidalRows(sabbat),
           })}
           style={({ pressed }) => [
             styles.card,
