@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Modal,
   View,
@@ -10,6 +10,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Animated,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -18,7 +19,6 @@ import { useColors } from "@/hooks/useColors";
 import {
   exportBackup,
   importBackupFromFile,
-  confirmRestore,
   getLastBackupDate,
   getLastAutoBackupDate,
   getAutoBackupFrequency,
@@ -35,6 +35,17 @@ interface Props {
 }
 
 type Tab = "export" | "import" | "cloud";
+type FeedbackType = "success" | "error";
+
+interface Feedback {
+  type: FeedbackType;
+  message: string;
+}
+
+interface ConfirmState {
+  message: string;
+  onConfirm: () => void;
+}
 
 function formatDate(d: Date | null, fallback = "Never"): string {
   if (!d) return fallback;
@@ -58,6 +69,10 @@ function nextRunLabel(freq: AutoBackupFrequency, lastAuto: Date | null): string 
   return `In ~${mins}m`;
 }
 
+function shortDeviceId(id: string): string {
+  return id.split("-").pop() ?? id.slice(-8);
+}
+
 export function BackupRestoreModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -70,22 +85,51 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   const [lastAutoBackup, setLastAutoBackup] = useState<Date | null>(null);
   const [cloudBackupDate, setCloudBackupDate] = useState<Date | null>(null);
   const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("manual");
+  const [deviceId, setDeviceId] = useState<string>("");
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const feedbackOpacity = useRef(new Animated.Value(0)).current;
+
+  function showFeedback(type: FeedbackType, message: string) {
+    if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
+    setFeedback({ type, message });
+    Animated.sequence([
+      Animated.timing(feedbackOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+    feedbackTimer.current = setTimeout(() => {
+      Animated.timing(feedbackOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(
+        () => setFeedback(null)
+      );
+    }, 4000);
+  }
+
+  function requireConfirm(message: string, onConfirm: () => void) {
+    setConfirmState({ message, onConfirm });
+  }
 
   const refreshAll = useCallback(async () => {
-    const [manual, auto, cloud, freq] = await Promise.allSettled([
+    const { getDeviceId } = await import("@/utils/backup");
+    const [manual, auto, cloud, freq, devId] = await Promise.allSettled([
       getLastBackupDate(),
       getLastAutoBackupDate(),
       getCloudBackupDate(),
       getAutoBackupFrequency(),
+      getDeviceId(),
     ]);
     if (manual.status === "fulfilled") setLastBackup(manual.value);
     if (auto.status === "fulfilled") setLastAutoBackup(auto.value);
     if (cloud.status === "fulfilled") setCloudBackupDate(cloud.value);
     if (freq.status === "fulfilled") setAutoFreq(freq.value);
+    if (devId.status === "fulfilled") setDeviceId(devId.value);
   }, []);
 
   useEffect(() => {
-    if (visible) refreshAll();
+    if (visible) {
+      refreshAll();
+      setFeedback(null);
+      setConfirmState(null);
+    }
   }, [visible, refreshAll]);
 
   async function handleFreqChange(freq: AutoBackupFrequency) {
@@ -100,12 +144,15 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     try {
       await exportBackup();
       await refreshAll();
-      if (Platform.OS !== "web") {
-        Alert.alert("✦ Exported", "Your backup file has been saved.");
+      if (Platform.OS === "web") {
+        showFeedback("success", "✦ Backup downloaded to your Downloads folder.");
+      } else {
+        showFeedback("success", "✦ Backup exported successfully.");
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Export failed.";
-      Alert.alert("Export Failed", msg);
+      if (Platform.OS !== "web") Alert.alert("Export Failed", msg);
+      else showFeedback("error", `Export failed: ${msg}`);
     } finally {
       setExporting(false);
     }
@@ -118,55 +165,58 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
       await uploadBackupToCloud();
       await refreshAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("✦ Saved", "Your backup has been saved to the cloud.");
+      showFeedback("success", "✦ Backup saved to cloud. Timestamp updated above.");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Upload failed.";
-      Alert.alert("Cloud Upload Failed", msg);
+      showFeedback("error", `Cloud upload failed: ${msg}`);
     } finally {
       setCloudUploading(false);
     }
   }
 
   function handleCloudRestore() {
-    confirmRestore(async () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      setCloudRestoring(true);
-      try {
-        await downloadBackupFromCloud();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "✦ Restored",
-          "Your cloud backup has been restored. Restart the app for all changes to take effect.",
-          [{ text: "OK", onPress: onClose }]
-        );
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Restore failed.";
-        Alert.alert("Cloud Restore Failed", msg);
-      } finally {
-        setCloudRestoring(false);
+    requireConfirm(
+      "This will overwrite all current data with your cloud backup. Export a local copy first if needed.",
+      async () => {
+        setConfirmState(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        setCloudRestoring(true);
+        try {
+          await downloadBackupFromCloud();
+          await refreshAll();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showFeedback("success", "✦ Cloud backup restored. Restart the app to see all changes.");
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : "Restore failed.";
+          showFeedback("error", `Restore failed: ${msg}`);
+        } finally {
+          setCloudRestoring(false);
+        }
       }
-    });
+    );
   }
 
   function handleImport() {
-    confirmRestore(async () => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      setImporting(true);
-      try {
-        await importBackupFromFile();
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "✦ Restored",
-          "Your data has been restored. Restart the app for all changes to take effect.",
-          [{ text: "OK", onPress: onClose }]
-        );
-      } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Restore failed.";
-        if (msg !== "canceled") Alert.alert("Restore Failed", msg);
-      } finally {
-        setImporting(false);
+    requireConfirm(
+      "This will overwrite all current data with the selected backup file. Export a local copy first if needed.",
+      async () => {
+        setConfirmState(null);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        setImporting(true);
+        try {
+          await importBackupFromFile();
+          await refreshAll();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          showFeedback("success", "✦ Backup restored. Restart the app to see all changes.");
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : "Restore failed.";
+          if (msg !== "canceled") showFeedback("error", `Restore failed: ${msg}`);
+          else setConfirmState(null);
+        } finally {
+          setImporting(false);
+        }
       }
-    });
+    );
   }
 
   const s = styles(colors);
@@ -208,7 +258,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
           <Pressable
             key={t}
             style={[s.tab, tab === t && s.tabActive]}
-            onPress={() => { Haptics.selectionAsync(); setTab(t); }}
+            onPress={() => { Haptics.selectionAsync(); setTab(t); setConfirmState(null); }}
           >
             <Feather
               name={t === "export" ? "upload" : t === "import" ? "download" : "cloud"}
@@ -223,6 +273,22 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content}>
+        {/* In-modal confirm banner */}
+        {confirmState && (
+          <View style={s.confirmCard}>
+            <Feather name="alert-triangle" size={16} color="#F59E0B" />
+            <Text style={s.confirmText}>{confirmState.message}</Text>
+            <View style={s.confirmBtns}>
+              <Pressable style={s.confirmCancel} onPress={() => setConfirmState(null)}>
+                <Text style={s.confirmCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={s.confirmOk} onPress={confirmState.onConfirm}>
+                <Text style={s.confirmOkText}>Yes, overwrite</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+
         {tab === "export" ? (
           <>
             <View style={s.infoCard}>
@@ -234,26 +300,18 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </Text>
             </View>
 
-            {Platform.OS !== "web" && (
-              <View style={s.cloudCard}>
-                <Text style={s.cloudTitle}>☁ Cloud Sync</Text>
-                <Text style={s.cloudBody}>
-                  The backup is saved to your device's Documents folder —
-                  automatically included in{" "}
-                  <Text style={s.highlight}>iCloud Drive</Text> on iOS and{" "}
-                  <Text style={s.highlight}>Google Drive</Text> on Android.
-                </Text>
-              </View>
-            )}
-            {Platform.OS === "web" && (
-              <View style={s.cloudCard}>
-                <Text style={s.cloudTitle}>⬇ Browser Download</Text>
-                <Text style={s.cloudBody}>
-                  Downloads <Text style={s.highlight}>mystical-runnings-backup.json</Text> directly
-                  to your Downloads folder.
-                </Text>
-              </View>
-            )}
+            <View style={s.locationCard}>
+              <Text style={s.locationTitle}>
+                {Platform.OS === "web" ? "⬇ Where it saves" : "📁 Where it saves"}
+              </Text>
+              <Text style={s.locationBody}>
+                {Platform.OS === "web"
+                  ? "File: mystical-runnings-backup.json\nLocation: Your device's Downloads folder\nOpen your Files or Downloads app to find it."
+                  : Platform.OS === "ios"
+                  ? "File: mystical-runnings-backup.json\nLocation: On My iPhone › iCloud Drive (auto-syncs)\nShare sheet opens to send it anywhere."
+                  : "File: mystical-runnings-backup.json\nLocation: Internal storage › Documents\nShare sheet opens to send it anywhere."}
+              </Text>
+            </View>
 
             {/* Auto-backup frequency */}
             <View style={s.freqCard}>
@@ -280,7 +338,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </View>
               <Text style={s.freqHint}>
                 {autoFreq === "manual"
-                  ? "Backups only happen when you tap Export below."
+                  ? "Backups only happen when you tap the button below."
                   : autoFreq === "daily"
                   ? "A silent backup runs once per day when you open the app."
                   : "A silent backup runs once per week when you open the app."}
@@ -311,11 +369,6 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 </>
               )}
             </Pressable>
-            <Text style={s.hint}>
-              {Platform.OS === "web"
-                ? "Saves mystical-runnings-backup.json to your Downloads folder."
-                : "Opens the share sheet — save to Files, iCloud Drive, Google Drive, email, or AirDrop."}
-            </Text>
           </>
         ) : tab === "cloud" ? (
           <>
@@ -328,21 +381,15 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </Text>
             </View>
 
-            {cloudBackupDate != null ? (
-              <View style={s.lastRow}>
-                <Feather name="check-circle" size={13} color="#4ADE80" />
-                <Text style={s.lastText}>
-                  Last cloud backup: {formatDate(cloudBackupDate)}
-                </Text>
-              </View>
-            ) : (
-              <View style={s.lastRow}>
-                <Feather name="alert-circle" size={13} color={colors.mutedForeground} />
-                <Text style={[s.lastText, { color: colors.mutedForeground }]}>
-                  No cloud backup found for this device yet.
-                </Text>
-              </View>
-            )}
+            <View style={s.locationCard}>
+              <Text style={s.locationTitle}>☁ Backup location</Text>
+              <Text style={s.locationBody}>
+                {"Stored on: Mystical Runnings server\nDevice ID: …" +
+                  shortDeviceId(deviceId) +
+                  "\nLast saved: " +
+                  formatDate(cloudBackupDate)}
+              </Text>
+            </View>
 
             <Pressable
               style={[s.primaryBtn, cloudUploading && s.btnDisabled]}
@@ -358,14 +405,9 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 </>
               )}
             </Pressable>
-            <Text style={s.hint}>Uploads a full snapshot of your data to the server.</Text>
+            <Text style={s.hint}>Uploads a full snapshot — timestamp above will update.</Text>
 
-            <View style={[s.warningCard, { marginTop: 16 }]}>
-              <Feather name="alert-triangle" size={14} color="#F59E0B" />
-              <Text style={s.warningText}>
-                Restoring from cloud will overwrite all current data. Export a local backup first if needed.
-              </Text>
-            </View>
+            <View style={s.divider} />
 
             <Pressable
               style={[s.primaryBtn, { backgroundColor: "#7C3AED" }, cloudRestoring && s.btnDisabled]}
@@ -381,20 +423,27 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 </>
               )}
             </Pressable>
-            <Text style={s.hint}>Downloads and restores your most recent cloud backup.</Text>
+            <Text style={s.hint}>
+              {cloudBackupDate
+                ? `Restores your backup from ${formatDate(cloudBackupDate)}.`
+                : "No cloud backup found for this device yet."}
+            </Text>
           </>
         ) : (
           <>
-            <View style={s.warningCard}>
-              <Feather name="alert-triangle" size={14} color="#F59E0B" />
-              <Text style={s.warningText}>
-                Restoring will overwrite all current data. This cannot be
-                undone. Export a fresh backup first if needed.
+            <View style={s.locationCard}>
+              <Text style={s.locationTitle}>📂 How to find your backup file</Text>
+              <Text style={s.locationBody}>
+                {Platform.OS === "web"
+                  ? "After exporting, open your Downloads folder or the Files app on your device. Look for mystical-runnings-backup.json."
+                  : Platform.OS === "ios"
+                  ? "Open the Files app › On My iPhone or iCloud Drive. Look for mystical-runnings-backup.json."
+                  : "Open the Files app › Internal storage › Downloads. Look for mystical-runnings-backup.json."}
               </Text>
             </View>
 
             <View style={s.stepsCard}>
-              <Text style={s.stepsTitle}>How it works</Text>
+              <Text style={s.stepsTitle}>Steps</Text>
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>1</Text>
                 <Text style={s.stepText}>Tap "Choose Backup File" below.</Text>
@@ -403,16 +452,14 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <Text style={s.stepNum}>2</Text>
                 <Text style={s.stepText}>
                   {Platform.OS === "web"
-                    ? "Select your backup file from wherever you saved it."
-                    : "Navigate to where you saved your backup — iCloud Drive, Google Drive, Files, email attachment, etc."}
+                    ? "Navigate to Downloads and select your backup file."
+                    : "Navigate to where you saved your backup — Downloads, iCloud Drive, Google Drive, etc."}
                 </Text>
               </View>
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>3</Text>
                 <Text style={s.stepText}>
-                  Select{" "}
-                  <Text style={s.mono}>mystical-runnings-backup.json</Text>{" "}
-                  and your data will be restored automatically.
+                  Select <Text style={s.mono}>mystical-runnings-backup.json</Text> — your data will be restored.
                 </Text>
               </View>
             </View>
@@ -431,14 +478,27 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 </>
               )}
             </Pressable>
-            <Text style={s.hint}>
-              {Platform.OS === "web"
-                ? "Opens your browser's file picker — select your backup JSON file."
-                : "Opens your device file browser — navigate to iCloud Drive, Google Drive, or wherever you stored the backup."}
-            </Text>
           </>
         )}
       </ScrollView>
+
+      {/* In-modal feedback toast */}
+      {feedback && (
+        <Animated.View
+          style={[
+            s.feedbackBanner,
+            feedback.type === "success" ? s.feedbackSuccess : s.feedbackError,
+            { opacity: feedbackOpacity },
+          ]}
+        >
+          <Feather
+            name={feedback.type === "success" ? "check-circle" : "alert-circle"}
+            size={16}
+            color={feedback.type === "success" ? "#4ADE80" : "#F87171"}
+          />
+          <Text style={s.feedbackText}>{feedback.message}</Text>
+        </Animated.View>
+      )}
     </View>
   );
 
@@ -519,7 +579,6 @@ function styles(colors: any) {
       borderWidth: 1,
       borderColor: colors.border,
       padding: 10,
-      gap: 0,
     },
     statusItem: {
       flex: 1,
@@ -579,6 +638,48 @@ function styles(colors: any) {
       padding: 20,
       gap: 14,
     },
+    confirmCard: {
+      backgroundColor: "#1C1300",
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: "#F59E0B66",
+      padding: 16,
+      gap: 12,
+    },
+    confirmText: {
+      fontSize: 13,
+      color: "#F59E0B",
+      lineHeight: 19,
+    },
+    confirmBtns: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    confirmCancel: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: 10,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    confirmCancelText: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.mutedForeground,
+    },
+    confirmOk: {
+      flex: 1,
+      alignItems: "center",
+      paddingVertical: 10,
+      borderRadius: 8,
+      backgroundColor: "#7C3AED",
+    },
+    confirmOkText: {
+      fontSize: 13,
+      fontWeight: "700",
+      color: "#fff",
+    },
     infoCard: {
       flexDirection: "row",
       gap: 10,
@@ -595,7 +696,7 @@ function styles(colors: any) {
       color: colors.mutedForeground,
       lineHeight: 19,
     },
-    cloudCard: {
+    locationCard: {
       backgroundColor: "#1A1A2E",
       borderRadius: 12,
       borderWidth: 1,
@@ -603,28 +704,15 @@ function styles(colors: any) {
       padding: 14,
       gap: 8,
     },
-    cloudTitle: {
+    locationTitle: {
       fontSize: 13,
       fontWeight: "600",
       color: "#D4A843",
     },
-    cloudBody: {
+    locationBody: {
       fontSize: 13,
       color: colors.mutedForeground,
-      lineHeight: 19,
-    },
-    highlight: {
-      color: "#A78BFA",
-      fontWeight: "600",
-    },
-    lastRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
-    lastText: {
-      fontSize: 12,
-      color: "#4ADE80",
+      lineHeight: 20,
     },
     primaryBtn: {
       flexDirection: "row",
@@ -634,7 +722,6 @@ function styles(colors: any) {
       backgroundColor: "#D4A843",
       borderRadius: 12,
       paddingVertical: 14,
-      marginTop: 4,
     },
     btnDisabled: {
       opacity: 0.6,
@@ -650,21 +737,9 @@ function styles(colors: any) {
       textAlign: "center",
       lineHeight: 17,
     },
-    warningCard: {
-      flexDirection: "row",
-      gap: 10,
-      backgroundColor: "#1C1300",
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: "#F59E0B44",
-      padding: 14,
-      alignItems: "flex-start",
-    },
-    warningText: {
-      flex: 1,
-      fontSize: 13,
-      color: "#F59E0B",
-      lineHeight: 19,
+    divider: {
+      height: 1,
+      backgroundColor: colors.border,
     },
     stepsCard: {
       backgroundColor: colors.card,
@@ -773,6 +848,39 @@ function styles(colors: any) {
     lastAutoText: {
       fontSize: 11,
       color: colors.mutedForeground,
+    },
+    feedbackBanner: {
+      position: "absolute",
+      bottom: 24,
+      left: 20,
+      right: 20,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      borderRadius: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 8,
+    },
+    feedbackSuccess: {
+      backgroundColor: "#052E16",
+      borderWidth: 1,
+      borderColor: "#4ADE8044",
+    },
+    feedbackError: {
+      backgroundColor: "#2D0A0A",
+      borderWidth: 1,
+      borderColor: "#F8717144",
+    },
+    feedbackText: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.foreground,
+      lineHeight: 18,
     },
   });
 }
