@@ -28,6 +28,7 @@ import {
   EVENT_COLORS,
   addDays,
   formatDateShort,
+  getTidalRows,
 } from "@/constants/spiritualData";
 import { getDailyWisdom } from "@/constants/dailyWisdom";
 import { getDailyProverb } from "@/constants/ifaProverbs";
@@ -300,12 +301,12 @@ export default function HomeScreen() {
 
       if (nm) events.push({
         label: nm.name, dotColor: EVENT_COLORS["named-moon"],
-        detail: { title: nm.name, category: "FULL MOON", color: EVENT_COLORS["named-moon"], description: nm.description, guidance: "Full moons illuminate what was hidden and call for release, gratitude, and completion.", rows: nm.sign ? [{ label: "Sign", value: nm.sign }] : [] },
+        detail: { title: nm.name, category: "FULL MOON", color: EVENT_COLORS["named-moon"], description: nm.description, guidance: "Full moons illuminate what was hidden and call for release, gratitude, and completion.", rows: getTidalRows(nm) },
       });
       else if (dm) {
         events.push({
           label: "Dark Moon" + (dm.sign ? ` — ${dm.sign}` : ""), dotColor: EVENT_COLORS["dark-moon"],
-          detail: { title: "Dark Moon", category: "DARK MOON", color: EVENT_COLORS["dark-moon"], description: dm.sign ? `The Dark Moon rests in ${dm.sign} — a liminal threshold between endings and new beginnings.` : "A liminal threshold between endings and new beginnings.", guidance: "Rest, retreat, and turn inward. Release what no longer serves.", rows: dm.sign ? [{ label: "Sign", value: dm.sign }] : [] },
+          detail: { title: "Dark Moon", category: "DARK MOON", color: EVENT_COLORS["dark-moon"], description: dm.sign ? `The Dark Moon rests in ${dm.sign} — a liminal threshold between endings and new beginnings.` : "A liminal threshold between endings and new beginnings.", guidance: "Rest, retreat, and turn inward. Release what no longer serves.", rows: getTidalRows(dm) },
         });
         if (m.isMajorPhase && m.eventType === "new-moon") events.push({
           label: "New Moon", dotColor: EVENT_COLORS["new-moon"],
@@ -322,7 +323,7 @@ export default function HomeScreen() {
       });
       if (s) events.push({
         label: s.name.split(" —")[0], dotColor: EVENT_COLORS.sabbat,
-        detail: { title: s.name, category: "WHEEL OF THE YEAR", color: EVENT_COLORS.sabbat, description: s.description, guidance: "Honor this turning of the wheel. Light a candle, work with the land, and attune to the season's shifting energy." },
+        detail: { title: s.name, category: "WHEEL OF THE YEAR", color: EVENT_COLORS.sabbat, description: s.description, guidance: "Honor this turning of the wheel by lighting a candle, working with the land, and attuning to the season's elemental energy. Each sabbat opens a new tidal season — a distinct magical current of element, polarity, and intent.", rows: getTidalRows(s) },
       });
       if (r && !getMercuryRetrogradeInfo(addDays(today, i - 1))) events.push({
         label: "Mercury Retrograde begins", dotColor: EVENT_COLORS.retrograde,
