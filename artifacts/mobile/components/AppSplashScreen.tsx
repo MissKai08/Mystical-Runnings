@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
   View,
+  Image,
   StyleSheet,
-  ImageBackground,
-  Dimensions,
+  useWindowDimensions,
 } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
-
-const { width: SCREEN_W } = Dimensions.get("window");
 
 const SPLASH_IMAGE = require("../assets/images/splash.png");
 
@@ -17,6 +15,7 @@ interface Props {
 }
 
 export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
+  const { width, height } = useWindowDimensions();
   const [progress, setProgress] = useState(0);
   const [timerDone, setTimerDone] = useState(false);
 
@@ -52,40 +51,37 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
   }, [timerDone, fontsLoaded]);
 
   return (
-    <ImageBackground
-      source={SPLASH_IMAGE}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <View style={styles.progressSection}>
+    <View style={[styles.container, { width, height }]}>
+      <Image
+        source={SPLASH_IMAGE}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+      />
+      <View style={[styles.progressSection, { width: width - 88 }]}>
         <View style={styles.progressTrack}>
           <View
-            style={[
-              styles.progressFill,
-              { width: `${progress}%` },
-            ]}
+            style={[styles.progressFill, { width: `${progress}%` as `${number}%` }]}
           />
           <View
-            style={[
-              styles.progressTip,
-              { left: `${progress}%`, marginLeft: -4 },
-            ]}
+            style={[styles.progressTip, { left: `${progress}%` as `${number}%`, marginLeft: -4 }]}
           />
         </View>
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    zIndex: 9999,
     alignItems: "center",
     justifyContent: "flex-end",
-    zIndex: 9999,
+    overflow: "hidden",
   },
   progressSection: {
-    width: SCREEN_W - 88,
     marginBottom: 72,
   },
   progressTrack: {

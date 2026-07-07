@@ -120,6 +120,13 @@ function buildYearEntries(year: number, today: Date, specialEntries: SpecialCale
   // Named full moons
   for (const m of NAMED_FULL_MOONS) {
     if (m.date.getFullYear() !== year) continue;
+    const moonRows: { label: string; value: string }[] = [];
+    if (m.sign)     moonRows.push({ label: "Sign",    value: m.sign });
+    if (m.tide)     moonRows.push({ label: "Tide",    value: m.tide });
+    if (m.polarity) moonRows.push({ label: "Polarity", value: m.polarity });
+    if (m.element)  moonRows.push({ label: "Element",  value: m.element });
+    if (m.intent)   moonRows.push({ label: "Intent",   value: m.intent });
+    if (m.timing)   moonRows.push({ label: "Timing",   value: m.timing });
     entries.push({
       date: m.date,
       label: m.name,
@@ -128,7 +135,7 @@ function buildYearEntries(year: number, today: Date, specialEntries: SpecialCale
       emoji: "🌕",
       type: "named-moon",
       description: m.description,
-      rows: m.sign ? [{ label: "Sign", value: m.sign }] : [],
+      rows: moonRows,
       isToday: isSameDay(m.date, today),
     });
   }
@@ -138,6 +145,13 @@ function buildYearEntries(year: number, today: Date, specialEntries: SpecialCale
     if (m.date.getFullYear() !== year) continue;
     const phaseData = getMoonPhaseData(m.date);
     const isAlsoNewMoon = phaseData.isMajorPhase && phaseData.eventType === "new-moon";
+    const darkRows: { label: string; value: string }[] = [];
+    if (m.sign)     darkRows.push({ label: "Sign",    value: m.sign });
+    if (m.tide)     darkRows.push({ label: "Tide",    value: m.tide });
+    if (m.polarity) darkRows.push({ label: "Polarity", value: m.polarity });
+    if (m.element)  darkRows.push({ label: "Element",  value: m.element });
+    if (m.intent)   darkRows.push({ label: "Intent",   value: m.intent });
+    if (m.timing)   darkRows.push({ label: "Timing",   value: m.timing });
     entries.push({
       date: m.date,
       label: isAlsoNewMoon ? "Dark Moon · New Moon" : "Dark Moon",
@@ -148,7 +162,7 @@ function buildYearEntries(year: number, today: Date, specialEntries: SpecialCale
       description: m.sign
         ? `The Dark Moon${isAlsoNewMoon ? " and New Moon coincide" : ""} in ${m.sign} — a liminal threshold between endings and new beginnings. The sky is void of moonlight.`
         : "A liminal threshold between endings and new beginnings. The sky holds no reflected moonlight.",
-      rows: m.sign ? [{ label: "Sign", value: m.sign }] : [],
+      rows: darkRows,
       isToday: isSameDay(m.date, today),
     });
   }
