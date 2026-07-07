@@ -87,6 +87,29 @@ export async function exportBackup(destination: BackupDestination = "local"): Pr
 
   if (Platform.OS === "web") {
     const blob = new Blob([json], { type: "application/json" });
+
+    // Cloud on web: use the native Web Share API (supported in Chrome on Android/iOS)
+    // This opens the system share sheet so the user can pick Google Drive, email, etc.
+    if (destination === "cloud" && typeof navigator !== "undefined" && "share" in navigator) {
+      const WebFile = globalThis.File as new (parts: BlobPart[], name: string, opts?: FilePropertyBag) => globalThis.File;
+      const shareFile = new WebFile([blob], BACKUP_FILENAME, { type: "application/json" });
+      const nav = navigator as Navigator & {
+        canShare?: (d: object) => boolean;
+        share: (d: object) => Promise<void>;
+      };
+      const canShare = nav.canShare ? nav.canShare({ files: [shareFile] }) : true;
+      if (canShare) {
+        await nav.share({
+          files: [shareFile],
+          title: "Mystical Runnings Backup",
+          text: "My Mystical Runnings backup file",
+        });
+        await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
+        return;
+      }
+    }
+
+    // Local on web (or Cloud fallback if share API unavailable): browser download
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

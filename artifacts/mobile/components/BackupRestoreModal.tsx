@@ -155,7 +155,9 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     try {
       await exportBackup(exportDest);
       await refreshAll();
-      if (Platform.OS === "web") {
+      if (Platform.OS === "web" && exportDest === "cloud") {
+        showFeedback("success", "✦ Share sheet opened — choose Google Drive, email, or anywhere you like.");
+      } else if (Platform.OS === "web") {
         showFeedback("success", "✦ Backup downloaded — check your Downloads folder.");
       } else if (exportDest === "cloud") {
         showFeedback("success", "✦ Share sheet opened — save to iCloud Drive, Google Drive, or anywhere you like.");
@@ -212,32 +214,26 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   }) {
     return (
       <View style={s.destRow}>
-        <Pressable
-          style={[s.destChip, value === "local" && s.destChipActive]}
-          onPress={() => onChange("local")}
-        >
-          <Feather
-            name="hard-drive"
-            size={13}
-            color={value === "local" ? "#D4A843" : colors.mutedForeground}
-          />
-          <Text style={[s.destChipText, value === "local" && s.destChipTextActive]}>
-            {localLabel}
-          </Text>
-        </Pressable>
-        <Pressable
-          style={[s.destChip, value === "cloud" && s.destChipActive]}
-          onPress={() => onChange("cloud")}
-        >
-          <Feather
-            name="cloud"
-            size={13}
-            color={value === "cloud" ? "#D4A843" : colors.mutedForeground}
-          />
-          <Text style={[s.destChipText, value === "cloud" && s.destChipTextActive]}>
-            {cloudLabel}
-          </Text>
-        </Pressable>
+        {(["local", "cloud"] as BackupDestination[]).map((d) => {
+          const isActive = value === d;
+          return (
+            <Pressable
+              key={d}
+              style={[s.destChip, isActive && s.destChipActive]}
+              onPress={() => onChange(d)}
+            >
+              {isActive && <View style={s.destCheckDot} />}
+              <Feather
+                name={d === "local" ? "hard-drive" : "cloud"}
+                size={14}
+                color={isActive ? "#0D0D1A" : colors.mutedForeground}
+              />
+              <Text style={[s.destChipText, isActive && s.destChipTextActive]}>
+                {d === "local" ? localLabel : cloudLabel}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
     );
   }
@@ -780,22 +776,27 @@ function styles(colors: any) {
       alignItems: "center",
       justifyContent: "center",
       gap: 6,
-      paddingVertical: 8,
+      paddingVertical: 10,
       borderRadius: 8,
-      borderWidth: 1,
+      borderWidth: 1.5,
       borderColor: colors.border,
+      backgroundColor: "transparent",
     },
     destChipActive: {
       borderColor: "#D4A843",
-      backgroundColor: "#D4A84322",
+      backgroundColor: "#D4A843",
     },
     destChipText: {
-      fontSize: 12,
+      fontSize: 13,
       fontWeight: "600",
       color: colors.mutedForeground,
     },
     destChipTextActive: {
-      color: "#D4A843",
+      color: "#0D0D1A",
+      fontWeight: "700",
+    },
+    destCheckDot: {
+      display: "none",
     },
     lastRow: {
       flexDirection: "row",
