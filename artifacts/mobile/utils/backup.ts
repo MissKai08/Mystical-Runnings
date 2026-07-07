@@ -169,6 +169,58 @@ export async function runAutoBackupIfDue(): Promise<void> {
   }
 }
 
+const DEVICE_ID_KEY = "@mystical_device_id";
+
+export async function getDeviceId(): Promise<string> {
+  const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
+  if (existing) return existing;
+  const id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+  await AsyncStorage.setItem(DEVICE_ID_KEY, id);
+  return id;
+}
+
+function getApiBase(): string {
+  const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
+  if (!domain) throw new Error("EXPO_PUBLIC_DOMAIN is not set");
+  return `https://${domain}/api`;
+}
+
+export async function uploadBackupToCloud(): Promise<void> {
+  const deviceId = await getDeviceId();
+  const backup = await buildBackupData();
+  const data = JSON.stringify(backup);
+  const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ data }),
+  });
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+}
+
+export async function downloadBackupFromCloud(): Promise<void> {
+  const deviceId = await getDeviceId();
+  const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`);
+  if (res.status === 404) throw new Error("No cloud backup found for this device.");
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  const { data } = (await res.json()) as { data: string };
+  await restoreFromJson(data);
+}
+
+export async function getCloudBackupDate(): Promise<Date | null> {
+  try {
+    const deviceId = await getDeviceId();
+    const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`);
+    if (!res.ok) return null;
+    const { updatedAt } = (await res.json()) as { updatedAt: string };
+    return new Date(updatedAt);
+  } catch {
+    return null;
+  }
+}
+
 export function confirmRestore(onConfirm: () => void): void {
   Alert.alert(
     "Restore Backup",

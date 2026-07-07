@@ -23,6 +23,9 @@ import {
   getAutoBackupFrequency,
   setAutoBackupFrequency,
   AutoBackupFrequency,
+  uploadBackupToCloud,
+  downloadBackupFromCloud,
+  getCloudBackupDate,
 } from "@/utils/backup";
 
 interface Props {
@@ -30,7 +33,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = "export" | "import";
+type Tab = "export" | "import" | "cloud";
 
 export function BackupRestoreModal({ visible, onClose }: Props) {
   const colors = useColors();
@@ -38,7 +41,10 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   const [tab, setTab] = useState<Tab>("export");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [cloudUploading, setCloudUploading] = useState(false);
+  const [cloudRestoring, setCloudRestoring] = useState(false);
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
+  const [cloudBackupDate, setCloudBackupDate] = useState<Date | null>(null);
   const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("manual");
 
   const refreshLastBackup = useCallback(async () => {
@@ -46,12 +52,18 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     setLastBackup(d);
   }, []);
 
+  const refreshCloudDate = useCallback(async () => {
+    const d = await getCloudBackupDate();
+    setCloudBackupDate(d);
+  }, []);
+
   useEffect(() => {
     if (visible) {
       refreshLastBackup();
+      refreshCloudDate();
       getAutoBackupFrequency().then(setAutoFreq).catch(() => {});
     }
-  }, [visible, refreshLastBackup]);
+  }, [visible, refreshLastBackup, refreshCloudDate]);
 
   async function handleFreqChange(freq: AutoBackupFrequency) {
     Haptics.selectionAsync();
@@ -71,6 +83,43 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     } finally {
       setExporting(false);
     }
+  }
+
+  async function handleCloudUpload() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCloudUploading(true);
+    try {
+      await uploadBackupToCloud();
+      await refreshCloudDate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✦ Saved", "Your backup has been saved to the cloud.");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Upload failed.";
+      Alert.alert("Cloud Upload Failed", msg);
+    } finally {
+      setCloudUploading(false);
+    }
+  }
+
+  function handleCloudRestore() {
+    confirmRestore(async () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setCloudRestoring(true);
+      try {
+        await downloadBackupFromCloud();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "✦ Restored",
+          "Your cloud backup has been restored. Restart the app for all changes to take effect.",
+          [{ text: "OK", onPress: onClose }]
+        );
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Restore failed.";
+        Alert.alert("Cloud Restore Failed", msg);
+      } finally {
+        setCloudRestoring(false);
+      }
+    });
   }
 
   function handleImport() {
@@ -121,19 +170,19 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 
           {/* Tabs */}
           <View style={s.tabRow}>
-            {(["export", "import"] as Tab[]).map((t) => (
+            {(["export", "import", "cloud"] as Tab[]).map((t) => (
               <Pressable
                 key={t}
                 style={[s.tab, tab === t && s.tabActive]}
                 onPress={() => { Haptics.selectionAsync(); setTab(t); }}
               >
                 <Feather
-                  name={t === "export" ? "upload" : "download"}
+                  name={t === "export" ? "upload" : t === "import" ? "download" : "cloud"}
                   size={14}
                   color={tab === t ? "#D4A843" : colors.mutedForeground}
                 />
                 <Text style={[s.tabText, tab === t && s.tabTextActive]}>
-                  {t === "export" ? "Export" : "Restore"}
+                  {t === "export" ? "Export" : t === "import" ? "Restore" : "Cloud"}
                 </Text>
               </Pressable>
             ))}
@@ -215,6 +264,65 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   Opens the share sheet — save to Files, iCloud Drive, Google
                   Drive, email, or AirDrop.
                 </Text>
+              </>
+            ) : tab === "cloud" ? (
+              <>
+                <View style={s.infoCard}>
+                  <Feather name="cloud" size={14} color="#D4A843" />
+                  <Text style={s.infoText}>
+                    Cloud backup stores your data on the Mystical Runnings server,
+                    identified by this device. Use it to move data between devices
+                    or as an off-device safety net.
+                  </Text>
+                </View>
+
+                {cloudBackupDate != null && (
+                  <View style={s.lastRow}>
+                    <Feather name="check-circle" size={13} color="#4ADE80" />
+                    <Text style={s.lastText}>
+                      Last cloud backup: {cloudBackupDate.toLocaleString()}
+                    </Text>
+                  </View>
+                )}
+
+                <Pressable
+                  style={[s.primaryBtn, cloudUploading && s.btnDisabled]}
+                  onPress={handleCloudUpload}
+                  disabled={cloudUploading}
+                >
+                  {cloudUploading ? (
+                    <ActivityIndicator color="#0D0D1A" />
+                  ) : (
+                    <>
+                      <Feather name="upload-cloud" size={18} color="#0D0D1A" />
+                      <Text style={s.primaryBtnText}>Save to Cloud</Text>
+                    </>
+                  )}
+                </Pressable>
+                <Text style={s.hint}>Uploads a full snapshot of your data to the server.</Text>
+
+                <View style={[s.warningCard, { marginTop: 16 }]}>
+                  <Feather name="alert-triangle" size={14} color="#F59E0B" />
+                  <Text style={s.warningText}>
+                    Restoring from cloud will overwrite all current data. Export a local backup first if needed.
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={[s.primaryBtn, { backgroundColor: "#7C3AED" }, cloudRestoring && s.btnDisabled]}
+                  onPress={handleCloudRestore}
+                  disabled={cloudRestoring}
+                >
+                  {cloudRestoring ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Feather name="download-cloud" size={18} color="#fff" />
+                      <Text style={[s.primaryBtnText, { color: "#fff" }]}>Restore from Cloud</Text>
+                    </>
+                  )}
+                </Pressable>
+                <Text style={s.hint}>Downloads and restores your most recent cloud backup.</Text>
               </>
             ) : (
               <>

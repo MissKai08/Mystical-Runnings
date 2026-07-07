@@ -14,6 +14,7 @@ import {
   getMercuryRetrogradeInfo,
   isIfaPrayerDay,
   getIfaFestivalForDate,
+  getSabbatForDate,
 } from "@/constants/spiritualData";
 import {
   getHolidaysForDate,
@@ -108,6 +109,7 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
                 </View>
                 <View style={styles.dotsRow}>
                   {moon.isMajorPhase && <EventDot type={moon.eventType} size={4} />}
+                  {getSabbatForDate(day) && <View style={[styles.sabbatDot]} />}
                   {retrograde && <EventDot type="retrograde" size={4} />}
                   {prayerDay && ifaEnabled && <EventDot type="ifa-prayer" size={4} />}
                   {festival && ifaEnabled && <EventDot type="ifa-festival" size={4} />}
@@ -193,5 +195,11 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 2.5,
     opacity: 0.9,
+  },
+  sabbatDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#34D399",
   },
 });
