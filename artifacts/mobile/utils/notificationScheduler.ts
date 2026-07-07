@@ -402,6 +402,32 @@ function notifDate(eventDate: Date, advanceDays: number): Date {
   return d;
 }
 
+const TODAY_ALERT_KEY = "@mystical_today_alert_date";
+
+export async function checkAndAlertTodayEvents(settings: NotificationSettings): Promise<void> {
+  if (!settings.masterEnabled || !settings.types.dailyBriefing) return;
+  try {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    const last = await import("@react-native-async-storage/async-storage").then((m) => m.default.getItem(TODAY_ALERT_KEY));
+    if (last === todayStr) return;
+
+    const items = getDailyBriefingItems(today, settings);
+    if (items.length === 0) return;
+
+    await import("@react-native-async-storage/async-storage").then((m) => m.default.setItem(TODAY_ALERT_KEY, todayStr));
+
+    const { Alert } = await import("react-native");
+    Alert.alert(
+      "✦ Sacred Briefing — Today",
+      items.join("\n"),
+      [{ text: "Noted", style: "default" }]
+    );
+  } catch {
+    // catch-up alerts must never crash the app
+  }
+}
+
 export async function requestPermissions(): Promise<boolean> {
   const N = await getNotifications();
   const { status: existing } = await N.getPermissionsAsync();

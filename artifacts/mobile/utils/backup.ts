@@ -124,6 +124,51 @@ async function restoreFromJson(json: string): Promise<void> {
   await AsyncStorage.multiSet(pairs);
 }
 
+const AUTO_BACKUP_FREQ_KEY = "@mystical_auto_backup_frequency";
+const LAST_AUTO_BACKUP_KEY = "@mystical_last_auto_backup_ts";
+
+export type AutoBackupFrequency = "daily" | "weekly" | "manual";
+
+export async function getAutoBackupFrequency(): Promise<AutoBackupFrequency> {
+  try {
+    const raw = await AsyncStorage.getItem(AUTO_BACKUP_FREQ_KEY);
+    if (raw === "daily" || raw === "weekly") return raw;
+    return "manual";
+  } catch {
+    return "manual";
+  }
+}
+
+export async function setAutoBackupFrequency(freq: AutoBackupFrequency): Promise<void> {
+  await AsyncStorage.setItem(AUTO_BACKUP_FREQ_KEY, freq);
+}
+
+async function exportBackupSilent(): Promise<void> {
+  const backup = await buildBackupData();
+  const json = JSON.stringify(backup, null, 2);
+  const file = getBackupFile();
+  file.write(json);
+  await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
+}
+
+export async function runAutoBackupIfDue(): Promise<void> {
+  try {
+    const freq = await getAutoBackupFrequency();
+    if (freq === "manual") return;
+    const lastRaw = await AsyncStorage.getItem(LAST_AUTO_BACKUP_KEY);
+    const now = Date.now();
+    if (lastRaw) {
+      const last = parseInt(lastRaw, 10);
+      const msAgo = now - last;
+      if (freq === "daily" && msAgo < 23 * 3600 * 1000) return;
+      if (freq === "weekly" && msAgo < 6 * 24 * 3600 * 1000) return;
+    }
+    await exportBackupSilent();
+  } catch {
+    // silent — auto-backup failures must never crash the app
+  }
+}
+
 export function confirmRestore(onConfirm: () => void): void {
   Alert.alert(
     "Restore Backup",

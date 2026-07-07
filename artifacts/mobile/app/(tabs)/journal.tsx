@@ -39,6 +39,7 @@ import {
   isInFullMoonWindow,
   MOODS,
   ENTRY_TAGS,
+  toggleEntryPin,
 } from "@/utils/journalStorage";
 import {
   getMoonPhaseData,
@@ -1104,7 +1105,10 @@ export default function JournalScreen() {
     [entryOdu]
   );
 
+  const [pinnedOnly, setPinnedOnly] = useState(false);
+
   const filteredEntries = entries.filter((e) => {
+    if (pinnedOnly && !e.pinned) return false;
     if (moodFilter && !e.mood?.includes(moodFilter)) return false;
     if (tagFilter && !e.tags?.includes(tagFilter)) return false;
     if (!searchQuery.trim()) return true;
@@ -1291,6 +1295,27 @@ export default function JournalScreen() {
               </Pressable>
             )}
           </ScrollView>
+        )}
+
+        {/* Pinned filter toggle */}
+        {entries.some((e) => e.pinned) && (
+          <View style={[styles.moodFilterStrip, { borderBottomColor: colors.border }]}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.moodFilterContent}>
+              <Pressable
+                onPress={() => { Haptics.selectionAsync(); setPinnedOnly((p) => !p); }}
+                style={[
+                  styles.moodFilterChip,
+                  { borderColor: pinnedOnly ? "#D4A843" : colors.border },
+                  pinnedOnly && { backgroundColor: "#D4A84322" },
+                ]}
+              >
+                <Text style={{ fontSize: 11 }}>📌</Text>
+                <Text style={[styles.moodFilterLabel, { color: pinnedOnly ? "#D4A843" : colors.mutedForeground }]}>
+                  Pinned
+                </Text>
+              </Pressable>
+            </ScrollView>
+          </View>
         )}
 
         {/* Tag filter strip */}
@@ -1586,6 +1611,10 @@ export default function JournalScreen() {
                     onPress={() => setSelectedEntry(entry)}
                     onEdit={() => openComposerForEdit(entry)}
                     onDelete={() => handleDelete(entry.id)}
+                    onPin={async () => {
+                      const updated = await toggleEntryPin(entry.id);
+                      setEntries(updated);
+                    }}
                   />
                 ))}
               </View>
@@ -1996,7 +2025,7 @@ export default function JournalScreen() {
   );
 }
 
-function EntryCard({ entry, colors, onPress, onEdit, onDelete }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onPress: () => void; onEdit: () => void; onDelete: () => void }) {
+function EntryCard({ entry, colors, onPress, onEdit, onDelete, onPin }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onPress: () => void; onEdit: () => void; onDelete: () => void; onPin: () => void }) {
   const { fs } = useFontScale();
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 
@@ -2044,6 +2073,9 @@ function EntryCard({ entry, colors, onPress, onEdit, onDelete }: { entry: Journa
           <Text style={[styles.entryTime, { color: colors.mutedForeground }]}>{time}</Text>
         </View>
         <View style={styles.entryActions}>
+          <Pressable onPress={onPin} hitSlop={8} style={styles.actionBtn}>
+            <Text style={{ fontSize: 13, opacity: entry.pinned ? 1 : 0.4 }}>📌</Text>
+          </Pressable>
           <Pressable onPress={onEdit} hitSlop={8} style={styles.actionBtn}>
             <Feather name="edit-2" size={14} color={colors.mutedForeground} />
           </Pressable>

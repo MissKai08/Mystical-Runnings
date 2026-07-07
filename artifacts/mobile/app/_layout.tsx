@@ -18,6 +18,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppSplashScreen } from "@/components/AppSplashScreen";
 import { FontScaleProvider } from "@/contexts/FontScaleContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
+import { runAutoBackupIfDue } from "@/utils/backup";
+import { checkAndAlertTodayEvents } from "@/utils/notificationScheduler";
+import { loadNotificationSettings } from "@/utils/notificationSettings";
 
 // Prevent the native splash screen from auto-hiding before fonts load.
 SplashScreen.preventAutoHideAsync();
@@ -43,6 +46,13 @@ export default function RootLayout() {
 
   const [appReady, setAppReady] = useState(false);
 
+  useEffect(() => {
+    if (!appReady) return;
+    runAutoBackupIfDue().catch(() => {});
+    loadNotificationSettings().then((settings) => {
+      checkAndAlertTodayEvents(settings).catch(() => {});
+    }).catch(() => {});
+  }, [appReady]);
 
   // Always render the custom splash screen immediately so it hides the native
   // Expo Go splash. The splash screen component itself calls hideAsync().

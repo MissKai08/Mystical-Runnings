@@ -152,6 +152,14 @@ const PRAYERS: Prayer[] = [
     english:
       "Yemoja, Great Mother of Waters\nAs the moon shines full and bright\nLet your tides carry away\nAll that I release with intention\n\nWash me clean, restore me whole\nI am renewed in your sacred waves.\nAse.",
   },
+  {
+    id: "9",
+    title: "Prayer for Prosperity and Success",
+    orisha: "Shango",
+    purpose: "Call on Shango when you need success in your work, business, or financial endeavors.",
+    category: "guidance",
+    english: "Renowned owner of power and tireless warrior, Shango, I ask for your benevolence. Bless my work with development and prosperity. Guide my hands so that my efforts bring forth abundance. Let no negotiation or trade of mine end in loss. May your fiery will bring good fortune and success into my home. Asé.",
+  },
 ];
 
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
+  PanResponder,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -278,6 +279,18 @@ export default function CalendarScreen() {
     setDisplayDate(today);
   };
 
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) =>
+        Math.abs(gs.dx) > 12 && Math.abs(gs.dy) < Math.abs(gs.dx),
+      onPanResponderRelease: (_, gs) => {
+        if (Math.abs(gs.dx) < 40) return;
+        if (gs.dx < 0) handleNext();
+        else handlePrev();
+      },
+    })
+  ).current;
+
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
     setDisplayDate(date);
@@ -413,8 +426,9 @@ export default function CalendarScreen() {
             <Pressable onPress={handlePrev} style={styles.navBtn} hitSlop={8}>
               <Feather name="chevron-left" size={22} color={colors.foreground} />
             </Pressable>
-            <Pressable onPress={handleToday} style={styles.titleWrap}>
-              <Text style={[styles.headerTitle, { color: colors.foreground }]}>{headerTitle}</Text>
+            <Text style={[styles.headerTitle, { color: colors.foreground, flex: 1, textAlign: "center" }]}>{headerTitle}</Text>
+            <Pressable onPress={handleToday} style={styles.todayBtn} hitSlop={8}>
+              <Text style={[styles.todayBtnText, { color: "#D4A843" }]}>Today</Text>
             </Pressable>
             <Pressable onPress={openSearch} style={styles.navBtn} hitSlop={8}>
               <Feather name="search" size={20} color={colors.foreground} />
@@ -530,7 +544,7 @@ export default function CalendarScreen() {
           )}
 
           {/* Calendar Content */}
-          <View style={styles.calendarContent}>
+          <View style={styles.calendarContent} {...panResponder.panHandlers}>
             {calView === "month" && (
               <View style={styles.monthPad}>
                 <MonthView
@@ -812,6 +826,17 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+  },
+  todayBtn: {
+    paddingHorizontal: 8,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  todayBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   titleWrap: {
     flex: 1,

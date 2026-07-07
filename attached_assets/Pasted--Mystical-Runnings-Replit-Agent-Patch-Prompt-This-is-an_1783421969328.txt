@@ -1,0 +1,246 @@
+# Mystical Runnings — Replit Agent Patch Prompt
+
+This is an existing React Native / Expo app. The codebase is already here.
+Do NOT rebuild, restructure, or change anything not explicitly listed below.
+Do NOT change fonts, colors, navigation structure, or any existing feature behavior.
+When in doubt — leave it alone.
+
+---
+
+## CHANGES TO MAKE
+
+---
+
+### 1. SPLASH SCREEN
+Replace the contents of `artifacts/mobile/components/AppSplashScreen.tsx` with the following code exactly as written. Do not modify it.
+
+The new splash screen uses a custom PNG as a full-bleed ImageBackground.
+The PNG must be placed at: `artifacts/mobile/assets/images/splash.png`
+I will provide the PNG file separately — add it to that path.
+The only overlay on top of the image is the animated gold progress bar. Do not add any text, SVG elements, or other components on top of the image.
+
+```typescript
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  StyleSheet,
+  ImageBackground,
+  Dimensions,
+} from "react-native";
+import * as SplashScreen from "expo-splash-screen";
+
+const { width: SCREEN_W } = Dimensions.get("window");
+
+const SPLASH_IMAGE = require("../assets/images/splash.png");
+
+interface Props {
+  onComplete: () => void;
+  fontsLoaded?: boolean;
+}
+
+export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
+  const [progress, setProgress] = useState(0);
+  const [timerDone, setTimerDone] = useState(false);
+
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const progressTimer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(progressTimer);
+          return 100;
+        }
+        return prev + 2;
+      });
+    }, 100);
+
+    const doneTimer = setTimeout(() => {
+      setTimerDone(true);
+    }, 5500);
+
+    return () => {
+      clearInterval(progressTimer);
+      clearTimeout(doneTimer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (timerDone && fontsLoaded) {
+      onComplete();
+    }
+  }, [timerDone, fontsLoaded]);
+
+  return (
+    <ImageBackground
+      source={SPLASH_IMAGE}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.progressSection}>
+        <View style={styles.progressTrack}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${progress}%` },
+            ]}
+          />
+          <View
+            style={[
+              styles.progressTip,
+              { left: `${progress}%`, marginLeft: -4 },
+            ]}
+          />
+        </View>
+      </View>
+    </ImageBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    zIndex: 9999,
+  },
+  progressSection: {
+    width: SCREEN_W - 88,
+    marginBottom: 72,
+  },
+  progressTrack: {
+    width: "100%",
+    height: 2,
+    backgroundColor: "#7C3AED22",
+    borderRadius: 1,
+    overflow: "visible",
+  },
+  progressFill: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    height: 2,
+    backgroundColor: "#D4A843",
+    borderRadius: 1,
+    shadowColor: "#D4A843",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  progressTip: {
+    position: "absolute",
+    top: -3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#D4A843",
+    shadowColor: "#D4A843",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+});
+```
+
+---
+
+### 2. FONT SIZE
+Increase the global base font size slightly across the app for better readability.
+Change the base from 16px to 17px in the global stylesheet or Tailwind config.
+Do NOT change the Zen Dots font, Inter font, or any font family — only the base size.
+
+---
+
+### 3. MERCURY RETROGRADE DATES
+Find wherever Mercury Retrograde dates are stored (likely in `artifacts/mobile/constants/spiritualData.ts`) and replace with these corrected dates from Farmer's Almanac:
+
+- 2025: Mar 15–Apr 7 | Jul 18–Aug 11 | Nov 9–29
+- 2026: Feb 26–Mar 20 | Jun 29–Jul 23 | Oct 24–Nov 13
+- 2027: Feb 9–Mar 3 | Jun 10–Jul 4 | Oct 7–28
+- 2028: Jan 24–Feb 24 | May 21–Jun 24 | Sep 19–Oct 11
+
+Do NOT change any other data in that file.
+
+---
+
+### 4. MOON PHASE TIMEZONE FIX
+The moon phases are displaying one day off due to a timezone bug.
+Find the moon phase calculation and display logic and ensure all date comparisons use UTC components: `getUTCFullYear()`, `getUTCMonth()`, `getUTCDate()`.
+Do NOT change the existing PHASE_LOOKUP table — it is correct as-is.
+Confirmed correct reference: New Moon = June 14, 2026 (not June 15).
+
+---
+
+### 5. SWIPE NAVIGATION FOR CALENDARS
+Install `react-swipeable` if not already present.
+Add left/right swipe gesture support to the month, week, and day calendar views.
+- Swipe left → advance to next period
+- Swipe right → go back to previous period
+Do NOT change the visual design of the calendar views.
+
+---
+
+### 6. BACK TO TODAY BUTTON
+Add a "Today" button to all calendar views (month, week, day).
+Tapping it resets the view to the current date.
+Place it in the calendar header near the existing navigation arrows.
+Use the existing app color scheme — gold text or a small outlined button.
+
+---
+
+### 7. SCHEDULED AUTO-BACKUPS
+The app already has a manual backup system. Extend it to support scheduled auto-backups:
+- Add a user setting for backup frequency: Daily / Weekly / Manual only
+- Use `node-cron` to trigger the existing backup function on schedule
+- Store the frequency preference using the existing AsyncStorage pattern
+- Default to Manual only — do not change existing backup behavior unless the user enables scheduling
+
+---
+
+### 8. NOTIFICATIONS AUDIT
+The current push notifications are unreliable. Fix them:
+- Confirm the notification scheduler is registering correctly on app launch
+- Replace any `setTimeout`-based scheduled notifications with a catch-up approach:
+  on app open, check for any events from today that haven't been acknowledged
+  and surface those as alerts
+- Do NOT remove any existing notification types or settings
+- Do NOT change the notification settings UI
+
+---
+
+### 9. PIN / FAVORITE JOURNAL ENTRIES
+- Add a boolean `pinned` field to the journal entry data model in `artifacts/mobile/utils/journalStorage.ts`
+- Default `pinned` to `false` for all existing and new entries
+- Add a pin/star icon toggle button to each journal entry card
+- Sort the journal list so `pinned: true` entries always appear at the top
+- Add a "Pinned only" filter toggle to the journal view header
+- Do NOT change any other journal functionality (streaks, shields, moods, tags)
+
+---
+
+### 10. ADD SHANGO PRAYER
+Add the following entry to the PRAYERS array in `artifacts/mobile/app/(tabs)/prayer.tsx`.
+Format it exactly like the existing prayer entries — same object structure, same fields.
+
+```
+{
+  id: "9",
+  title: "Prayer for Prosperity and Success",
+  orisha: "Shango",
+  purpose: "Call on Shango when you need success in your work, business, or financial endeavors.",
+  category: "guidance",
+  english: "Renowned owner of power and tireless warrior, Shango, I ask for your benevolence. Bless my work with development and prosperity. Guide my hands so that my efforts bring forth abundance. Let no negotiation or trade of mine end in loss. May your fiery will bring good fortune and success into my home. Asé.",
+}
+```
+
+---
+
+## AFTER ALL CHANGES
+- Run the app and confirm it launches without errors
+- Confirm the splash screen loads correctly with the progress bar
+- Confirm the calendar views respond to swipe gestures
+- Flag anything that needs my input before proceeding

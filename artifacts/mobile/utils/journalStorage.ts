@@ -63,6 +63,7 @@ export interface JournalEntry {
   isLunarLetter?: boolean;
   letterMonth?: string;
   createdAt: number;
+  pinned?: boolean;
 }
 
 export async function loadEntries(): Promise<JournalEntry[]> {
@@ -70,10 +71,25 @@ export async function loadEntries(): Promise<JournalEntry[]> {
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as JournalEntry[];
-    return parsed.sort((a, b) => b.createdAt - a.createdAt);
+    return parsed.sort((a, b) => {
+      const aPinned = a.pinned ? 1 : 0;
+      const bPinned = b.pinned ? 1 : 0;
+      if (bPinned !== aPinned) return bPinned - aPinned;
+      return b.createdAt - a.createdAt;
+    });
   } catch {
     return [];
   }
+}
+
+export async function toggleEntryPin(id: string): Promise<JournalEntry[]> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (!raw) return [];
+  const entries = JSON.parse(raw) as JournalEntry[];
+  const idx = entries.findIndex((e) => e.id === id);
+  if (idx >= 0) entries[idx] = { ...entries[idx], pinned: !entries[idx].pinned };
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  return loadEntries();
 }
 
 export async function saveEntry(entry: JournalEntry): Promise<void> {

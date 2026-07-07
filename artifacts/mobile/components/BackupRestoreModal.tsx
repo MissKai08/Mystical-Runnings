@@ -20,6 +20,9 @@ import {
   importBackupFromFile,
   confirmRestore,
   getLastBackupDate,
+  getAutoBackupFrequency,
+  setAutoBackupFrequency,
+  AutoBackupFrequency,
 } from "@/utils/backup";
 
 interface Props {
@@ -36,6 +39,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
+  const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("manual");
 
   const refreshLastBackup = useCallback(async () => {
     const d = await getLastBackupDate();
@@ -43,8 +47,17 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   }, []);
 
   useEffect(() => {
-    if (visible) refreshLastBackup();
+    if (visible) {
+      refreshLastBackup();
+      getAutoBackupFrequency().then(setAutoFreq).catch(() => {});
+    }
   }, [visible, refreshLastBackup]);
+
+  async function handleFreqChange(freq: AutoBackupFrequency) {
+    Haptics.selectionAsync();
+    setAutoFreq(freq);
+    await setAutoBackupFrequency(freq);
+  }
 
   async function handleExport() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -158,6 +171,31 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     </Text>
                   </View>
                 )}
+
+                {/* Auto-backup frequency */}
+                <View style={s.freqCard}>
+                  <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
+                  <View style={s.freqRow}>
+                    {(["manual", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
+                      <Pressable
+                        key={f}
+                        style={[s.freqChip, autoFreq === f && s.freqChipActive]}
+                        onPress={() => handleFreqChange(f)}
+                      >
+                        <Text style={[s.freqChipText, autoFreq === f && s.freqChipTextActive]}>
+                          {f.charAt(0).toUpperCase() + f.slice(1)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <Text style={s.freqHint}>
+                    {autoFreq === "manual"
+                      ? "Backups only happen when you tap Export."
+                      : autoFreq === "daily"
+                      ? "A silent backup is saved to your Documents folder each day on app open."
+                      : "A silent backup is saved once per week on app open."}
+                  </Text>
+                </View>
 
                 <Pressable
                   style={[s.primaryBtn, exporting && s.btnDisabled]}
@@ -432,6 +470,50 @@ function styles(colors: any) {
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 12,
       color: "#A78BFA",
+    },
+    freqCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 14,
+      gap: 10,
+    },
+    freqTitle: {
+      fontSize: 13,
+      fontWeight: "600",
+      color: colors.foreground,
+    },
+    freqRow: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    freqChip: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 7,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: "transparent",
+    },
+    freqChipActive: {
+      borderColor: "#D4A843",
+      backgroundColor: "#D4A84322",
+    },
+    freqChipText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.mutedForeground,
+    },
+    freqChipTextActive: {
+      color: "#D4A843",
+    },
+    freqHint: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      lineHeight: 17,
     },
   });
 }

@@ -174,7 +174,7 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
   const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
 
   // Check hardcoded USNO lookup table first (covers 2024–2027).
-  const lookupKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  const lookupKey = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}-${date.getUTCDate()}`;
   const hardcoded = PHASE_LOOKUP[lookupKey];
   if (hardcoded) {
     const nameMap: Record<string, string> = {
@@ -245,9 +245,15 @@ export const MERCURY_RETROGRADES: RetrogradePeriod[] = [
   { start: new Date(2025, 2, 15), end: new Date(2025, 3, 7), label: "Mercury Retrograde in Aries/Pisces" },
   { start: new Date(2025, 6, 18), end: new Date(2025, 7, 11), label: "Mercury Retrograde in Leo" },
   { start: new Date(2025, 10, 9), end: new Date(2025, 10, 29), label: "Mercury Retrograde in Sagittarius" },
-  { start: new Date(2026, 1, 25), end: new Date(2026, 2, 20), label: "Mercury Retrograde in Pisces" },
-  { start: new Date(2026, 5, 26), end: new Date(2026, 6, 18), label: "Mercury Retrograde in Cancer" },
-  { start: new Date(2026, 9, 22), end: new Date(2026, 10, 11), label: "Mercury Retrograde in Scorpio" },
+  { start: new Date(2026, 1, 26), end: new Date(2026, 2, 20), label: "Mercury Retrograde in Pisces" },
+  { start: new Date(2026, 5, 29), end: new Date(2026, 6, 23), label: "Mercury Retrograde in Cancer" },
+  { start: new Date(2026, 9, 24), end: new Date(2026, 10, 13), label: "Mercury Retrograde in Scorpio" },
+  { start: new Date(2027, 1, 9), end: new Date(2027, 2, 3), label: "Mercury Retrograde in Pisces" },
+  { start: new Date(2027, 5, 10), end: new Date(2027, 6, 4), label: "Mercury Retrograde in Cancer" },
+  { start: new Date(2027, 9, 7), end: new Date(2027, 9, 28), label: "Mercury Retrograde in Scorpio" },
+  { start: new Date(2028, 0, 24), end: new Date(2028, 1, 24), label: "Mercury Retrograde in Aquarius" },
+  { start: new Date(2028, 4, 21), end: new Date(2028, 5, 24), label: "Mercury Retrograde in Gemini" },
+  { start: new Date(2028, 8, 19), end: new Date(2028, 9, 11), label: "Mercury Retrograde in Libra" },
 ];
 
 export const IFA_FESTIVALS: IfaFestival[] = [
