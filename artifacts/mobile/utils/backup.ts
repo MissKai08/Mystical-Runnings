@@ -202,7 +202,7 @@ export async function uploadBackupToCloud(): Promise<void> {
 
 export async function downloadBackupFromCloud(): Promise<void> {
   const deviceId = await getDeviceId();
-  const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`);
+  const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`, { cache: "no-store" });
   if (res.status === 404) throw new Error("No cloud backup found for this device.");
   if (!res.ok) throw new Error(`Download failed: ${res.status}`);
   const { data } = (await res.json()) as { data: string };
@@ -212,7 +212,7 @@ export async function downloadBackupFromCloud(): Promise<void> {
 export async function getCloudBackupDate(): Promise<Date | null> {
   try {
     const deviceId = await getDeviceId();
-    const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`);
+    const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`, { cache: "no-store" });
     if (!res.ok) return null;
     const { updatedAt } = (await res.json()) as { updatedAt: string };
     return new Date(updatedAt);

@@ -32,6 +32,7 @@ router.get("/:deviceId", async (req, res) => {
     res.status(404).json({ error: "No cloud backup found for this device." });
     return;
   }
+  res.setHeader("Cache-Control", "no-store");
   res.json({ data: rows[0].data, updatedAt: rows[0].updatedAt });
 });
 
