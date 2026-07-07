@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Animated,
@@ -24,9 +23,6 @@ import {
   getAutoBackupFrequency,
   setAutoBackupFrequency,
   AutoBackupFrequency,
-  uploadBackupToCloud,
-  downloadBackupFromCloud,
-  getCloudBackupDate,
 } from "@/utils/backup";
 
 interface Props {
@@ -34,7 +30,7 @@ interface Props {
   onClose: () => void;
 }
 
-type Tab = "export" | "import" | "cloud";
+type Tab = "export" | "restore";
 type FeedbackType = "success" | "error";
 
 interface Feedback {
@@ -69,23 +65,15 @@ function nextRunLabel(freq: AutoBackupFrequency, lastAuto: Date | null): string 
   return `In ~${mins}m`;
 }
 
-function shortDeviceId(id: string): string {
-  return id.split("-").pop() ?? id.slice(-8);
-}
-
 export function BackupRestoreModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>("export");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [cloudUploading, setCloudUploading] = useState(false);
-  const [cloudRestoring, setCloudRestoring] = useState(false);
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
   const [lastAutoBackup, setLastAutoBackup] = useState<Date | null>(null);
-  const [cloudBackupDate, setCloudBackupDate] = useState<Date | null>(null);
   const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("manual");
-  const [deviceId, setDeviceId] = useState<string>("");
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,9 +82,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   function showFeedback(type: FeedbackType, message: string) {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
     setFeedback({ type, message });
-    Animated.sequence([
-      Animated.timing(feedbackOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
+    Animated.timing(feedbackOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
     feedbackTimer.current = setTimeout(() => {
       Animated.timing(feedbackOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(
         () => setFeedback(null)
@@ -109,19 +95,14 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   }
 
   const refreshAll = useCallback(async () => {
-    const { getDeviceId } = await import("@/utils/backup");
-    const [manual, auto, cloud, freq, devId] = await Promise.allSettled([
+    const [manual, auto, freq] = await Promise.allSettled([
       getLastBackupDate(),
       getLastAutoBackupDate(),
-      getCloudBackupDate(),
       getAutoBackupFrequency(),
-      getDeviceId(),
     ]);
     if (manual.status === "fulfilled") setLastBackup(manual.value);
     if (auto.status === "fulfilled") setLastAutoBackup(auto.value);
-    if (cloud.status === "fulfilled") setCloudBackupDate(cloud.value);
     if (freq.status === "fulfilled") setAutoFreq(freq.value);
-    if (devId.status === "fulfilled") setDeviceId(devId.value);
   }, []);
 
   useEffect(() => {
@@ -144,61 +125,23 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     try {
       await exportBackup();
       await refreshAll();
-      if (Platform.OS === "web") {
-        showFeedback("success", "✦ Backup downloaded to your Downloads folder.");
-      } else {
-        showFeedback("success", "✦ Backup exported successfully.");
-      }
+      showFeedback(
+        "success",
+        Platform.OS === "web"
+          ? "✦ Backup downloaded — check your Downloads folder."
+          : "✦ Backup exported. Use the share sheet to save to iCloud Drive or Google Drive."
+      );
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Export failed.";
-      if (Platform.OS !== "web") Alert.alert("Export Failed", msg);
-      else showFeedback("error", `Export failed: ${msg}`);
+      showFeedback("error", `Export failed: ${msg}`);
     } finally {
       setExporting(false);
     }
   }
 
-  async function handleCloudUpload() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setCloudUploading(true);
-    try {
-      await uploadBackupToCloud();
-      await refreshAll();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      showFeedback("success", "✦ Backup saved to cloud. Timestamp updated above.");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Upload failed.";
-      showFeedback("error", `Cloud upload failed: ${msg}`);
-    } finally {
-      setCloudUploading(false);
-    }
-  }
-
-  function handleCloudRestore() {
-    requireConfirm(
-      "This will overwrite all current data with your cloud backup. Export a local copy first if needed.",
-      async () => {
-        setConfirmState(null);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        setCloudRestoring(true);
-        try {
-          await downloadBackupFromCloud();
-          await refreshAll();
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          showFeedback("success", "✦ Cloud backup restored. Restart the app to see all changes.");
-        } catch (e: unknown) {
-          const msg = e instanceof Error ? e.message : "Restore failed.";
-          showFeedback("error", `Restore failed: ${msg}`);
-        } finally {
-          setCloudRestoring(false);
-        }
-      }
-    );
-  }
-
   function handleImport() {
     requireConfirm(
-      "This will overwrite all current data with the selected backup file. Export a local copy first if needed.",
+      "This will overwrite all current data with the selected backup file. Make sure you've exported a fresh backup first if needed.",
       async () => {
         setConfirmState(null);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -211,7 +154,6 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
         } catch (e: unknown) {
           const msg = e instanceof Error ? e.message : "Restore failed.";
           if (msg !== "canceled") showFeedback("error", `Restore failed: ${msg}`);
-          else setConfirmState(null);
         } finally {
           setImporting(false);
         }
@@ -237,43 +179,38 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
       {/* Status strip */}
       <View style={s.statusStrip}>
         <View style={s.statusItem}>
-          <Text style={s.statusLabel}>Manual export</Text>
+          <Text style={s.statusLabel}>Last export</Text>
           <Text style={s.statusValue}>{formatDate(lastBackup)}</Text>
         </View>
         <View style={s.statusDivider} />
         <View style={s.statusItem}>
-          <Text style={s.statusLabel}>Auto-backup</Text>
+          <Text style={s.statusLabel}>Last auto-backup</Text>
           <Text style={s.statusValue}>{formatDate(lastAutoBackup)}</Text>
-        </View>
-        <View style={s.statusDivider} />
-        <View style={s.statusItem}>
-          <Text style={s.statusLabel}>Cloud backup</Text>
-          <Text style={s.statusValue}>{formatDate(cloudBackupDate)}</Text>
         </View>
       </View>
 
       {/* Tabs */}
       <View style={s.tabRow}>
-        {(["export", "import", "cloud"] as Tab[]).map((t) => (
+        {(["export", "restore"] as Tab[]).map((t) => (
           <Pressable
             key={t}
             style={[s.tab, tab === t && s.tabActive]}
             onPress={() => { Haptics.selectionAsync(); setTab(t); setConfirmState(null); }}
           >
             <Feather
-              name={t === "export" ? "upload" : t === "import" ? "download" : "cloud"}
+              name={t === "export" ? "upload" : "download"}
               size={14}
               color={tab === t ? "#D4A843" : colors.mutedForeground}
             />
             <Text style={[s.tabText, tab === t && s.tabTextActive]}>
-              {t === "export" ? "Export" : t === "import" ? "Restore" : "Cloud"}
+              {t === "export" ? "Export" : "Restore"}
             </Text>
           </Pressable>
         ))}
       </View>
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content}>
-        {/* In-modal confirm banner */}
+        {/* Inline confirm */}
         {confirmState && (
           <View style={s.confirmCard}>
             <Feather name="alert-triangle" size={16} color="#F59E0B" />
@@ -294,26 +231,49 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             <View style={s.infoCard}>
               <Feather name="info" size={14} color="#D4A843" />
               <Text style={s.infoText}>
-                Backs up journal entries, sacred intentions, altar items,
-                moon water logs, calendar events, streak data, and all
-                settings into a single JSON file.
+                Exports all your data — journal entries, sacred intentions,
+                altar items, moon water logs, calendar events, streak data,
+                and settings — into a single JSON file saved on your device.
+                Nothing leaves your device unless you choose to share it.
               </Text>
             </View>
 
+            {/* Where it saves */}
             <View style={s.locationCard}>
-              <Text style={s.locationTitle}>
-                {Platform.OS === "web" ? "⬇ Where it saves" : "📁 Where it saves"}
-              </Text>
-              <Text style={s.locationBody}>
-                {Platform.OS === "web"
-                  ? "File: mystical-runnings-backup.json\nLocation: Your device's Downloads folder\nOpen your Files or Downloads app to find it."
-                  : Platform.OS === "ios"
-                  ? "File: mystical-runnings-backup.json\nLocation: On My iPhone › iCloud Drive (auto-syncs)\nShare sheet opens to send it anywhere."
-                  : "File: mystical-runnings-backup.json\nLocation: Internal storage › Documents\nShare sheet opens to send it anywhere."}
-              </Text>
+              {Platform.OS === "ios" ? (
+                <>
+                  <Text style={s.locationTitle}>☁ Saves to iCloud Drive automatically</Text>
+                  <Text style={s.locationBody}>
+                    {"File: " + "mystical-runnings-backup.json\n"}
+                    {"Folder: On My iPhone or iCloud Drive\n\n"}
+                    The share sheet opens so you can also send it to Files,
+                    email, AirDrop, or anywhere else.
+                  </Text>
+                </>
+              ) : Platform.OS === "android" ? (
+                <>
+                  <Text style={s.locationTitle}>☁ Share to Google Drive or save locally</Text>
+                  <Text style={s.locationBody}>
+                    {"File: " + "mystical-runnings-backup.json\n"}
+                    {"Folder: Internal storage › Documents\n\n"}
+                    The share sheet opens so you can send it to Google Drive,
+                    Gmail, or any other app.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={s.locationTitle}>⬇ Downloads to your device</Text>
+                  <Text style={s.locationBody}>
+                    {"File: " + "mystical-runnings-backup.json\n"}
+                    {"Location: Downloads folder\n\n"}
+                    Open your Files or Downloads app to find it. From there you
+                    can move it to Google Drive, iCloud Drive, or email it.
+                  </Text>
+                </>
+              )}
             </View>
 
-            {/* Auto-backup frequency */}
+            {/* Auto-backup */}
             <View style={s.freqCard}>
               <View style={s.freqTitleRow}>
                 <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
@@ -338,7 +298,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </View>
               <Text style={s.freqHint}>
                 {autoFreq === "manual"
-                  ? "Backups only happen when you tap the button below."
+                  ? "Backups only happen when you tap Export below."
                   : autoFreq === "daily"
                   ? "A silent backup runs once per day when you open the app."
                   : "A silent backup runs once per week when you open the app."}
@@ -362,88 +322,53 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <ActivityIndicator color="#0D0D1A" />
               ) : (
                 <>
-                  <Feather name={Platform.OS === "web" ? "download" : "share"} size={18} color="#0D0D1A" />
+                  <Feather
+                    name={Platform.OS === "web" ? "download" : "share"}
+                    size={18}
+                    color="#0D0D1A"
+                  />
                   <Text style={s.primaryBtnText}>
-                    {Platform.OS === "web" ? "Download Backup" : "Export Backup"}
+                    {Platform.OS === "web" ? "Download Backup File" : "Export & Share Backup"}
                   </Text>
                 </>
               )}
             </Pressable>
           </>
-        ) : tab === "cloud" ? (
-          <>
-            <View style={s.infoCard}>
-              <Feather name="cloud" size={14} color="#D4A843" />
-              <Text style={s.infoText}>
-                Cloud backup stores your data on the Mystical Runnings server,
-                identified by this device. Use it to move data between devices
-                or as an off-device safety net.
-              </Text>
-            </View>
-
-            <View style={s.locationCard}>
-              <Text style={s.locationTitle}>☁ Backup location</Text>
-              <Text style={s.locationBody}>
-                {"Stored on: Mystical Runnings server\nDevice ID: …" +
-                  shortDeviceId(deviceId) +
-                  "\nLast saved: " +
-                  formatDate(cloudBackupDate)}
-              </Text>
-            </View>
-
-            <Pressable
-              style={[s.primaryBtn, cloudUploading && s.btnDisabled]}
-              onPress={handleCloudUpload}
-              disabled={cloudUploading}
-            >
-              {cloudUploading ? (
-                <ActivityIndicator color="#0D0D1A" />
-              ) : (
-                <>
-                  <Feather name="upload-cloud" size={18} color="#0D0D1A" />
-                  <Text style={s.primaryBtnText}>Save to Cloud</Text>
-                </>
-              )}
-            </Pressable>
-            <Text style={s.hint}>Uploads a full snapshot — timestamp above will update.</Text>
-
-            <View style={s.divider} />
-
-            <Pressable
-              style={[s.primaryBtn, { backgroundColor: "#7C3AED" }, cloudRestoring && s.btnDisabled]}
-              onPress={handleCloudRestore}
-              disabled={cloudRestoring}
-            >
-              {cloudRestoring ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <>
-                  <Feather name="download-cloud" size={18} color="#fff" />
-                  <Text style={[s.primaryBtnText, { color: "#fff" }]}>Restore from Cloud</Text>
-                </>
-              )}
-            </Pressable>
-            <Text style={s.hint}>
-              {cloudBackupDate
-                ? `Restores your backup from ${formatDate(cloudBackupDate)}.`
-                : "No cloud backup found for this device yet."}
-            </Text>
-          </>
         ) : (
           <>
+            {/* Where to find backup */}
             <View style={s.locationCard}>
-              <Text style={s.locationTitle}>📂 How to find your backup file</Text>
-              <Text style={s.locationBody}>
-                {Platform.OS === "web"
-                  ? "After exporting, open your Downloads folder or the Files app on your device. Look for mystical-runnings-backup.json."
-                  : Platform.OS === "ios"
-                  ? "Open the Files app › On My iPhone or iCloud Drive. Look for mystical-runnings-backup.json."
-                  : "Open the Files app › Internal storage › Downloads. Look for mystical-runnings-backup.json."}
-              </Text>
+              {Platform.OS === "ios" ? (
+                <>
+                  <Text style={s.locationTitle}>📂 Where to find your backup</Text>
+                  <Text style={s.locationBody}>
+                    Open the <Text style={s.bold}>Files app</Text> → On My iPhone or iCloud Drive.{"\n"}
+                    Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.
+                  </Text>
+                </>
+              ) : Platform.OS === "android" ? (
+                <>
+                  <Text style={s.locationTitle}>📂 Where to find your backup</Text>
+                  <Text style={s.locationBody}>
+                    Open the <Text style={s.bold}>Files app</Text> → Internal storage → Documents.{"\n"}
+                    Or check <Text style={s.bold}>Google Drive</Text> if you shared it there.{"\n"}
+                    Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={s.locationTitle}>📂 Where to find your backup</Text>
+                  <Text style={s.locationBody}>
+                    Open your <Text style={s.bold}>Downloads folder</Text> or Files app.{"\n"}
+                    Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.{"\n"}
+                    Or check Google Drive / iCloud Drive if you saved it there.
+                  </Text>
+                </>
+              )}
             </View>
 
             <View style={s.stepsCard}>
-              <Text style={s.stepsTitle}>Steps</Text>
+              <Text style={s.stepsTitle}>How to restore</Text>
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>1</Text>
                 <Text style={s.stepText}>Tap "Choose Backup File" below.</Text>
@@ -451,30 +376,30 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>2</Text>
                 <Text style={s.stepText}>
-                  {Platform.OS === "web"
-                    ? "Navigate to Downloads and select your backup file."
-                    : "Navigate to where you saved your backup — Downloads, iCloud Drive, Google Drive, etc."}
+                  Navigate to where you saved your backup and select{" "}
+                  <Text style={s.mono}>mystical-runnings-backup.json</Text>.
                 </Text>
               </View>
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>3</Text>
                 <Text style={s.stepText}>
-                  Select <Text style={s.mono}>mystical-runnings-backup.json</Text> — your data will be restored.
+                  Confirm the restore — your data will be replaced with the backup.
+                  Restart the app afterwards.
                 </Text>
               </View>
             </View>
 
             <Pressable
-              style={[s.primaryBtn, importing && s.btnDisabled]}
+              style={[s.primaryBtn, { backgroundColor: "#7C3AED" }, importing && s.btnDisabled]}
               onPress={handleImport}
               disabled={importing}
             >
               {importing ? (
-                <ActivityIndicator color="#0D0D1A" />
+                <ActivityIndicator color="#fff" />
               ) : (
                 <>
-                  <Feather name="folder" size={18} color="#0D0D1A" />
-                  <Text style={s.primaryBtnText}>Choose Backup File</Text>
+                  <Feather name="folder" size={18} color="#fff" />
+                  <Text style={[s.primaryBtnText, { color: "#fff" }]}>Choose Backup File</Text>
                 </>
               )}
             </Pressable>
@@ -714,6 +639,10 @@ function styles(colors: any) {
       color: colors.mutedForeground,
       lineHeight: 20,
     },
+    bold: {
+      fontWeight: "700",
+      color: colors.foreground,
+    },
     primaryBtn: {
       flexDirection: "row",
       alignItems: "center",
@@ -730,16 +659,6 @@ function styles(colors: any) {
       fontSize: 15,
       fontWeight: "700",
       color: "#0D0D1A",
-    },
-    hint: {
-      fontSize: 12,
-      color: colors.mutedForeground,
-      textAlign: "center",
-      lineHeight: 17,
-    },
-    divider: {
-      height: 1,
-      backgroundColor: colors.border,
     },
     stepsCard: {
       backgroundColor: colors.card,

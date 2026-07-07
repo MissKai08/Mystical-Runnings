@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
-import { Share, Alert, Platform } from "react-native";
+import { Share, Platform } from "react-native";
 
 const BACKUP_VERSION = 1;
 const BACKUP_FILENAME = "mystical-runnings-backup.json";
@@ -49,7 +49,6 @@ const LAST_AUTO_BACKUP_KEY = "@mystical_last_auto_backup_ts";
 export async function getLastBackupDate(): Promise<Date | null> {
   try {
     if (Platform.OS !== "web") {
-      // Native: try reading the file using dynamic import to avoid web errors
       const { File, Paths } = await import("expo-file-system");
       const file = new File(Paths.document, BACKUP_FILENAME);
       if (file.exists) {
@@ -58,7 +57,6 @@ export async function getLastBackupDate(): Promise<Date | null> {
         return new Date(parsed.exportedAt);
       }
     }
-    // Web and fallback: read timestamp from AsyncStorage
     const raw = await AsyncStorage.getItem(LAST_MANUAL_EXPORT_KEY);
     return raw ? new Date(parseInt(raw, 10)) : null;
   } catch {
@@ -80,7 +78,6 @@ export async function exportBackup(): Promise<void> {
   const json = JSON.stringify(backup, null, 2);
 
   if (Platform.OS === "web") {
-    // Browser download API
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -94,7 +91,6 @@ export async function exportBackup(): Promise<void> {
     return;
   }
 
-  // Native: save to Documents directory (auto-syncs with iCloud/Google Drive)
   const { File, Paths } = await import("expo-file-system");
   const file = new File(Paths.document, BACKUP_FILENAME);
   file.write(json);
@@ -119,7 +115,6 @@ export async function importBackupFromFile(): Promise<void> {
 
   let json: string;
   if (Platform.OS === "web") {
-    // On web, DocumentPicker returns a blob URL — use fetch to read it
     const response = await fetch(asset.uri);
     json = await response.text();
   } else {
@@ -207,78 +202,4 @@ export async function runAutoBackupIfDue(): Promise<void> {
   } catch {
     // silent — auto-backup failures must never crash the app
   }
-}
-
-const DEVICE_ID_KEY = "@mystical_device_id";
-
-export async function getDeviceId(): Promise<string> {
-  const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
-  if (existing) return existing;
-  const id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-  await AsyncStorage.setItem(DEVICE_ID_KEY, id);
-  return id;
-}
-
-function getApiBase(): string {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN ?? "";
-  if (!domain) throw new Error("EXPO_PUBLIC_DOMAIN is not set");
-  return `https://${domain}/api`;
-}
-
-export async function uploadBackupToCloud(): Promise<void> {
-  const deviceId = await getDeviceId();
-  const backup = await buildBackupData();
-  const data = JSON.stringify(backup);
-  const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ data }),
-  });
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-}
-
-export async function downloadBackupFromCloud(): Promise<void> {
-  const deviceId = await getDeviceId();
-  const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`, { cache: "no-store" });
-  if (res.status === 404) throw new Error("No cloud backup found for this device.");
-  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-  const { data } = (await res.json()) as { data: string };
-  await restoreFromJson(data);
-}
-
-export async function getCloudBackupDate(): Promise<Date | null> {
-  try {
-    const deviceId = await getDeviceId();
-    const res = await fetch(`${getApiBase()}/cloud-backup/${deviceId}`, { cache: "no-store" });
-    if (!res.ok) return null;
-    const { updatedAt } = (await res.json()) as { updatedAt: string };
-    return new Date(updatedAt);
-  } catch {
-    return null;
-  }
-}
-
-export function confirmRestore(onConfirm: () => void): void {
-  if (Platform.OS === "web") {
-    // window.confirm works reliably on web (including in iframes)
-    if (
-      window.confirm(
-        "This will overwrite your current data with the backup. This cannot be undone. Are you sure?"
-      )
-    ) {
-      onConfirm();
-    }
-    return;
-  }
-  Alert.alert(
-    "Restore Backup",
-    "This will overwrite your current data with the backup. This cannot be undone. Are you sure?",
-    [
-      { text: "Cancel", style: "cancel" },
-      { text: "Restore", style: "destructive", onPress: onConfirm },
-    ]
-  );
 }
