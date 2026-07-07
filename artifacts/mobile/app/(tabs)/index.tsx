@@ -428,9 +428,6 @@ export default function HomeScreen() {
 
       <SunMoonBar times={sunMoonTimes} status={sunMoonStatus} onRetry={sunMoonRetry} />
 
-      <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
-      <BackupRestoreModal visible={backupOpen} onClose={() => setBackupOpen(false)} />
-
       {/* Today Widget — moon · ose · next event */}
       <TodayWidget today={today} />
 
@@ -938,6 +935,9 @@ export default function HomeScreen() {
         </>
       )}
     </ScrollView>
+
+    <NotificationSettingsModal visible={notifOpen} onClose={() => setNotifOpen(false)} />
+    <BackupRestoreModal visible={backupOpen} onClose={() => setBackupOpen(false)} />
 
     {/* Lunar Intention Modal */}
     <Modal

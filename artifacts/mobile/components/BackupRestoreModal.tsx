@@ -145,6 +145,245 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 
   const s = styles(colors);
 
+  const sheetContent = (
+    <View style={[s.container, { paddingTop: insets.top + 16 }]}>
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <Feather name="database" size={18} color="#D4A843" />
+          <Text style={s.title}>Backup & Restore</Text>
+        </View>
+        <Pressable onPress={onClose} hitSlop={10} style={s.closeBtn}>
+          <Feather name="x" size={20} color={colors.mutedForeground} />
+        </Pressable>
+      </View>
+
+      {/* Tabs */}
+      <View style={s.tabRow}>
+        {(["export", "import", "cloud"] as Tab[]).map((t) => (
+          <Pressable
+            key={t}
+            style={[s.tab, tab === t && s.tabActive]}
+            onPress={() => { Haptics.selectionAsync(); setTab(t); }}
+          >
+            <Feather
+              name={t === "export" ? "upload" : t === "import" ? "download" : "cloud"}
+              size={14}
+              color={tab === t ? "#D4A843" : colors.mutedForeground}
+            />
+            <Text style={[s.tabText, tab === t && s.tabTextActive]}>
+              {t === "export" ? "Export" : t === "import" ? "Restore" : "Cloud"}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content}>
+        {tab === "export" ? (
+          <>
+            <View style={s.infoCard}>
+              <Feather name="info" size={14} color="#D4A843" />
+              <Text style={s.infoText}>
+                Backs up journal entries, sacred intentions, altar items,
+                moon water logs, calendar events, streak data, and all
+                settings into a single JSON file.
+              </Text>
+            </View>
+
+            <View style={s.cloudCard}>
+              <Text style={s.cloudTitle}>☁ Cloud Sync</Text>
+              <Text style={s.cloudBody}>
+                The backup is saved to your device's Documents folder —
+                automatically included in{" "}
+                <Text style={s.highlight}>iCloud Drive</Text> on iOS and{" "}
+                <Text style={s.highlight}>Google Drive</Text> on Android.
+                The share sheet also lets you send it anywhere: Files,
+                email, or AirDrop.
+              </Text>
+            </View>
+
+            {lastBackup != null && (
+              <View style={s.lastRow}>
+                <Feather name="check-circle" size={13} color="#4ADE80" />
+                <Text style={s.lastText}>
+                  Last backup: {lastBackup.toLocaleString()}
+                </Text>
+              </View>
+            )}
+
+            {/* Auto-backup frequency */}
+            <View style={s.freqCard}>
+              <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
+              <View style={s.freqRow}>
+                {(["manual", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
+                  <Pressable
+                    key={f}
+                    style={[s.freqChip, autoFreq === f && s.freqChipActive]}
+                    onPress={() => handleFreqChange(f)}
+                  >
+                    <Text style={[s.freqChipText, autoFreq === f && s.freqChipTextActive]}>
+                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <Text style={s.freqHint}>
+                {autoFreq === "manual"
+                  ? "Backups only happen when you tap Export."
+                  : autoFreq === "daily"
+                  ? "A silent backup is saved to your Documents folder each day on app open."
+                  : "A silent backup is saved once per week on app open."}
+              </Text>
+            </View>
+
+            <Pressable
+              style={[s.primaryBtn, exporting && s.btnDisabled]}
+              onPress={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? (
+                <ActivityIndicator color="#0D0D1A" />
+              ) : (
+                <>
+                  <Feather name="share" size={18} color="#0D0D1A" />
+                  <Text style={s.primaryBtnText}>Export Backup</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={s.hint}>
+              Opens the share sheet — save to Files, iCloud Drive, Google
+              Drive, email, or AirDrop.
+            </Text>
+          </>
+        ) : tab === "cloud" ? (
+          <>
+            <View style={s.infoCard}>
+              <Feather name="cloud" size={14} color="#D4A843" />
+              <Text style={s.infoText}>
+                Cloud backup stores your data on the Mystical Runnings server,
+                identified by this device. Use it to move data between devices
+                or as an off-device safety net.
+              </Text>
+            </View>
+
+            {cloudBackupDate != null && (
+              <View style={s.lastRow}>
+                <Feather name="check-circle" size={13} color="#4ADE80" />
+                <Text style={s.lastText}>
+                  Last cloud backup: {cloudBackupDate.toLocaleString()}
+                </Text>
+              </View>
+            )}
+
+            <Pressable
+              style={[s.primaryBtn, cloudUploading && s.btnDisabled]}
+              onPress={handleCloudUpload}
+              disabled={cloudUploading}
+            >
+              {cloudUploading ? (
+                <ActivityIndicator color="#0D0D1A" />
+              ) : (
+                <>
+                  <Feather name="upload-cloud" size={18} color="#0D0D1A" />
+                  <Text style={s.primaryBtnText}>Save to Cloud</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={s.hint}>Uploads a full snapshot of your data to the server.</Text>
+
+            <View style={[s.warningCard, { marginTop: 16 }]}>
+              <Feather name="alert-triangle" size={14} color="#F59E0B" />
+              <Text style={s.warningText}>
+                Restoring from cloud will overwrite all current data. Export a local backup first if needed.
+              </Text>
+            </View>
+
+            <Pressable
+              style={[s.primaryBtn, { backgroundColor: "#7C3AED" }, cloudRestoring && s.btnDisabled]}
+              onPress={handleCloudRestore}
+              disabled={cloudRestoring}
+            >
+              {cloudRestoring ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Feather name="download-cloud" size={18} color="#fff" />
+                  <Text style={[s.primaryBtnText, { color: "#fff" }]}>Restore from Cloud</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={s.hint}>Downloads and restores your most recent cloud backup.</Text>
+          </>
+        ) : (
+          <>
+            <View style={s.warningCard}>
+              <Feather name="alert-triangle" size={14} color="#F59E0B" />
+              <Text style={s.warningText}>
+                Restoring will overwrite all current data. This cannot be
+                undone. Export a fresh backup first if needed.
+              </Text>
+            </View>
+
+            <View style={s.stepsCard}>
+              <Text style={s.stepsTitle}>How it works</Text>
+              <View style={s.stepRow}>
+                <Text style={s.stepNum}>1</Text>
+                <Text style={s.stepText}>
+                  Tap "Choose Backup File" below.
+                </Text>
+              </View>
+              <View style={s.stepRow}>
+                <Text style={s.stepNum}>2</Text>
+                <Text style={s.stepText}>
+                  Navigate to where you saved your backup — iCloud Drive,
+                  Google Drive, Files, email attachment, etc.
+                </Text>
+              </View>
+              <View style={s.stepRow}>
+                <Text style={s.stepNum}>3</Text>
+                <Text style={s.stepText}>
+                  Select{" "}
+                  <Text style={s.mono}>mystical-runnings-backup.json</Text>{" "}
+                  and your data will be restored automatically.
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              style={[s.primaryBtn, importing && s.btnDisabled]}
+              onPress={handleImport}
+              disabled={importing}
+            >
+              {importing ? (
+                <ActivityIndicator color="#0D0D1A" />
+              ) : (
+                <>
+                  <Feather name="folder" size={18} color="#0D0D1A" />
+                  <Text style={s.primaryBtnText}>Choose Backup File</Text>
+                </>
+              )}
+            </Pressable>
+            <Text style={s.hint}>
+              Opens your device file browser — navigate to iCloud Drive,
+              Google Drive, or wherever you stored the backup.
+            </Text>
+          </>
+        )}
+      </ScrollView>
+    </View>
+  );
+
+  if (Platform.OS === "web") {
+    if (!visible) return null;
+    return (
+      <View style={s.webOverlay} pointerEvents="box-none">
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
+          {sheetContent}
+        </KeyboardAvoidingView>
+      </View>
+    );
+  }
+
   return (
     <Modal
       visible={visible}
@@ -156,231 +395,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <View style={[s.container, { paddingTop: insets.top + 16 }]}>
-          {/* Header */}
-          <View style={s.header}>
-            <View style={s.headerLeft}>
-              <Feather name="database" size={18} color="#D4A843" />
-              <Text style={s.title}>Backup & Restore</Text>
-            </View>
-            <Pressable onPress={onClose} hitSlop={10} style={s.closeBtn}>
-              <Feather name="x" size={20} color={colors.mutedForeground} />
-            </Pressable>
-          </View>
-
-          {/* Tabs */}
-          <View style={s.tabRow}>
-            {(["export", "import", "cloud"] as Tab[]).map((t) => (
-              <Pressable
-                key={t}
-                style={[s.tab, tab === t && s.tabActive]}
-                onPress={() => { Haptics.selectionAsync(); setTab(t); }}
-              >
-                <Feather
-                  name={t === "export" ? "upload" : t === "import" ? "download" : "cloud"}
-                  size={14}
-                  color={tab === t ? "#D4A843" : colors.mutedForeground}
-                />
-                <Text style={[s.tabText, tab === t && s.tabTextActive]}>
-                  {t === "export" ? "Export" : t === "import" ? "Restore" : "Cloud"}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content}>
-            {tab === "export" ? (
-              <>
-                <View style={s.infoCard}>
-                  <Feather name="info" size={14} color="#D4A843" />
-                  <Text style={s.infoText}>
-                    Backs up journal entries, sacred intentions, altar items,
-                    moon water logs, calendar events, streak data, and all
-                    settings into a single JSON file.
-                  </Text>
-                </View>
-
-                <View style={s.cloudCard}>
-                  <Text style={s.cloudTitle}>☁ Cloud Sync</Text>
-                  <Text style={s.cloudBody}>
-                    The backup is saved to your device's Documents folder —
-                    automatically included in{" "}
-                    <Text style={s.highlight}>iCloud Drive</Text> on iOS and{" "}
-                    <Text style={s.highlight}>Google Drive</Text> on Android.
-                    The share sheet also lets you send it anywhere: Files,
-                    email, or AirDrop.
-                  </Text>
-                </View>
-
-                {lastBackup != null && (
-                  <View style={s.lastRow}>
-                    <Feather name="check-circle" size={13} color="#4ADE80" />
-                    <Text style={s.lastText}>
-                      Last backup: {lastBackup.toLocaleString()}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Auto-backup frequency */}
-                <View style={s.freqCard}>
-                  <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
-                  <View style={s.freqRow}>
-                    {(["manual", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
-                      <Pressable
-                        key={f}
-                        style={[s.freqChip, autoFreq === f && s.freqChipActive]}
-                        onPress={() => handleFreqChange(f)}
-                      >
-                        <Text style={[s.freqChipText, autoFreq === f && s.freqChipTextActive]}>
-                          {f.charAt(0).toUpperCase() + f.slice(1)}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                  <Text style={s.freqHint}>
-                    {autoFreq === "manual"
-                      ? "Backups only happen when you tap Export."
-                      : autoFreq === "daily"
-                      ? "A silent backup is saved to your Documents folder each day on app open."
-                      : "A silent backup is saved once per week on app open."}
-                  </Text>
-                </View>
-
-                <Pressable
-                  style={[s.primaryBtn, exporting && s.btnDisabled]}
-                  onPress={handleExport}
-                  disabled={exporting}
-                >
-                  {exporting ? (
-                    <ActivityIndicator color="#0D0D1A" />
-                  ) : (
-                    <>
-                      <Feather name="share" size={18} color="#0D0D1A" />
-                      <Text style={s.primaryBtnText}>Export Backup</Text>
-                    </>
-                  )}
-                </Pressable>
-                <Text style={s.hint}>
-                  Opens the share sheet — save to Files, iCloud Drive, Google
-                  Drive, email, or AirDrop.
-                </Text>
-              </>
-            ) : tab === "cloud" ? (
-              <>
-                <View style={s.infoCard}>
-                  <Feather name="cloud" size={14} color="#D4A843" />
-                  <Text style={s.infoText}>
-                    Cloud backup stores your data on the Mystical Runnings server,
-                    identified by this device. Use it to move data between devices
-                    or as an off-device safety net.
-                  </Text>
-                </View>
-
-                {cloudBackupDate != null && (
-                  <View style={s.lastRow}>
-                    <Feather name="check-circle" size={13} color="#4ADE80" />
-                    <Text style={s.lastText}>
-                      Last cloud backup: {cloudBackupDate.toLocaleString()}
-                    </Text>
-                  </View>
-                )}
-
-                <Pressable
-                  style={[s.primaryBtn, cloudUploading && s.btnDisabled]}
-                  onPress={handleCloudUpload}
-                  disabled={cloudUploading}
-                >
-                  {cloudUploading ? (
-                    <ActivityIndicator color="#0D0D1A" />
-                  ) : (
-                    <>
-                      <Feather name="upload-cloud" size={18} color="#0D0D1A" />
-                      <Text style={s.primaryBtnText}>Save to Cloud</Text>
-                    </>
-                  )}
-                </Pressable>
-                <Text style={s.hint}>Uploads a full snapshot of your data to the server.</Text>
-
-                <View style={[s.warningCard, { marginTop: 16 }]}>
-                  <Feather name="alert-triangle" size={14} color="#F59E0B" />
-                  <Text style={s.warningText}>
-                    Restoring from cloud will overwrite all current data. Export a local backup first if needed.
-                  </Text>
-                </View>
-
-                <Pressable
-                  style={[s.primaryBtn, { backgroundColor: "#7C3AED" }, cloudRestoring && s.btnDisabled]}
-                  onPress={handleCloudRestore}
-                  disabled={cloudRestoring}
-                >
-                  {cloudRestoring ? (
-                    <ActivityIndicator color="#fff" />
-                  ) : (
-                    <>
-                      <Feather name="download-cloud" size={18} color="#fff" />
-                      <Text style={[s.primaryBtnText, { color: "#fff" }]}>Restore from Cloud</Text>
-                    </>
-                  )}
-                </Pressable>
-                <Text style={s.hint}>Downloads and restores your most recent cloud backup.</Text>
-              </>
-            ) : (
-              <>
-                <View style={s.warningCard}>
-                  <Feather name="alert-triangle" size={14} color="#F59E0B" />
-                  <Text style={s.warningText}>
-                    Restoring will overwrite all current data. This cannot be
-                    undone. Export a fresh backup first if needed.
-                  </Text>
-                </View>
-
-                <View style={s.stepsCard}>
-                  <Text style={s.stepsTitle}>How it works</Text>
-                  <View style={s.stepRow}>
-                    <Text style={s.stepNum}>1</Text>
-                    <Text style={s.stepText}>
-                      Tap "Choose Backup File" below.
-                    </Text>
-                  </View>
-                  <View style={s.stepRow}>
-                    <Text style={s.stepNum}>2</Text>
-                    <Text style={s.stepText}>
-                      Navigate to where you saved your backup — iCloud Drive,
-                      Google Drive, Files, email attachment, etc.
-                    </Text>
-                  </View>
-                  <View style={s.stepRow}>
-                    <Text style={s.stepNum}>3</Text>
-                    <Text style={s.stepText}>
-                      Select{" "}
-                      <Text style={s.mono}>mystical-runnings-backup.json</Text>{" "}
-                      and your data will be restored automatically.
-                    </Text>
-                  </View>
-                </View>
-
-                <Pressable
-                  style={[s.primaryBtn, importing && s.btnDisabled]}
-                  onPress={handleImport}
-                  disabled={importing}
-                >
-                  {importing ? (
-                    <ActivityIndicator color="#0D0D1A" />
-                  ) : (
-                    <>
-                      <Feather name="folder" size={18} color="#0D0D1A" />
-                      <Text style={s.primaryBtnText}>Choose Backup File</Text>
-                    </>
-                  )}
-                </Pressable>
-                <Text style={s.hint}>
-                  Opens your device file browser — navigate to iCloud Drive,
-                  Google Drive, or wherever you stored the backup.
-                </Text>
-              </>
-            )}
-          </ScrollView>
-        </View>
+        {sheetContent}
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -389,6 +404,15 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function styles(colors: any) {
   return StyleSheet.create({
+    webOverlay: {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: "rgba(0,0,0,0.6)",
+      zIndex: 9999,
+    },
     container: {
       flex: 1,
       backgroundColor: colors.background,
