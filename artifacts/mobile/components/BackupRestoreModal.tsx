@@ -22,7 +22,10 @@ import {
   getLastAutoBackupDate,
   getAutoBackupFrequency,
   setAutoBackupFrequency,
+  getAutoBackupDestination,
+  setAutoBackupDestination,
   AutoBackupFrequency,
+  BackupDestination,
 } from "@/utils/backup";
 
 interface Props {
@@ -46,13 +49,16 @@ interface ConfirmState {
 function formatDate(d: Date | null, fallback = "Never"): string {
   if (!d) return fallback;
   return d.toLocaleString(undefined, {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 }
 
 function nextRunLabel(freq: AutoBackupFrequency, lastAuto: Date | null): string {
-  if (freq === "manual") return "Off";
+  if (freq === "off") return "Off";
   if (!lastAuto) return "Next app open";
   const ms = freq === "daily" ? 23 * 3600 * 1000 : 6 * 24 * 3600 * 1000;
   const next = new Date(lastAuto.getTime() + ms);
@@ -69,11 +75,16 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>("export");
+
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
+
+  const [exportDest, setExportDest] = useState<BackupDestination>("local");
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
   const [lastAutoBackup, setLastAutoBackup] = useState<Date | null>(null);
-  const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("manual");
+  const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("off");
+  const [autoDest, setAutoDest] = useState<BackupDestination>("local");
+
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,11 +93,17 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   function showFeedback(type: FeedbackType, message: string) {
     if (feedbackTimer.current) clearTimeout(feedbackTimer.current);
     setFeedback({ type, message });
-    Animated.timing(feedbackOpacity, { toValue: 1, duration: 200, useNativeDriver: true }).start();
+    Animated.timing(feedbackOpacity, {
+      toValue: 1,
+      duration: 200,
+      useNativeDriver: true,
+    }).start();
     feedbackTimer.current = setTimeout(() => {
-      Animated.timing(feedbackOpacity, { toValue: 0, duration: 300, useNativeDriver: true }).start(
-        () => setFeedback(null)
-      );
+      Animated.timing(feedbackOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setFeedback(null));
     }, 4000);
   }
 
@@ -95,14 +112,16 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   }
 
   const refreshAll = useCallback(async () => {
-    const [manual, auto, freq] = await Promise.allSettled([
+    const [manual, auto, freq, dest] = await Promise.allSettled([
       getLastBackupDate(),
       getLastAutoBackupDate(),
       getAutoBackupFrequency(),
+      getAutoBackupDestination(),
     ]);
     if (manual.status === "fulfilled") setLastBackup(manual.value);
     if (auto.status === "fulfilled") setLastAutoBackup(auto.value);
     if (freq.status === "fulfilled") setAutoFreq(freq.value);
+    if (dest.status === "fulfilled") setAutoDest(dest.value);
   }, []);
 
   useEffect(() => {
@@ -119,18 +138,35 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     await setAutoBackupFrequency(freq);
   }
 
+  async function handleAutoDestChange(dest: BackupDestination) {
+    Haptics.selectionAsync();
+    setAutoDest(dest);
+    await setAutoBackupDestination(dest);
+  }
+
+  function handleExportDestChange(dest: BackupDestination) {
+    Haptics.selectionAsync();
+    setExportDest(dest);
+  }
+
   async function handleExport() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setExporting(true);
     try {
-      await exportBackup();
+      await exportBackup(exportDest);
       await refreshAll();
-      showFeedback(
-        "success",
-        Platform.OS === "web"
-          ? "✦ Backup downloaded — check your Downloads folder."
-          : "✦ Backup exported. Use the share sheet to save to iCloud Drive or Google Drive."
-      );
+      if (Platform.OS === "web") {
+        showFeedback("success", "✦ Backup downloaded — check your Downloads folder.");
+      } else if (exportDest === "cloud") {
+        showFeedback("success", "✦ Share sheet opened — save to iCloud Drive, Google Drive, or anywhere you like.");
+      } else {
+        showFeedback(
+          "success",
+          Platform.OS === "ios"
+            ? "✦ Saved to Documents — find it in the Files app or enable iCloud Drive to sync automatically."
+            : "✦ Saved to Documents — find it in your Files app."
+        );
+      }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Export failed.";
       showFeedback("error", `Export failed: ${msg}`);
@@ -141,7 +177,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 
   function handleImport() {
     requireConfirm(
-      "This will overwrite all current data with the selected backup file. Make sure you've exported a fresh backup first if needed.",
+      "This will overwrite all current data with the selected backup file. Export a fresh backup first if you want to keep your current data.",
       async () => {
         setConfirmState(null);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -162,6 +198,49 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   }
 
   const s = styles(colors);
+
+  function DestinationToggle({
+    value,
+    onChange,
+    localLabel,
+    cloudLabel,
+  }: {
+    value: BackupDestination;
+    onChange: (d: BackupDestination) => void;
+    localLabel: string;
+    cloudLabel: string;
+  }) {
+    return (
+      <View style={s.destRow}>
+        <Pressable
+          style={[s.destChip, value === "local" && s.destChipActive]}
+          onPress={() => onChange("local")}
+        >
+          <Feather
+            name="hard-drive"
+            size={13}
+            color={value === "local" ? "#D4A843" : colors.mutedForeground}
+          />
+          <Text style={[s.destChipText, value === "local" && s.destChipTextActive]}>
+            {localLabel}
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[s.destChip, value === "cloud" && s.destChipActive]}
+          onPress={() => onChange("cloud")}
+        >
+          <Feather
+            name="cloud"
+            size={13}
+            color={value === "cloud" ? "#D4A843" : colors.mutedForeground}
+          />
+          <Text style={[s.destChipText, value === "cloud" && s.destChipTextActive]}>
+            {cloudLabel}
+          </Text>
+        </Pressable>
+      </View>
+    );
+  }
 
   const sheetContent = (
     <View style={[s.container, { paddingTop: insets.top + 16 }]}>
@@ -195,7 +274,11 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
           <Pressable
             key={t}
             style={[s.tab, tab === t && s.tabActive]}
-            onPress={() => { Haptics.selectionAsync(); setTab(t); setConfirmState(null); }}
+            onPress={() => {
+              Haptics.selectionAsync();
+              setTab(t);
+              setConfirmState(null);
+            }}
           >
             <Feather
               name={t === "export" ? "upload" : "download"}
@@ -209,7 +292,11 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
         ))}
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={s.content}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={s.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Inline confirm */}
         {confirmState && (
           <View style={s.confirmCard}>
@@ -228,87 +315,89 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 
         {tab === "export" ? (
           <>
-            <View style={s.infoCard}>
-              <Feather name="info" size={14} color="#D4A843" />
-              <Text style={s.infoText}>
-                Exports all your data — journal entries, sacred intentions,
-                altar items, moon water logs, calendar events, streak data,
-                and settings — into a single JSON file saved on your device.
-                Nothing leaves your device unless you choose to share it.
+            {/* Manual export destination */}
+            <View style={s.sectionCard}>
+              <Text style={s.sectionTitle}>Save to</Text>
+              <DestinationToggle
+                value={exportDest}
+                onChange={handleExportDestChange}
+                localLabel="Local (Device)"
+                cloudLabel="Cloud (Share)"
+              />
+              <Text style={s.sectionHint}>
+                {Platform.OS === "web"
+                  ? "Downloads the backup file to your device."
+                  : exportDest === "local"
+                  ? Platform.OS === "ios"
+                    ? "Saves to your Documents folder. Open the Files app to find it. Enable iCloud Drive to sync it automatically."
+                    : "Saves to your Documents folder. Open your Files app to find it."
+                  : Platform.OS === "ios"
+                  ? "Saves the file and opens the share sheet — choose iCloud Drive, AirDrop, email, or any app."
+                  : "Saves the file and opens the share sheet — choose Google Drive, Gmail, or any app."}
               </Text>
             </View>
 
-            {/* Where it saves */}
-            <View style={s.locationCard}>
-              {Platform.OS === "ios" ? (
-                <>
-                  <Text style={s.locationTitle}>☁ Saves to iCloud Drive automatically</Text>
-                  <Text style={s.locationBody}>
-                    {"File: " + "mystical-runnings-backup.json\n"}
-                    {"Folder: On My iPhone or iCloud Drive\n\n"}
-                    The share sheet opens so you can also send it to Files,
-                    email, AirDrop, or anywhere else.
-                  </Text>
-                </>
-              ) : Platform.OS === "android" ? (
-                <>
-                  <Text style={s.locationTitle}>☁ Share to Google Drive or save locally</Text>
-                  <Text style={s.locationBody}>
-                    {"File: " + "mystical-runnings-backup.json\n"}
-                    {"Folder: Internal storage › Documents\n\n"}
-                    The share sheet opens so you can send it to Google Drive,
-                    Gmail, or any other app.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text style={s.locationTitle}>⬇ Downloads to your device</Text>
-                  <Text style={s.locationBody}>
-                    {"File: " + "mystical-runnings-backup.json\n"}
-                    {"Location: Downloads folder\n\n"}
-                    Open your Files or Downloads app to find it. From there you
-                    can move it to Google Drive, iCloud Drive, or email it.
-                  </Text>
-                </>
-              )}
-            </View>
-
             {/* Auto-backup */}
-            <View style={s.freqCard}>
-              <View style={s.freqTitleRow}>
-                <Text style={s.freqTitle}>Auto-Backup Schedule</Text>
-                {autoFreq !== "manual" && (
+            <View style={s.sectionCard}>
+              <View style={s.sectionTitleRow}>
+                <Text style={s.sectionTitle}>Auto-Backup</Text>
+                {autoFreq !== "off" && (
                   <Text style={s.nextRunBadge}>
                     Next: {nextRunLabel(autoFreq, lastAutoBackup)}
                   </Text>
                 )}
               </View>
-              <View style={s.freqRow}>
-                {(["manual", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
+
+              {/* Frequency */}
+              <Text style={s.subLabel}>Frequency</Text>
+              <View style={s.chipRow}>
+                {(["off", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
                   <Pressable
                     key={f}
-                    style={[s.freqChip, autoFreq === f && s.freqChipActive]}
+                    style={[s.chip, autoFreq === f && s.chipActive]}
                     onPress={() => handleFreqChange(f)}
                   >
-                    <Text style={[s.freqChipText, autoFreq === f && s.freqChipTextActive]}>
-                      {f.charAt(0).toUpperCase() + f.slice(1)}
+                    <Text style={[s.chipText, autoFreq === f && s.chipTextActive]}>
+                      {f === "off" ? "Off" : f === "daily" ? "Daily" : "Weekly"}
                     </Text>
                   </Pressable>
                 ))}
               </View>
-              <Text style={s.freqHint}>
-                {autoFreq === "manual"
-                  ? "Backups only happen when you tap Export below."
-                  : autoFreq === "daily"
-                  ? "A silent backup runs once per day when you open the app."
-                  : "A silent backup runs once per week when you open the app."}
-              </Text>
-              {lastAutoBackup && (
-                <View style={s.lastAutoRow}>
-                  <Feather name="clock" size={12} color={colors.mutedForeground} />
-                  <Text style={s.lastAutoText}>
-                    Last auto-backup: {formatDate(lastAutoBackup)}
+
+              {/* Destination — only shown when auto-backup is on */}
+              {autoFreq !== "off" && (
+                <>
+                  <Text style={[s.subLabel, { marginTop: 10 }]}>Destination</Text>
+                  <DestinationToggle
+                    value={autoDest}
+                    onChange={handleAutoDestChange}
+                    localLabel="Local"
+                    cloudLabel="Cloud"
+                  />
+                  <Text style={s.sectionHint}>
+                    {Platform.OS === "ios"
+                      ? autoDest === "cloud"
+                        ? "Saves silently to your Documents folder, which iCloud Drive syncs automatically if enabled in Settings."
+                        : "Saves silently to your Documents folder on this device."
+                      : Platform.OS === "android"
+                      ? autoDest === "cloud"
+                        ? "Saves silently to your Documents folder. For Google Drive, use Export → Cloud to send it manually — silent uploads require Google Drive integration."
+                        : "Saves silently to your Documents folder on this device."
+                      : "Saves a backup file each time the schedule is due."}
                   </Text>
+                </>
+              )}
+
+              {autoFreq === "off" && (
+                <Text style={s.sectionHint}>
+                  Auto-backup is off. Use the Export button below to save manually whenever you like.
+                </Text>
+              )}
+
+              {lastAutoBackup && autoFreq !== "off" && (
+                <View style={s.lastRow}>
+                  <Feather name="clock" size={12} color={colors.mutedForeground} />
+                  <Text style={s.lastText}>Last auto-backup: {formatDate(lastAutoBackup)}</Text>
                 </View>
               )}
             </View>
@@ -323,12 +412,22 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               ) : (
                 <>
                   <Feather
-                    name={Platform.OS === "web" ? "download" : "share"}
+                    name={
+                      Platform.OS === "web"
+                        ? "download"
+                        : exportDest === "cloud"
+                        ? "share"
+                        : "save"
+                    }
                     size={18}
                     color="#0D0D1A"
                   />
                   <Text style={s.primaryBtnText}>
-                    {Platform.OS === "web" ? "Download Backup File" : "Export & Share Backup"}
+                    {Platform.OS === "web"
+                      ? "Download Backup"
+                      : exportDest === "cloud"
+                      ? "Export & Share to Cloud"
+                      : "Export to Device"}
                   </Text>
                 </>
               )}
@@ -342,7 +441,8 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <>
                   <Text style={s.locationTitle}>📂 Where to find your backup</Text>
                   <Text style={s.locationBody}>
-                    Open the <Text style={s.bold}>Files app</Text> → On My iPhone or iCloud Drive.{"\n"}
+                    Open the <Text style={s.bold}>Files app</Text> → On My iPhone (or iCloud Drive
+                    if you exported to Cloud).{"\n"}
                     Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.
                   </Text>
                 </>
@@ -350,7 +450,8 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <>
                   <Text style={s.locationTitle}>📂 Where to find your backup</Text>
                   <Text style={s.locationBody}>
-                    Open the <Text style={s.bold}>Files app</Text> → Internal storage → Documents.{"\n"}
+                    Open the <Text style={s.bold}>Files app</Text> → Internal storage → Documents.
+                    {"\n"}
                     Or check <Text style={s.bold}>Google Drive</Text> if you shared it there.{"\n"}
                     Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.
                   </Text>
@@ -359,7 +460,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <>
                   <Text style={s.locationTitle}>📂 Where to find your backup</Text>
                   <Text style={s.locationBody}>
-                    Open your <Text style={s.bold}>Downloads folder</Text> or Files app.{"\n"}
+                    Open your <Text style={s.bold}>Downloads folder</Text>.{"\n"}
                     Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.{"\n"}
                     Or check Google Drive / iCloud Drive if you saved it there.
                   </Text>
@@ -383,8 +484,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               <View style={s.stepRow}>
                 <Text style={s.stepNum}>3</Text>
                 <Text style={s.stepText}>
-                  Confirm the restore — your data will be replaced with the backup.
-                  Restart the app afterwards.
+                  Confirm — your data will be replaced. Restart the app afterwards.
                 </Text>
               </View>
             </View>
@@ -413,7 +513,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
           style={[
             s.feedbackBanner,
             feedback.type === "success" ? s.feedbackSuccess : s.feedbackError,
-            { opacity: feedbackOpacity },
+            { opacity: feedbackOpacity, bottom: insets.bottom + 16 },
           ]}
         >
           <Feather
@@ -562,6 +662,7 @@ function styles(colors: any) {
     content: {
       padding: 20,
       gap: 14,
+      paddingBottom: 80,
     },
     confirmCard: {
       backgroundColor: "#1C1300",
@@ -605,21 +706,122 @@ function styles(colors: any) {
       fontWeight: "700",
       color: "#fff",
     },
-    infoCard: {
-      flexDirection: "row",
-      gap: 10,
+    sectionCard: {
       backgroundColor: colors.card,
       borderRadius: 12,
       borderWidth: 1,
       borderColor: colors.border,
       padding: 14,
-      alignItems: "flex-start",
+      gap: 8,
     },
-    infoText: {
-      flex: 1,
+    sectionTitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    sectionTitle: {
       fontSize: 13,
+      fontWeight: "600",
+      color: colors.foreground,
+    },
+    subLabel: {
+      fontSize: 11,
+      fontWeight: "600",
       color: colors.mutedForeground,
-      lineHeight: 19,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    sectionHint: {
+      fontSize: 12,
+      color: colors.mutedForeground,
+      lineHeight: 18,
+    },
+    nextRunBadge: {
+      fontSize: 11,
+      color: "#D4A843",
+      fontWeight: "600",
+      backgroundColor: "#D4A84322",
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 6,
+    },
+    chipRow: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    chip: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 7,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    chipActive: {
+      borderColor: "#D4A843",
+      backgroundColor: "#D4A84322",
+    },
+    chipText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.mutedForeground,
+    },
+    chipTextActive: {
+      color: "#D4A843",
+    },
+    destRow: {
+      flexDirection: "row",
+      gap: 8,
+    },
+    destChip: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 8,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    destChipActive: {
+      borderColor: "#D4A843",
+      backgroundColor: "#D4A84322",
+    },
+    destChipText: {
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.mutedForeground,
+    },
+    destChipTextActive: {
+      color: "#D4A843",
+    },
+    lastRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+    },
+    lastText: {
+      fontSize: 11,
+      color: colors.mutedForeground,
+    },
+    primaryBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 10,
+      backgroundColor: "#D4A843",
+      borderRadius: 12,
+      paddingVertical: 14,
+    },
+    btnDisabled: {
+      opacity: 0.6,
+    },
+    primaryBtnText: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: "#0D0D1A",
     },
     locationCard: {
       backgroundColor: "#1A1A2E",
@@ -638,27 +840,6 @@ function styles(colors: any) {
       fontSize: 13,
       color: colors.mutedForeground,
       lineHeight: 20,
-    },
-    bold: {
-      fontWeight: "700",
-      color: colors.foreground,
-    },
-    primaryBtn: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 10,
-      backgroundColor: "#D4A843",
-      borderRadius: 12,
-      paddingVertical: 14,
-    },
-    btnDisabled: {
-      opacity: 0.6,
-    },
-    primaryBtnText: {
-      fontSize: 15,
-      fontWeight: "700",
-      color: "#0D0D1A",
     },
     stepsCard: {
       backgroundColor: colors.card,
@@ -696,81 +877,17 @@ function styles(colors: any) {
       color: colors.mutedForeground,
       lineHeight: 19,
     },
+    bold: {
+      fontWeight: "700",
+      color: colors.foreground,
+    },
     mono: {
       fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
       fontSize: 12,
       color: "#A78BFA",
     },
-    freqCard: {
-      backgroundColor: colors.card,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      padding: 14,
-      gap: 10,
-    },
-    freqTitleRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-    },
-    freqTitle: {
-      fontSize: 13,
-      fontWeight: "600",
-      color: colors.foreground,
-    },
-    nextRunBadge: {
-      fontSize: 11,
-      color: "#D4A843",
-      fontWeight: "600",
-      backgroundColor: "#D4A84322",
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 6,
-    },
-    freqRow: {
-      flexDirection: "row",
-      gap: 8,
-    },
-    freqChip: {
-      flex: 1,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 7,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: "transparent",
-    },
-    freqChipActive: {
-      borderColor: "#D4A843",
-      backgroundColor: "#D4A84322",
-    },
-    freqChipText: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: colors.mutedForeground,
-    },
-    freqChipTextActive: {
-      color: "#D4A843",
-    },
-    freqHint: {
-      fontSize: 12,
-      color: colors.mutedForeground,
-      lineHeight: 17,
-    },
-    lastAutoRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 5,
-    },
-    lastAutoText: {
-      fontSize: 11,
-      color: colors.mutedForeground,
-    },
     feedbackBanner: {
       position: "absolute",
-      bottom: 24,
       left: 20,
       right: 20,
       flexDirection: "row",

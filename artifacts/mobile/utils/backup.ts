@@ -44,6 +44,7 @@ async function buildBackupData(): Promise<BackupData> {
 
 const LAST_MANUAL_EXPORT_KEY = "@mystical_last_manual_export_ts";
 const AUTO_BACKUP_FREQ_KEY = "@mystical_auto_backup_frequency";
+const AUTO_BACKUP_DEST_KEY = "@mystical_auto_backup_destination";
 const LAST_AUTO_BACKUP_KEY = "@mystical_last_auto_backup_ts";
 
 export async function getLastBackupDate(): Promise<Date | null> {
@@ -73,7 +74,14 @@ export async function getLastAutoBackupDate(): Promise<Date | null> {
   }
 }
 
-export async function exportBackup(): Promise<void> {
+export type BackupDestination = "local" | "cloud";
+
+/**
+ * Manual export.
+ * local  → saves file to device only (Downloads on web, Documents on native)
+ * cloud  → saves file then opens the share sheet so user can pick iCloud Drive / Google Drive / etc.
+ */
+export async function exportBackup(destination: BackupDestination = "local"): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
 
@@ -96,10 +104,12 @@ export async function exportBackup(): Promise<void> {
   file.write(json);
   await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
 
-  if (Platform.OS === "ios") {
-    await Share.share({ url: file.uri, title: BACKUP_FILENAME });
-  } else {
-    await Share.share({ message: json, title: BACKUP_FILENAME });
+  if (destination === "cloud") {
+    if (Platform.OS === "ios") {
+      await Share.share({ url: file.uri, title: BACKUP_FILENAME });
+    } else {
+      await Share.share({ message: json, title: BACKUP_FILENAME });
+    }
   }
 }
 
@@ -159,15 +169,16 @@ async function restoreFromJson(json: string): Promise<void> {
   await AsyncStorage.multiSet(pairs);
 }
 
-export type AutoBackupFrequency = "daily" | "weekly" | "manual";
+/** "off" means auto-backup is disabled. Manual export via the Export button is always available. */
+export type AutoBackupFrequency = "off" | "daily" | "weekly";
 
 export async function getAutoBackupFrequency(): Promise<AutoBackupFrequency> {
   try {
     const raw = await AsyncStorage.getItem(AUTO_BACKUP_FREQ_KEY);
     if (raw === "daily" || raw === "weekly") return raw;
-    return "manual";
+    return "off";
   } catch {
-    return "manual";
+    return "off";
   }
 }
 
@@ -175,6 +186,26 @@ export async function setAutoBackupFrequency(freq: AutoBackupFrequency): Promise
   await AsyncStorage.setItem(AUTO_BACKUP_FREQ_KEY, freq);
 }
 
+export async function getAutoBackupDestination(): Promise<BackupDestination> {
+  try {
+    const raw = await AsyncStorage.getItem(AUTO_BACKUP_DEST_KEY);
+    if (raw === "cloud") return "cloud";
+    return "local";
+  } catch {
+    return "local";
+  }
+}
+
+export async function setAutoBackupDestination(dest: BackupDestination): Promise<void> {
+  await AsyncStorage.setItem(AUTO_BACKUP_DEST_KEY, dest);
+}
+
+/**
+ * Silent auto-backup. Always saves to the Documents folder.
+ * "cloud" destination on iOS: Documents auto-syncs to iCloud Drive if the user has it enabled.
+ * "cloud" destination on Android: saves locally (silent Google Drive upload is not possible without
+ *  user interaction; use the Export button → Cloud to send to Google Drive manually).
+ */
 async function exportBackupSilent(): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
@@ -189,7 +220,7 @@ async function exportBackupSilent(): Promise<void> {
 export async function runAutoBackupIfDue(): Promise<void> {
   try {
     const freq = await getAutoBackupFrequency();
-    if (freq === "manual") return;
+    if (freq === "off") return;
     const lastRaw = await AsyncStorage.getItem(LAST_AUTO_BACKUP_KEY);
     const now = Date.now();
     if (lastRaw) {
