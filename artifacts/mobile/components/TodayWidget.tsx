@@ -176,17 +176,51 @@ export function TodayWidget({ today }: Props) {
   const moon = useMemo(() => getMoonPhaseData(today), [today]);
   const oseDay = useMemo(() => getOseDay(today), [today]);
   const nextEvent = useMemo(() => findNextEvent(today), [today]);
+  const namedMoonToday = useMemo(() => getNamedFullMoonForDate(today), [today]);
+  const darkMoonToday = useMemo(() => getDarkMoonForDate(today), [today]);
+  const sabbatToday = useMemo(() => getSabbatForDate(today), [today]);
 
   const [oseModal, setOseModal] = useState<OseGroup | null>(null);
   const [eventModal, setEventModal] = useState<EventDetail | null>(null);
 
-  const moonDetail: EventDetail = {
-    title: moon.name,
-    category: moon.eventType.replace(/-/g, " ").toUpperCase(),
-    color: "#A78BFA",
-    description: `The moon is ${moon.illumination}% illuminated — day ${Math.round(moon.phase)} of the current 30-day cycle.`,
-    guidance: moonDetailGuidance(moon.eventType),
-  };
+  const moonDetail: EventDetail = namedMoonToday
+    ? {
+        title: namedMoonToday.name,
+        category: "FULL MOON",
+        color: "#A78BFA",
+        description: namedMoonToday.description,
+        guidance: "Full moons illuminate what was hidden and call for release, gratitude, and completion. A sacred time for ritual and reflection.",
+        rows: getTidalRows(namedMoonToday),
+      }
+    : darkMoonToday
+    ? {
+        title: "Dark Moon",
+        category: "DARK MOON",
+        color: "#6D28D9",
+        description: darkMoonToday.sign
+          ? `The Dark Moon rests in ${darkMoonToday.sign} — a liminal threshold between endings and new beginnings.`
+          : "A liminal threshold between endings and new beginnings. The sky is void of moonlight.",
+        guidance: "Rest, retreat, and turn inward. Release what no longer serves. The next cycle begins soon — allow space for renewal.",
+        rows: getTidalRows(darkMoonToday),
+      }
+    : {
+        title: moon.name,
+        category: moon.eventType.replace(/-/g, " ").toUpperCase(),
+        color: "#A78BFA",
+        description: `The moon is ${moon.illumination}% illuminated — day ${Math.round(moon.phase)} of the current 30-day cycle.`,
+        guidance: moonDetailGuidance(moon.eventType),
+      };
+
+  const sabbatDetail: EventDetail | null = sabbatToday
+    ? {
+        title: sabbatToday.name,
+        category: "WHEEL OF THE YEAR",
+        color: "#34D399",
+        description: sabbatToday.description,
+        guidance: "Honor this turning of the wheel by lighting a candle, working with the land, and attuning to the season's elemental energy. Each sabbat opens a new tidal season — a distinct magical current of element, polarity, and intent.",
+        rows: getTidalRows(sabbatToday),
+      }
+    : null;
 
   return (
     <>
@@ -260,6 +294,23 @@ export function TodayWidget({ today }: Props) {
         </Pressable>
       </View>
 
+      {sabbatDetail && (
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); setEventModal(sabbatDetail); }}
+          style={({ pressed }) => [
+            styles.sabbatBanner,
+            { backgroundColor: colors.card, borderColor: "#34D39944", opacity: pressed ? 0.85 : 1 },
+          ]}
+        >
+          <View style={[styles.sabbatDot, { backgroundColor: "#34D399" }]} />
+          <View style={styles.sabbatText}>
+            <Text style={[styles.sabbatLabel, { color: "#34D399" }]}>WHEEL OF THE YEAR — TODAY</Text>
+            <Text style={[styles.sabbatTitle, { color: colors.foreground }]}>{sabbatToday!.name.split(" —")[0]}</Text>
+          </View>
+          <Text style={[styles.sabbatHint, { color: colors.mutedForeground }]}>Tap ›</Text>
+        </Pressable>
+      )}
+
       <OseDetailModal group={oseModal} onClose={() => setOseModal(null)} />
       <EventDetailModal event={eventModal} onClose={() => setEventModal(null)} />
     </>
@@ -313,5 +364,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: "center",
     lineHeight: 14,
+  },
+  sabbatBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    gap: 12,
+  },
+  sabbatDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  sabbatText: {
+    flex: 1,
+    gap: 2,
+  },
+  sabbatLabel: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  sabbatTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  sabbatHint: {
+    fontSize: 13,
   },
 });
