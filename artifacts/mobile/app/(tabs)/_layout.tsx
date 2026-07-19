@@ -1,5 +1,4 @@
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Tabs } from "expo-router";
 import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
@@ -9,6 +8,22 @@ import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+
+// expo-glass-effect only works on iOS — importing it on Android/web crashes
+// the tab layout because GlassView native module doesn't exist there.
+// We lazy-require it only when on iOS, with a safe fallback.
+const isLiquidGlassAvailable: () => boolean =
+  Platform.OS === "ios"
+    ? (() => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          return (require("expo-glass-effect") as { isLiquidGlassAvailable: () => boolean })
+            .isLiquidGlassAvailable;
+        } catch {
+          return () => false;
+        }
+      })()
+    : () => false;
 
 function NativeTabLayout() {
   return (
