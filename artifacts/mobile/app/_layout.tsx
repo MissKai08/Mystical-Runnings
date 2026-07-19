@@ -6,6 +6,7 @@ import {
   useFonts,
 } from "@expo-google-fonts/inter";
 import { ZenDots_400Regular } from "@expo-google-fonts/zen-dots";
+import { Feather } from "@expo/vector-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -42,6 +43,7 @@ export default function RootLayout() {
     Inter_600SemiBold,
     Inter_700Bold,
     ZenDots_400Regular,
+    ...Feather.font,
   });
 
   const [appReady, setAppReady] = useState(false);
