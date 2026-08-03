@@ -29,10 +29,10 @@ export interface NotificationSettings {
 }
 
 export const DEFAULT_SETTINGS: NotificationSettings = {
-  masterEnabled: false,
+  masterEnabled: true,
   advanceDays: 1,
   types: {
-    dailyBriefing: false,
+    dailyBriefing: true,
     oduReflection: true,
     journalPrompt: false,
     sacredIntentionReminder: false,

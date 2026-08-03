@@ -5,6 +5,7 @@ import SunCalc from "suncalc";
 
 const LOCATION_KEY = "@mystical_cached_location_v1";
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+const USNO_RSTT_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CachedLocation {
   latitude: number;
@@ -74,7 +75,8 @@ async function fetchLocation(): Promise<CachedLocation | null> {
   };
 }
 
-function computeTimes(loc: CachedLocation, date: Date): SunMoonTimes {
+/** SunCalc fallback — always synchronous and works offline */
+function computeTimesSunCalc(loc: CachedLocation, date: Date): SunMoonTimes {
   const sunTimes = SunCalc.getTimes(date, loc.latitude, loc.longitude);
   const moonTimes = SunCalc.getMoonTimes(date, loc.latitude, loc.longitude);
 
@@ -85,6 +87,87 @@ function computeTimes(loc: CachedLocation, date: Date): SunMoonTimes {
     moonset: moonTimes.set instanceof Date && isFinite(moonTimes.set.getTime()) ? moonTimes.set : null,
     cityName: loc.cityName,
   };
+}
+
+interface UsnoRsttData {
+  sunrise: string | null;
+  sunset: string | null;
+  moonrise: string | null;
+  moonset: string | null;
+}
+interface UsnoRsttCache {
+  data: UsnoRsttData;
+  savedAt: number;
+}
+
+function parseUsnoTime(timeStr: string | null, date: Date): Date | null {
+  if (!timeStr) return null;
+  const parts = timeStr.split(":");
+  if (parts.length < 2) return null;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  const d = new Date(date);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/** Fetch sun/moon rise-set times from USNO; returns null on any failure */
+async function fetchUsnoTimes(loc: CachedLocation, date: Date): Promise<SunMoonTimes | null> {
+  try {
+    const pad2 = (n: number) => String(n).padStart(2, "0");
+    const dateStr = `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+    const tzOffset = -date.getTimezoneOffset() / 60;
+    const cacheKey = `@usno_rstt_${dateStr}_${loc.latitude.toFixed(2)}_${loc.longitude.toFixed(2)}`;
+
+    // Check AsyncStorage cache first
+    const cachedRaw = await AsyncStorage.getItem(cacheKey);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw) as UsnoRsttCache;
+      if (Date.now() - cached.savedAt < USNO_RSTT_TTL_MS) {
+        return {
+          sunrise: parseUsnoTime(cached.data.sunrise, date),
+          sunset: parseUsnoTime(cached.data.sunset, date),
+          moonrise: parseUsnoTime(cached.data.moonrise, date),
+          moonset: parseUsnoTime(cached.data.moonset, date),
+          cityName: loc.cityName,
+        };
+      }
+    }
+
+    // Fetch from USNO API
+    const url = `https://aa.usno.navy.mil/api/rstt/oneday?date=${dateStr}&coords=${loc.latitude.toFixed(4)},${loc.longitude.toFixed(4)}&tz=${tzOffset}`;
+    const resp = await fetch(url);
+    if (!resp.ok) return null;
+    const json = (await resp.json()) as {
+      properties?: { data?: { sundata?: { phen: string; time: string }[]; moondata?: { phen: string; time: string }[] } };
+    };
+
+    const sundata = json?.properties?.data?.sundata ?? [];
+    const moondata = json?.properties?.data?.moondata ?? [];
+
+    const findTime = (arr: { phen: string; time: string }[], phen: string): string | null =>
+      arr.find((e) => e.phen === phen)?.time ?? null;
+
+    const data: UsnoRsttData = {
+      sunrise: findTime(sundata, "R"),
+      sunset: findTime(sundata, "S"),
+      moonrise: findTime(moondata, "R"),
+      moonset: findTime(moondata, "S"),
+    };
+
+    await AsyncStorage.setItem(cacheKey, JSON.stringify({ data, savedAt: Date.now() }));
+
+    return {
+      sunrise: parseUsnoTime(data.sunrise, date),
+      sunset: parseUsnoTime(data.sunset, date),
+      moonrise: parseUsnoTime(data.moonrise, date),
+      moonset: parseUsnoTime(data.moonset, date),
+      cityName: loc.cityName,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function useSunMoon(date: Date): UseSunMoonResult {
@@ -109,8 +192,17 @@ export function useSunMoon(date: Date): UseSunMoonResult {
         await saveLocation(loc);
       }
 
+      if (cancelled) return;
+
+      // Primary: USNO API (most accurate)
+      const usnoResult = await fetchUsnoTimes(loc, date);
       if (!cancelled) {
-        setTimes(computeTimes(loc, date));
+        if (usnoResult) {
+          setTimes(usnoResult);
+        } else {
+          // Fallback: SunCalc (works offline)
+          setTimes(computeTimesSunCalc(loc, date));
+        }
         setStatus("ready");
       }
     })();

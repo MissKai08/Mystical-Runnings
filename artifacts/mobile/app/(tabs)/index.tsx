@@ -10,6 +10,7 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Share,
+  Linking,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -358,7 +359,16 @@ export default function HomeScreen() {
     >
       <View style={styles.brandHeader}>
         <Text style={[styles.brandTitle, { color: "#D4A843" }]}>Mystical Runnings</Text>
-        <Text style={[styles.brandSubtitle, { color: colors.mutedForeground }]}>curated by MissKai</Text>
+        <Text style={[styles.brandSubtitle, { color: colors.mutedForeground }]}>
+          curated by{" "}
+          <Text
+            style={styles.brandSubtitleLink}
+            onPress={() => Linking.openURL("https://www.misskai.com")}
+            accessibilityRole="link"
+          >
+            MissKai
+          </Text>
+        </Text>
       </View>
 
       {/* Greeting */}
@@ -1089,6 +1099,10 @@ const styles = StyleSheet.create({
     marginTop: 2,
     letterSpacing: 1.2,
     textAlign: "center",
+  },
+  brandSubtitleLink: {
+    textDecorationLine: "underline",
+    color: "#D4A843",
   },
   greetingRow: {
     flexDirection: "row",

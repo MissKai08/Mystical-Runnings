@@ -22,8 +22,8 @@ import {
   getLastAutoBackupDate,
   getAutoBackupFrequency,
   setAutoBackupFrequency,
-  getAutoBackupDestination,
-  setAutoBackupDestination,
+  pickBackupFolder,
+  getBackupFolderUri,
   AutoBackupFrequency,
   BackupDestination,
 } from "@/utils/backup";
@@ -83,7 +83,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   const [lastBackup, setLastBackup] = useState<Date | null>(null);
   const [lastAutoBackup, setLastAutoBackup] = useState<Date | null>(null);
   const [autoFreq, setAutoFreq] = useState<AutoBackupFrequency>("off");
-  const [autoDest, setAutoDest] = useState<BackupDestination>("local");
+  const [backupFolderUri, setBackupFolderUri] = useState<string | null>(null);
 
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
@@ -112,16 +112,16 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
   }
 
   const refreshAll = useCallback(async () => {
-    const [manual, auto, freq, dest] = await Promise.allSettled([
+    const [manual, auto, freq, folderUri] = await Promise.allSettled([
       getLastBackupDate(),
       getLastAutoBackupDate(),
       getAutoBackupFrequency(),
-      getAutoBackupDestination(),
+      getBackupFolderUri(),
     ]);
     if (manual.status === "fulfilled") setLastBackup(manual.value);
     if (auto.status === "fulfilled") setLastAutoBackup(auto.value);
     if (freq.status === "fulfilled") setAutoFreq(freq.value);
-    if (dest.status === "fulfilled") setAutoDest(dest.value);
+    if (folderUri.status === "fulfilled") setBackupFolderUri(folderUri.value);
   }, []);
 
   useEffect(() => {
@@ -138,10 +138,10 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     await setAutoBackupFrequency(freq);
   }
 
-  async function handleAutoDestChange(dest: BackupDestination) {
-    Haptics.selectionAsync();
-    setAutoDest(dest);
-    await setAutoBackupDestination(dest);
+  async function handlePickFolder() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    const uri = await pickBackupFolder();
+    if (uri) setBackupFolderUri(uri);
   }
 
   function handleExportDestChange(dest: BackupDestination) {
@@ -333,6 +333,39 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </Text>
             </View>
 
+            {/* Android-only: Backup Folder picker */}
+            {Platform.OS === "android" && (
+              <View style={s.sectionCard}>
+                <Text style={s.sectionTitle}>Backup Folder</Text>
+                <View style={s.folderRow}>
+                  <Feather name="folder" size={15} color={backupFolderUri ? "#D4A843" : colors.mutedForeground} />
+                  <Text style={[s.folderLabel, { color: backupFolderUri ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+                    {backupFolderUri
+                      ? (() => {
+                          try {
+                            const decoded = decodeURIComponent(backupFolderUri);
+                            const segs = decoded.split(/[:/]/);
+                            return segs[segs.length - 1] || "Chosen folder";
+                          } catch { return "Chosen folder"; }
+                        })()
+                      : "Not set — tap to choose"}
+                  </Text>
+                  <Pressable style={s.folderBtn} onPress={handlePickFolder}>
+                    <Text style={s.folderBtnText}>{backupFolderUri ? "Change" : "Choose"}</Text>
+                  </Pressable>
+                </View>
+                {autoFreq !== "off" && !backupFolderUri && (
+                  <View style={s.folderWarn}>
+                    <Feather name="alert-triangle" size={12} color="#F59E0B" />
+                    <Text style={s.folderWarnText}>Auto-backup is on — choose a folder so files save where you expect.</Text>
+                  </View>
+                )}
+                <Text style={s.sectionHint}>
+                  Exports and auto-backups write to this folder. If not set, files save to your internal Documents folder.
+                </Text>
+              </View>
+            )}
+
             {/* Auto-backup */}
             <View style={s.sectionCard}>
               <View style={s.sectionTitleRow}>
@@ -360,33 +393,19 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 ))}
               </View>
 
-              {/* Destination — only shown when auto-backup is on */}
-              {autoFreq !== "off" && (
-                <>
-                  <Text style={[s.subLabel, { marginTop: 10 }]}>Destination</Text>
-                  <DestinationToggle
-                    value={autoDest}
-                    onChange={handleAutoDestChange}
-                    localLabel="Local"
-                    cloudLabel="Cloud"
-                  />
-                  <Text style={s.sectionHint}>
-                    {Platform.OS === "ios"
-                      ? autoDest === "cloud"
-                        ? "Saves silently to your Documents folder, which iCloud Drive syncs automatically if enabled in Settings."
-                        : "Saves silently to your Documents folder on this device."
-                      : Platform.OS === "android"
-                      ? autoDest === "cloud"
-                        ? "Saves silently to your Documents folder. For Google Drive, use Export → Cloud to send it manually — silent uploads require Google Drive integration."
-                        : "Saves silently to your Documents folder on this device."
-                      : "Saves a backup file each time the schedule is due."}
-                  </Text>
-                </>
-              )}
-
-              {autoFreq === "off" && (
+              {autoFreq === "off" ? (
                 <Text style={s.sectionHint}>
                   Auto-backup is off. Use the Export button below to save manually whenever you like.
+                </Text>
+              ) : (
+                <Text style={s.sectionHint}>
+                  {Platform.OS === "ios"
+                    ? "Saves silently to your Documents folder (syncs to iCloud Drive if enabled in Settings)."
+                    : Platform.OS === "android"
+                    ? backupFolderUri
+                      ? "Saves silently to your chosen backup folder."
+                      : "No folder chosen — tap 'Backup Folder' below to set a destination, or backups save to Documents."
+                    : "Saves a backup file each time the schedule is due."}
                 </Text>
               )}
 
@@ -439,17 +458,17 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   <Text style={s.locationBody}>
                     Open the <Text style={s.bold}>Files app</Text> → On My iPhone (or iCloud Drive
                     if you exported to Cloud).{"\n"}
-                    Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.
+                    Look for a file named <Text style={s.mono}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.
                   </Text>
                 </>
               ) : Platform.OS === "android" ? (
                 <>
                   <Text style={s.locationTitle}>📂 Where to find your backup</Text>
                   <Text style={s.locationBody}>
-                    Open the <Text style={s.bold}>Files app</Text> → Internal storage → Documents.
+                    Open the <Text style={s.bold}>Files app</Text> → your chosen backup folder (or Internal storage → Documents if no folder was set).
                     {"\n"}
                     Or check <Text style={s.bold}>Google Drive</Text> if you shared it there.{"\n"}
-                    Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.
+                    Look for a file named <Text style={s.mono}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.
                   </Text>
                 </>
               ) : (
@@ -457,7 +476,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   <Text style={s.locationTitle}>📂 Where to find your backup</Text>
                   <Text style={s.locationBody}>
                     Open your <Text style={s.bold}>Downloads folder</Text>.{"\n"}
-                    Look for <Text style={s.mono}>mystical-runnings-backup.json</Text>.{"\n"}
+                    Look for a file named <Text style={s.mono}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.{"\n"}
                     Or check Google Drive / iCloud Drive if you saved it there.
                   </Text>
                 </>
@@ -806,6 +825,44 @@ function styles(colors: any) {
     lastText: {
       fontSize: 11,
       color: colors.mutedForeground,
+    },
+    folderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    folderLabel: {
+      flex: 1,
+      fontSize: 13,
+    },
+    folderBtn: {
+      backgroundColor: "#D4A84322",
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderWidth: 1,
+      borderColor: "#D4A84366",
+    },
+    folderBtnText: {
+      fontSize: 12,
+      fontWeight: "700",
+      color: "#D4A843",
+    },
+    folderWarn: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 6,
+      backgroundColor: "#1C1300",
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: "#F59E0B44",
+      padding: 8,
+    },
+    folderWarnText: {
+      flex: 1,
+      fontSize: 11,
+      color: "#F59E0B",
+      lineHeight: 16,
     },
     primaryBtn: {
       flexDirection: "row",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -179,30 +179,47 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
   const topPad = Platform.OS === "ios" ? insets.top + 16 : 20;
 
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_SETTINGS);
-  const [saving, setSaving] = useState(false);
-  const [savedCount, setSavedCount] = useState<number | null>(null);
+  const [syncedCount, setSyncedCount] = useState<number | null>(null);
   const [permDenied, setPermDenied] = useState(false);
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (visible) {
       loadNotificationSettings().then(setSettings);
-      setSavedCount(null);
+      setSyncedCount(null);
       setPermDenied(false);
     }
   }, [visible]);
 
+  /** Save + reschedule, debounced 600 ms after last change */
+  const triggerAutoSave = (newSettings: NotificationSettings) => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(async () => {
+      await saveNotificationSettings(newSettings);
+      const count = await scheduleAllNotifications(newSettings);
+      setSyncedCount(count);
+      // Hide the confirmation after 2 s
+      setTimeout(() => setSyncedCount(null), 2000);
+    }, 600);
+  };
+
   const updateSettings = (patch: Partial<NotificationSettings>) => {
-    setSettings((prev) => ({ ...prev, ...patch }));
-    setSavedCount(null);
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      triggerAutoSave(next);
+      return next;
+    });
+    setSyncedCount(null);
   };
 
   const updateType = (key: keyof NotificationSettings["types"], value: boolean) => {
     Haptics.selectionAsync();
-    setSettings((prev) => ({
-      ...prev,
-      types: { ...prev.types, [key]: value },
-    }));
-    setSavedCount(null);
+    setSettings((prev) => {
+      const next = { ...prev, types: { ...prev.types, [key]: value } };
+      triggerAutoSave(next);
+      return next;
+    });
+    setSyncedCount(null);
   };
 
   const toggleMaster = async (value: boolean) => {
@@ -214,18 +231,11 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
         return;
       }
       setPermDenied(false);
+    } else {
+      // Cancel immediately — don't wait for debounce
+      cancelAllNotifications();
     }
     updateSettings({ masterEnabled: value });
-  };
-
-  const handleSave = async () => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setSaving(true);
-    setSavedCount(null);
-    await saveNotificationSettings(settings);
-    const count = await scheduleAllNotifications(settings);
-    setSavedCount(count);
-    setSaving(false);
   };
 
   const activeTypeCount = Object.values(settings.types).filter(Boolean).length;
@@ -292,20 +302,6 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
               Sacred event notifications
             </Text>
           </View>
-          <Pressable
-            onPress={handleSave}
-            disabled={saving}
-            style={[
-              styles.saveBtn,
-              { backgroundColor: "#D4A843", opacity: saving ? 0.6 : 1 },
-            ]}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#080714" />
-            ) : (
-              <Text style={styles.saveBtnText}>Save</Text>
-            )}
-          </Pressable>
         </View>
 
         <ScrollView
@@ -358,19 +354,19 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
             </View>
           )}
 
-          {/* Saved confirmation */}
-          {savedCount !== null && (
+          {/* Auto-sync confirmation */}
+          {syncedCount !== null && (
             <View
               style={[
                 styles.warnCard,
                 { backgroundColor: "#34D39922", borderColor: "#34D39955" },
               ]}
             >
-              <Feather name="check-circle" size={14} color="#34D399" />
+              <Feather name="check" size={14} color="#34D399" />
               <Text style={[styles.warnText, { color: "#34D399" }]}>
-                {savedCount === 0
-                  ? "No upcoming events to schedule."
-                  : `${savedCount} reminder${savedCount === 1 ? "" : "s"} scheduled.`}
+                {syncedCount === 0
+                  ? "Synced — no upcoming events to schedule."
+                  : `Synced — ${syncedCount} reminder${syncedCount === 1 ? "" : "s"} scheduled.`}
               </Text>
             </View>
           )}
@@ -459,8 +455,8 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
 
           {/* Footer note */}
           <Text style={[styles.footerNote, { color: colors.mutedForeground }]}>
-            Reminders are scheduled locally on your device. Press Save to apply
-            changes. No account or internet required.
+            Reminders are scheduled locally on your device and update automatically.
+            No account or internet required.
           </Text>
         </ScrollView>
       </View>
@@ -482,14 +478,6 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1 },
   headerTitle: { fontSize: 17, fontWeight: "700" },
   headerSub: { fontSize: 12, marginTop: 1 },
-  saveBtn: {
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    minWidth: 60,
-    alignItems: "center",
-  },
-  saveBtnText: { color: "#080714", fontWeight: "700", fontSize: 14 },
   content: { paddingHorizontal: 16, paddingTop: 20, gap: 20 },
   masterCard: {
     borderRadius: 16,

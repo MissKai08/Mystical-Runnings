@@ -3,7 +3,6 @@ import * as DocumentPicker from "expo-document-picker";
 import { Share, Platform } from "react-native";
 
 const BACKUP_VERSION = 1;
-const BACKUP_FILENAME = "mystical-runnings-backup.json";
 
 const BACKUP_KEYS = [
   "@mystical_journal_entries",
@@ -44,20 +43,36 @@ async function buildBackupData(): Promise<BackupData> {
 
 const LAST_MANUAL_EXPORT_KEY = "@mystical_last_manual_export_ts";
 const AUTO_BACKUP_FREQ_KEY = "@mystical_auto_backup_frequency";
-const AUTO_BACKUP_DEST_KEY = "@mystical_auto_backup_destination";
 const LAST_AUTO_BACKUP_KEY = "@mystical_last_auto_backup_ts";
+const BACKUP_FOLDER_URI_KEY = "@mystical_backup_folder_uri";
+
+/** Generate a timestamped filename for every export */
+function generateBackupFilename(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+  return `mystical-runnings-backup-${stamp}.json`;
+}
+
+/** (Android only) Request a folder via SAF and persist it */
+export async function pickBackupFolder(): Promise<string | null> {
+  if (Platform.OS !== "android") return null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fs = (await import("expo-file-system")) as any;
+  const result = await fs.StorageAccessFramework.requestDirectoryPermissionsAsync();
+  if (!result.granted) return null;
+  await AsyncStorage.setItem(BACKUP_FOLDER_URI_KEY, result.directoryUri);
+  return result.directoryUri;
+}
+
+/** (Android only) Return the previously picked folder URI, or null */
+export async function getBackupFolderUri(): Promise<string | null> {
+  if (Platform.OS !== "android") return null;
+  return AsyncStorage.getItem(BACKUP_FOLDER_URI_KEY);
+}
 
 export async function getLastBackupDate(): Promise<Date | null> {
   try {
-    if (Platform.OS !== "web") {
-      const { File, Paths } = await import("expo-file-system");
-      const file = new File(Paths.document, BACKUP_FILENAME);
-      if (file.exists) {
-        const json = await file.text();
-        const parsed = JSON.parse(json) as BackupData;
-        return new Date(parsed.exportedAt);
-      }
-    }
     const raw = await AsyncStorage.getItem(LAST_MANUAL_EXPORT_KEY);
     return raw ? new Date(parseInt(raw, 10)) : null;
   } catch {
@@ -78,21 +93,21 @@ export type BackupDestination = "local" | "cloud";
 
 /**
  * Manual export.
- * local  → saves file to device only (Downloads on web, Documents on native)
+ * local  → saves file to device (SAF folder on Android if set, Documents otherwise)
  * cloud  → saves file then opens the share sheet so user can pick iCloud Drive / Google Drive / etc.
  */
 export async function exportBackup(destination: BackupDestination = "local"): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
+  const filename = generateBackupFilename();
 
   if (Platform.OS === "web") {
     const blob = new Blob([json], { type: "application/json" });
 
     // Cloud on web: use the native Web Share API (supported in Chrome on Android/iOS)
-    // This opens the system share sheet so the user can pick Google Drive, email, etc.
     if (destination === "cloud" && typeof navigator !== "undefined" && "share" in navigator) {
       const WebFile = globalThis.File as new (parts: BlobPart[], name: string, opts?: FilePropertyBag) => globalThis.File;
-      const shareFile = new WebFile([blob], BACKUP_FILENAME, { type: "application/json" });
+      const shareFile = new WebFile([blob], filename, { type: "application/json" });
       const nav = navigator as Navigator & {
         canShare?: (d: object) => boolean;
         share: (d: object) => Promise<void>;
@@ -113,7 +128,7 @@ export async function exportBackup(destination: BackupDestination = "local"): Pr
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = BACKUP_FILENAME;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -122,16 +137,34 @@ export async function exportBackup(destination: BackupDestination = "local"): Pr
     return;
   }
 
+  // Native — Android: try SAF picked folder first for local
+  if (Platform.OS === "android" && destination === "local") {
+    const folderUri = await getBackupFolderUri();
+    if (folderUri) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fs = (await import("expo-file-system")) as any;
+        const fileUri = await fs.StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
+        await fs.writeAsStringAsync(fileUri, json);
+        await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
+        return;
+      } catch {
+        // Fall through to Documents fallback if SAF fails
+      }
+    }
+  }
+
+  // Native — write to Documents folder (iOS / Android fallback)
   const { File, Paths } = await import("expo-file-system");
-  const file = new File(Paths.document, BACKUP_FILENAME);
+  const file = new File(Paths.document, filename);
   file.write(json);
   await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
 
   if (destination === "cloud") {
     if (Platform.OS === "ios") {
-      await Share.share({ url: file.uri, title: BACKUP_FILENAME });
+      await Share.share({ url: file.uri, title: filename });
     } else {
-      await Share.share({ message: json, title: BACKUP_FILENAME });
+      await Share.share({ message: json, title: filename });
     }
   }
 }
@@ -209,32 +242,33 @@ export async function setAutoBackupFrequency(freq: AutoBackupFrequency): Promise
   await AsyncStorage.setItem(AUTO_BACKUP_FREQ_KEY, freq);
 }
 
-export async function getAutoBackupDestination(): Promise<BackupDestination> {
-  try {
-    const raw = await AsyncStorage.getItem(AUTO_BACKUP_DEST_KEY);
-    if (raw === "cloud") return "cloud";
-    return "local";
-  } catch {
-    return "local";
-  }
-}
-
-export async function setAutoBackupDestination(dest: BackupDestination): Promise<void> {
-  await AsyncStorage.setItem(AUTO_BACKUP_DEST_KEY, dest);
-}
-
 /**
- * Silent auto-backup. Always saves to the Documents folder.
- * "cloud" destination on iOS: Documents auto-syncs to iCloud Drive if the user has it enabled.
- * "cloud" destination on Android: saves locally (silent Google Drive upload is not possible without
- *  user interaction; use the Export button → Cloud to send to Google Drive manually).
+ * Silent auto-backup. Writes to the SAF-picked folder on Android (if set),
+ * otherwise Documents folder. Uses a timestamped filename.
  */
 async function exportBackupSilent(): Promise<void> {
   const backup = await buildBackupData();
   const json = JSON.stringify(backup, null, 2);
+  const filename = generateBackupFilename();
+
   if (Platform.OS !== "web") {
+    if (Platform.OS === "android") {
+      const folderUri = await getBackupFolderUri();
+      if (folderUri) {
+        try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fs = (await import("expo-file-system")) as any;
+          const fileUri = await fs.StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
+          await fs.writeAsStringAsync(fileUri, json);
+          await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
+          return;
+        } catch {
+          // Fall through to Documents fallback
+        }
+      }
+    }
     const { File, Paths } = await import("expo-file-system");
-    const file = new File(Paths.document, BACKUP_FILENAME);
+    const file = new File(Paths.document, filename);
     file.write(json);
   }
   await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());

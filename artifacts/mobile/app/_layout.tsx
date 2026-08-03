@@ -20,6 +20,7 @@ import { AppSplashScreen } from "@/components/AppSplashScreen";
 import { FontScaleProvider } from "@/contexts/FontScaleContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { runAutoBackupIfDue } from "@/utils/backup";
+import { initUsnoCache } from "@/constants/spiritualData";
 import { checkAndAlertTodayEvents } from "@/utils/notificationScheduler";
 import { loadNotificationSettings } from "@/utils/notificationSettings";
 
@@ -51,6 +52,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!appReady) return;
     runAutoBackupIfDue().catch(() => {});
+    initUsnoCache().catch(() => {});
     loadNotificationSettings().then((settings) => {
       checkAndAlertTodayEvents(settings).catch(() => {});
     }).catch(() => {});

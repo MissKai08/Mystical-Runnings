@@ -1,3 +1,5 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 export type EventType =
   | "new-moon"
   | "waxing-crescent"
@@ -19,6 +21,7 @@ export type EventType =
   | "meteor-shower"
   | "planet-opposition"
   | "planet-elongation"
+  | "planet-event"
   | "solstice"
   | "equinox";
 
@@ -59,6 +62,10 @@ export interface WheelEvent {
   intent?: string;
   /** Celebration timing guidance from Heron Michelle / Patheos */
   timing?: string;
+  /** True for near-perigee full moons that appear larger than average */
+  isSupermoon?: boolean;
+  /** True for a second full moon in a calendar month, or the third of four full moons in a season */
+  isBlueMoon?: boolean;
 }
 
 export interface SpiritualEvent {
@@ -92,6 +99,7 @@ export const EVENT_COLORS: Record<EventType, string> = {
   "meteor-shower": "#C084FC",
   "planet-opposition": "#F59E0B",
   "planet-elongation": "#FBBF24",
+  "planet-event": "#FBBF24",
   solstice: "#10B981",
   equinox: "#34D399",
 };
@@ -214,7 +222,30 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
     return { phase, phaseFraction, name, illumination, isMajorPhase: false, eventType };
   }
 
-  // Fallback: mathematical closest-day formula for years outside the table.
+  // Primary fallback: USNO phases year-cache (async-populated via prefetchUsnoPhases / initUsnoCache).
+  const cacheKey = `${year}-${date.getMonth() + 1}-${date.getDate()}`;
+  if (USNO_YEAR_CACHE[year]) {
+    const cachedPhase = USNO_YEAR_CACHE[year][cacheKey];
+    if (cachedPhase) {
+      const phaseNameMap: Record<string, string> = {
+        "new-moon": "New Moon",
+        "first-quarter": "First Quarter",
+        "full-moon": "Full Moon",
+        "last-quarter": "Last Quarter",
+      };
+      return { phase, phaseFraction, name: phaseNameMap[cachedPhase]!, illumination, isMajorPhase: true, eventType: cachedPhase };
+    }
+    // Year is in cache but this date is not a major phase — return minor phase
+    let minorName: string;
+    let minorType: EventType;
+    if (phase < Q1) { minorName = "Waxing Crescent"; minorType = "waxing-crescent"; }
+    else if (phase < Q2) { minorName = "Waxing Gibbous"; minorType = "waxing-gibbous"; }
+    else if (phase < Q3) { minorName = "Waning Gibbous"; minorType = "waning-gibbous"; }
+    else { minorName = "Waning Crescent"; minorType = "waning-crescent"; }
+    return { phase, phaseFraction, name: minorName, illumination, isMajorPhase: false, eventType: minorType };
+  }
+
+  // Final fallback: mathematical closest-day formula (works offline, no cache required).
   const dPrev = new Date(date); dPrev.setDate(dPrev.getDate() - 1);
   const dNext = new Date(date); dNext.setDate(dNext.getDate() + 1);
   const prev = moonAge(dPrev);
@@ -246,6 +277,77 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
   }
 
   return { phase, phaseFraction, name, illumination, isMajorPhase, eventType };
+}
+
+// ── USNO moon/phases/year cache ────────────────────────────────────────────────
+// In-memory; survives for the lifetime of the JS runtime.
+// Populated by initUsnoCache() (loads AsyncStorage → memory) and
+// prefetchUsnoPhases() (fetches USNO API → AsyncStorage → memory).
+const USNO_YEAR_CACHE: Record<number, Record<string, "new-moon" | "first-quarter" | "full-moon" | "last-quarter">> = {};
+
+const USNO_PHASES_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+const USNO_PHASE_KEY_MAP: Record<string, "new-moon" | "first-quarter" | "full-moon" | "last-quarter"> = {
+  "New Moon": "new-moon",
+  "First Quarter": "first-quarter",
+  "Full Moon": "full-moon",
+  "Last Quarter": "last-quarter",
+};
+
+const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function parseUsnoPhaseDate(dateStr: string): string | null {
+  // dateStr format: "YYYY MMM DD", e.g. "2028 Jan 12"
+  const parts = dateStr.split(" ");
+  if (parts.length !== 3) return null;
+  const year = parseInt(parts[0], 10);
+  const monthIdx = MONTH_ABBR.indexOf(parts[1]);
+  const day = parseInt(parts[2], 10);
+  if (isNaN(year) || monthIdx < 0 || isNaN(day)) return null;
+  return `${year}-${monthIdx + 1}-${day}`;
+}
+
+/** Fetch moon phases for a given year from USNO API and store in memory + AsyncStorage. */
+export async function prefetchUsnoPhases(year: number): Promise<void> {
+  // Skip years already covered by PHASE_LOOKUP
+  if (year >= 2024 && year <= 2027) return;
+  const storageKey = `@usno_phases_${year}`;
+  try {
+    // Check AsyncStorage cache first
+    const cached = await AsyncStorage.getItem(storageKey);
+    if (cached) {
+      const parsed = JSON.parse(cached) as { data: Record<string, "new-moon"|"first-quarter"|"full-moon"|"last-quarter">; savedAt: number };
+      if (Date.now() - parsed.savedAt < USNO_PHASES_TTL_MS) {
+        USNO_YEAR_CACHE[year] = parsed.data;
+        return;
+      }
+    }
+
+    const resp = await fetch(`https://aa.usno.navy.mil/api/moon/phases/year?year=${year}&nump=99`);
+    if (!resp.ok) return;
+    const json = await resp.json() as { phasedata?: { phase: string; date: string; time: string }[] };
+    const phasedata = json?.phasedata ?? [];
+
+    const dayMap: Record<string, "new-moon"|"first-quarter"|"full-moon"|"last-quarter"> = {};
+    for (const entry of phasedata) {
+      const eventType = USNO_PHASE_KEY_MAP[entry.phase];
+      const key = parseUsnoPhaseDate(entry.date);
+      if (eventType && key) dayMap[key] = eventType;
+    }
+
+    USNO_YEAR_CACHE[year] = dayMap;
+    await AsyncStorage.setItem(storageKey, JSON.stringify({ data: dayMap, savedAt: Date.now() }));
+  } catch {
+    // Silently fail — math fallback will be used
+  }
+}
+
+/** Call once on app start to warm the in-memory cache from any previously fetched data in AsyncStorage. */
+export async function initUsnoCache(): Promise<void> {
+  // Preload current and upcoming years (outside the PHASE_LOOKUP range)
+  const currentYear = new Date().getFullYear();
+  const yearsToLoad = [currentYear, currentYear + 1, currentYear + 2].filter(y => y > 2027);
+  await Promise.allSettled(yearsToLoad.map(y => prefetchUsnoPhases(y)));
 }
 
 export const MERCURY_RETROGRADES: RetrogradePeriod[] = [
@@ -281,60 +383,186 @@ export const IFA_FESTIVALS: IfaFestival[] = [
 ];
 
 // 2026 Wheel of the Year — Sabbats (source: Patheos / Heron Michelle)
+// tide/polarity/element/intent fields follow the Tides of the Year framework by Heron Michelle
 export const SABBATS: WheelEvent[] = [
   {
     name: "Yule — Winter Solstice",
     date: new Date(2025, 11, 21),
     type: "sabbat",
     description: "Sun enters Capricorn at 10:03 AM ET. The longest night of the year — light a candle and honor the return of the sun.",
+    tide: "Imbolctide",
+    polarity: "Waxing",
+    element: "Earth Receptive",
+    intent: "To Resonate",
   },
   {
     name: "Imbolc — High Winter",
     date: new Date(2026, 1, 3),
     type: "sabbat",
     description: "Sun at 15° Aquarius. Festival of the returning light — honor Brigid, cleanse and set intentions for the year ahead.",
+    tide: "Imbolctide",
+    polarity: "Waxing",
+    element: "Earth Receptive",
+    intent: "To Resonate",
   },
   {
     name: "Ostara — Spring Equinox",
     date: new Date(2026, 2, 20),
     type: "sabbat",
     description: "Sun enters Aries at 10:46 AM ET. Balance of light and dark — seeds planted now carry the force of the equinox.",
+    tide: "Ostaratide",
+    polarity: "Waning",
+    element: "Air Projective",
+    intent: "To Know",
   },
   {
     name: "Beltane — High Spring",
     date: new Date(2026, 4, 5),
     type: "sabbat",
     description: "Sun at 15° Taurus. Festival of fire and fertility — the peak of spring's creative power.",
+    tide: "Beltanetide",
+    polarity: "Waxing",
+    element: "Air Receptive",
+    intent: "To Wonder",
   },
   {
     name: "Litha — Summer Solstice",
     date: new Date(2026, 5, 21),
     type: "sabbat",
     description: "Sun enters Cancer at 4:24 AM ET. The longest day of the year — celebrate the sun at its fullest strength.",
+    tide: "Lithatide",
+    polarity: "Waning",
+    element: "Fire Projective",
+    intent: "To Will",
   },
   {
     name: "Lammas — High Summer",
     date: new Date(2026, 7, 7),
     type: "sabbat",
     description: "Sun at 15° Leo. First harvest festival — give thanks for abundance, begin the slow turn toward autumn.",
+    tide: "Lammastide",
+    polarity: "Waxing",
+    element: "Fire Receptive",
+    intent: "To Surrender",
   },
   {
     name: "Mabon — Autumn Equinox",
     date: new Date(2026, 8, 22),
     type: "sabbat",
     description: "Sun enters Libra at 8:05 PM ET. Second harvest — balance returns, honor gratitude and release.",
+    tide: "Mabontide",
+    polarity: "Waning",
+    element: "Water Projective",
+    intent: "To Dare",
   },
   {
     name: "Samhain — High Autumn",
     date: new Date(2026, 10, 7),
     type: "sabbat",
     description: "Sun at 15° Scorpio. The veil between worlds is thinnest — honor the dead, your ancestors, and the cycle of endings.",
+    tide: "Samhaintide",
+    polarity: "Waxing",
+    element: "Water Receptive",
+    intent: "To Accept",
   },
   {
     name: "Yule — Winter Solstice",
     date: new Date(2026, 11, 21),
     type: "sabbat",
     description: "Sun enters Capricorn at 3:50 PM ET. The wheel completes — welcome the return of the light once more.",
+    tide: "Yuletide",
+    polarity: "Waning",
+    element: "Earth Projective",
+    intent: "To be Silent",
+  },
+  // ── 2027 Wheel of the Year (source: Patheos / Heron Michelle) ──────────────
+  {
+    name: "Imbolc — High Winter",
+    date: new Date(2027, 1, 2),
+    type: "sabbat",
+    description: "Sun at 15° Aquarius. Festival of Brigid — kindle the first fire of the new season, bless seeds not yet planted.",
+    tide: "Imbolctide",
+    polarity: "Waxing",
+    element: "Earth Receptive",
+    intent: "To Resonate",
+    timing: "Begins dusk Feb 1, peaks Feb 2.",
+  },
+  {
+    name: "Ostara — Spring Equinox",
+    date: new Date(2027, 2, 20),
+    type: "sabbat",
+    description: "Sun enters Aries at 4:24 AM ET. Day and night balanced at the threshold of spring — plant, begin, align.",
+    tide: "Ostaratide",
+    polarity: "Waning",
+    element: "Air Projective",
+    intent: "To Know",
+    timing: "Begins dusk Mar 19, peaks Mar 20.",
+  },
+  {
+    name: "Beltane — High Spring",
+    date: new Date(2027, 4, 5),
+    type: "sabbat",
+    description: "Sun at 15° Taurus. The fires of Beltane ignite — celebrate life, fertility, and sacred union.",
+    tide: "Beltanetide",
+    polarity: "Waxing",
+    element: "Air Receptive",
+    intent: "To Wonder",
+    timing: "Begins dusk May 4, peaks May 5.",
+  },
+  {
+    name: "Litha — Summer Solstice",
+    date: new Date(2027, 5, 21),
+    type: "sabbat",
+    description: "Sun enters Cancer at 10:11 AM ET. The zenith of solar power — the longest day. Honor the sun before the tide turns.",
+    tide: "Lithatide",
+    polarity: "Waning",
+    element: "Fire Projective",
+    intent: "To Will",
+    timing: "Begins dusk Jun 20, peaks Jun 21.",
+  },
+  {
+    name: "Lammas — High Summer",
+    date: new Date(2027, 7, 7),
+    type: "sabbat",
+    description: "Sun at 15° Leo. First harvest — give thanks for the bounty, honor sacrifice, begin the turn toward autumn.",
+    tide: "Lammastide",
+    polarity: "Waxing",
+    element: "Fire Receptive",
+    intent: "To Surrender",
+    timing: "Begins dusk Aug 6, peaks Aug 7.",
+  },
+  {
+    name: "Mabon — Autumn Equinox",
+    date: new Date(2027, 8, 22),
+    type: "sabbat",
+    description: "Sun enters Libra at 2:02 PM ET. Balance and gratitude — second harvest, equal day and night once more.",
+    tide: "Mabontide",
+    polarity: "Waning",
+    element: "Water Projective",
+    intent: "To Dare",
+    timing: "Begins dusk Sep 21, peaks Sep 22.",
+  },
+  {
+    name: "Samhain — High Autumn",
+    date: new Date(2027, 10, 7),
+    type: "sabbat",
+    description: "Sun at 15° Scorpio. The veil thins — honor the beloved dead and ancestors on the greatest spirit night of the year.",
+    tide: "Samhaintide",
+    polarity: "Waxing",
+    element: "Water Receptive",
+    intent: "To Accept",
+    timing: "Begins dusk Nov 6, peaks Nov 7.",
+  },
+  {
+    name: "Yule — Winter Solstice",
+    date: new Date(2027, 11, 21),
+    type: "sabbat",
+    description: "Sun enters Capricorn at 9:42 PM ET. The longest night and the rebirth of light — the sacred pause before the solar return.",
+    tide: "Yuletide",
+    polarity: "Waning",
+    element: "Earth Projective",
+    intent: "To be Silent",
+    timing: "Begins dusk Dec 20, peaks Dec 21.",
   },
 ];
 
@@ -485,6 +713,192 @@ export const NAMED_FULL_MOONS: WheelEvent[] = [
     intent: "To be Silent",
     timing: "Best celebrated the prior evening on Monday, November 23 — anytime, or within 13 hours prior to exact opposition.",
   },
+  // ── 2027 Named Full Moons (source: Heron Michelle / Patheos) ─────────────────
+  {
+    name: "Quickening Full Moon · Wolf Moon",
+    date: new Date(2027, 0, 22),
+    type: "named-moon",
+    description: "Full Moon in Leo. Exact opposition Friday, January 22 at 7:17 AM ET. The first full moon of 2027 rises in bold Leo — let its fire illuminate what needs to quicken within you.",
+    sign: "Leo",
+    tide: "Imbolctide",
+    polarity: "Waxing",
+    element: "Earth Receptive",
+    intent: "To Resonate",
+    timing: "Best celebrated the prior evening (Thursday, January 21) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Storm Full Moon · Snow Moon",
+    date: new Date(2027, 1, 20),
+    type: "named-moon",
+    description: "Full Moon in Virgo — Lunar Eclipse. Exact opposition Saturday, February 20 at 6:14 PM ET. A lunar eclipse during the Snow Moon magnifies the work of release; the Virgo opposition calls for purification and discernment.",
+    sign: "Virgo",
+    tide: "Ostaratide",
+    polarity: "Waning",
+    element: "Air Projective",
+    intent: "To Know",
+    timing: "Best celebrated the prior evening (Friday, February 19) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Wind Full Moon · Worm Moon",
+    date: new Date(2027, 2, 22),
+    type: "named-moon",
+    description: "Full Moon in Libra. Exact opposition Monday, March 22 at 6:44 AM ET. Arriving two days after Ostara, this moon amplifies the equinox balance — an ideal moment for relationship magic and harmonizing intentions.",
+    sign: "Libra",
+    tide: "Beltanetide",
+    polarity: "Waxing",
+    element: "Air Receptive",
+    intent: "To Wonder",
+    timing: "Best celebrated the prior evening (Sunday, March 21) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Flower Full Moon · Pink Moon",
+    date: new Date(2027, 3, 20),
+    type: "named-moon",
+    description: "Full Moon in Scorpio. Exact opposition Tuesday, April 20 at 6:27 PM ET. A Scorpio full moon in the height of spring invites deep transformation beneath the blossoming surface.",
+    sign: "Scorpio",
+    tide: "Beltanetide",
+    polarity: "Waxing",
+    element: "Air Receptive",
+    intent: "To Wonder",
+    timing: "Best celebrated the prior evening (Monday, April 19) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Blue Moon · Flower Moon",
+    date: new Date(2027, 4, 20),
+    type: "named-moon",
+    description: "Full Moon in Scorpio — Blue Moon (third of four full moons this season). Exact opposition Thursday, May 20 at 6:59 AM ET. The blue moon marks a rare deepening of the Scorpio tide; lunar leadership now shifts toward the dark moon as the primary ceremonial moment per the Heron Michelle framework.",
+    sign: "Scorpio",
+    tide: "Lithatide",
+    polarity: "Waning",
+    element: "Fire Projective",
+    intent: "To Will",
+    isBlueMoon: true,
+    timing: "Best celebrated the prior evening (Wednesday, May 19) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Strong Sun Full Moon · Strawberry Moon",
+    date: new Date(2027, 5, 18),
+    type: "named-moon",
+    description: "Full Moon in Sagittarius. Exact opposition Friday, June 18 at 8:44 PM ET. Rising just before Litha, this moon in Sagittarius calls for bold visions and expansive summer intentions.",
+    sign: "Sagittarius",
+    tide: "Lithatide",
+    polarity: "Waning",
+    element: "Fire Projective",
+    intent: "To Will",
+    timing: "Best celebrated the prior evening (Thursday, June 17) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Blessing Full Moon · Buck Moon",
+    date: new Date(2027, 6, 18),
+    type: "named-moon",
+    description: "Full Moon in Capricorn — Lunar Eclipse. Exact opposition Sunday, July 18 at 11:45 AM ET. A lunar eclipse in Capricorn during Lammastide calls for honoring structures worth preserving and releasing what no longer builds toward your highest good.",
+    sign: "Capricorn",
+    tide: "Lammastide",
+    polarity: "Waxing",
+    element: "Fire Receptive",
+    intent: "To Surrender",
+    timing: "Best celebrated the prior evening (Saturday, July 17) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Corn Full Moon · Sturgeon Moon",
+    date: new Date(2027, 7, 17),
+    type: "named-moon",
+    description: "Full Moon in Aquarius — Lunar Eclipse. Exact opposition Tuesday, August 17 at 3:29 AM ET. This eclipse in the water-bearer sign lights up collective ideals — a powerful time to align personal harvest goals with community vision.",
+    sign: "Aquarius",
+    tide: "Mabontide",
+    polarity: "Waning",
+    element: "Water Projective",
+    intent: "To Dare",
+    timing: "Best celebrated the prior evening (Monday, August 16) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Harvest Full Moon · Corn Moon",
+    date: new Date(2027, 8, 15),
+    type: "named-moon",
+    description: "Full Moon in Pisces. Exact opposition Wednesday, September 15 at 7:03 PM ET. The harvest moon in Pisces infuses the reaping season with compassion and spiritual depth.",
+    sign: "Pisces",
+    tide: "Mabontide",
+    polarity: "Waning",
+    element: "Water Projective",
+    intent: "To Dare",
+    timing: "Best celebrated the prior evening (Tuesday, September 14) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Blood Full Moon · Hunters Moon",
+    date: new Date(2027, 9, 15),
+    type: "named-moon",
+    description: "Full Moon in Aries. Exact opposition Friday, October 15 at 9:47 AM ET. An Aries full moon during Samhaintide burns through the veil with ancestral fire — face what must be faced.",
+    sign: "Aries",
+    tide: "Samhaintide",
+    polarity: "Waxing",
+    element: "Water Receptive",
+    intent: "To Accept",
+    timing: "Best celebrated the prior evening (Thursday, October 14) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Mourning Full Moon · Beaver Moon",
+    date: new Date(2027, 10, 13),
+    type: "named-moon",
+    description: "Full Moon in Taurus. Exact opposition Saturday, November 13 at 10:26 PM ET. As winter's quiet approaches, this Taurus full moon grounds the grief and gratitude of Samhaintide in the body.",
+    sign: "Taurus",
+    tide: "Yuletide",
+    polarity: "Waning",
+    element: "Earth Projective",
+    intent: "To be Silent",
+    timing: "Best celebrated the prior evening (Friday, November 12) or within 13 hours before the exact opposition.",
+  },
+  {
+    name: "Long Nights Full Moon · Cold Moon",
+    date: new Date(2027, 11, 13),
+    type: "named-moon",
+    description: "Full Moon in Gemini. Exact opposition Monday, December 13 at 11:09 AM ET. The long nights moon illuminates the deep quiet before Yule — listen to what the darkness has to say.",
+    sign: "Gemini",
+    tide: "Yuletide",
+    polarity: "Waning",
+    element: "Earth Projective",
+    intent: "To be Silent",
+    timing: "Best celebrated the prior evening (Sunday, December 12) or within 13 hours before the exact opposition.",
+  },
+  // ── 2028 Named Full Moons (folk names, supermoon/blue-moon flags) ─────────────
+  { name: "Wolf Moon", date: new Date(2028, 0, 12), type: "named-moon", description: "Full Moon in Cancer — Supermoon. The first full moon of 2028 rises close to Earth, appearing larger and brighter than average.", isSupermoon: true },
+  { name: "Snow Moon", date: new Date(2028, 1, 10), type: "named-moon", description: "Full Moon in Leo — Supermoon. The second supermoon of 2028 in the heart of winter.", isSupermoon: true },
+  { name: "Worm Moon", date: new Date(2028, 2, 11), type: "named-moon", description: "Full Moon in Virgo — Supermoon. Third consecutive supermoon; the worm moon signals the ground softening for spring.", isSupermoon: true },
+  { name: "Pink Moon", date: new Date(2028, 3, 9), type: "named-moon", description: "Full Moon in Libra. Named for the pink phlox wildflowers that bloom in early spring." },
+  { name: "Flower Moon", date: new Date(2028, 4, 8), type: "named-moon", description: "Full Moon in Scorpio. The abundance of spring blossoms marks this moon's name." },
+  { name: "Strawberry Moon", date: new Date(2028, 5, 7), type: "named-moon", description: "Full Moon in Sagittarius. Named for the strawberry harvesting season." },
+  { name: "Buck Moon", date: new Date(2028, 6, 6), type: "named-moon", description: "Full Moon in Capricorn. Named for the time of year when deer begin growing their antlers." },
+  { name: "Sturgeon Moon", date: new Date(2028, 7, 5), type: "named-moon", description: "Full Moon in Aquarius. Named for the large sturgeon fish historically caught in the Great Lakes at this time." },
+  { name: "Corn Moon", date: new Date(2028, 8, 3), type: "named-moon", description: "Full Moon in Pisces. Named for the ripening of corn in late summer." },
+  { name: "Hunters Moon", date: new Date(2028, 9, 3), type: "named-moon", description: "Full Moon in Aries. Named for the traditional hunting season that begins after harvest." },
+  { name: "Beaver Moon", date: new Date(2028, 10, 2), type: "named-moon", description: "Full Moon in Taurus. Named for the time when beavers were trapped for warm winter pelts." },
+  { name: "Cold Moon", date: new Date(2028, 11, 2), type: "named-moon", description: "Full Moon in Gemini. Named for the long, cold nights that begin at this time of year." },
+  { name: "Blue Moon", date: new Date(2028, 11, 31), type: "named-moon", description: "Full Moon in Cancer — Blue Moon (rare second full moon in the same calendar month, December 2028). The next December blue moon of this type is decades away.", isBlueMoon: true },
+  // ── 2029 Named Full Moons ────────────────────────────────────────────────────
+  { name: "Wolf Moon", date: new Date(2029, 0, 30), type: "named-moon", description: "Full Moon in Leo. The Wolf Moon howls at the height of winter." },
+  { name: "Snow Moon", date: new Date(2029, 1, 28), type: "named-moon", description: "Full Moon in Virgo — Supermoon. The Snow Moon rises close to Earth during the heart of winter.", isSupermoon: true },
+  { name: "Worm Moon", date: new Date(2029, 2, 30), type: "named-moon", description: "Full Moon in Libra — Supermoon. Second consecutive supermoon of 2029; arrives just after the spring equinox.", isSupermoon: true },
+  { name: "Pink Moon", date: new Date(2029, 3, 28), type: "named-moon", description: "Full Moon in Scorpio — Supermoon. Third consecutive supermoon; the pink moon blooms in bold Scorpio.", isSupermoon: true },
+  { name: "Flower Moon", date: new Date(2029, 4, 27), type: "named-moon", description: "Full Moon in Sagittarius. Named for the profusion of spring blossoms." },
+  { name: "Strawberry Moon", date: new Date(2029, 5, 26), type: "named-moon", description: "Full Moon in Capricorn. Named for the ripening of the first summer strawberries." },
+  { name: "Buck Moon", date: new Date(2029, 6, 25), type: "named-moon", description: "Full Moon in Aquarius. Named for deer in the season of antler growth." },
+  { name: "Sturgeon Moon", date: new Date(2029, 7, 24), type: "named-moon", description: "Full Moon in Pisces — Blue Moon (third of four full moons in this season). A seasonal blue moon adds an extra layer of potency to summer's closing rites.", isBlueMoon: true },
+  { name: "Corn Moon", date: new Date(2029, 8, 22), type: "named-moon", description: "Full Moon in Aries. Named for the end-of-summer corn harvest." },
+  { name: "Hunters Moon", date: new Date(2029, 9, 22), type: "named-moon", description: "Full Moon in Taurus. Named for the prime hunting season following the harvest." },
+  { name: "Beaver Moon", date: new Date(2029, 10, 21), type: "named-moon", description: "Full Moon in Gemini. Named for the beaver-trapping season that begins with the first hard frosts." },
+  { name: "Cold Moon", date: new Date(2029, 11, 20), type: "named-moon", description: "Full Moon in Cancer. Named for the long cold nights of early winter." },
+  // ── 2030 Named Full Moons ────────────────────────────────────────────────────
+  { name: "Wolf Moon", date: new Date(2030, 0, 19), type: "named-moon", description: "Full Moon in Leo. The first full moon of 2030 rises in bold Leo, the hunter's moon of midwinter." },
+  { name: "Snow Moon", date: new Date(2030, 1, 18), type: "named-moon", description: "Full Moon in Virgo. Named for the heavy snowfalls of February." },
+  { name: "Worm Moon", date: new Date(2030, 2, 19), type: "named-moon", description: "Full Moon in Libra. The worm moon heralds the return of earthworms as the ground thaws." },
+  { name: "Pink Moon", date: new Date(2030, 3, 18), type: "named-moon", description: "Full Moon in Scorpio. Named for the pink phlox blossoming across the eastern woodlands." },
+  { name: "Flower Moon", date: new Date(2030, 4, 17), type: "named-moon", description: "Full Moon in Sagittarius. Named for the peak of spring blooming across the Northern Hemisphere." },
+  { name: "Strawberry Moon", date: new Date(2030, 5, 15), type: "named-moon", description: "Full Moon in Capricorn. Named for the brief strawberry harvest season." },
+  { name: "Buck Moon", date: new Date(2030, 6, 15), type: "named-moon", description: "Full Moon in Aquarius. Named for the summer season of antler growth in white-tailed deer." },
+  { name: "Sturgeon Moon", date: new Date(2030, 7, 13), type: "named-moon", description: "Full Moon in Aquarius. Named for the abundance of sturgeon in the Great Lakes." },
+  { name: "Corn Moon", date: new Date(2030, 8, 11), type: "named-moon", description: "Full Moon in Pisces. Named for the maturing of corn in late summer." },
+  { name: "Hunters Moon", date: new Date(2030, 9, 11), type: "named-moon", description: "Full Moon in Aries. Named for the hunting season that follows the harvest." },
+  { name: "Beaver Moon", date: new Date(2030, 10, 10), type: "named-moon", description: "Full Moon in Taurus. Named for the prime trapping season as beavers prepare their winter lodges." },
+  { name: "Cold Moon", date: new Date(2030, 11, 9), type: "named-moon", description: "Full Moon in Gemini. Named for the long cold nights of early winter." },
 ];
 
 // 2026 Dark Moons (aligned with USNO new-moon dates)
@@ -552,7 +966,7 @@ export const DARK_MOONS: WheelEvent[] = [
   },
   {
     name: "Dark Moon",
-    date: new Date(2026, 5, 15),
+    date: new Date(2026, 5, 14),
     type: "dark-moon",
     description: "Dark Moon in Gemini. Exact conjunction Sunday, June 14 at 10:54 pm.",
     sign: "Gemini",
@@ -633,6 +1047,151 @@ export const DARK_MOONS: WheelEvent[] = [
     element: "Earth Projective",
     intent: "To be Silent",
     timing: "Best celebrated that day (December 8) within 13 hours prior to exact conjunction.",
+  },
+  // ── 2027 Dark Moons (source: Heron Michelle / Patheos) ──────────────────────
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 0, 7),
+    type: "dark-moon",
+    description: "Dark Moon in Capricorn. Exact conjunction Thursday, January 7 at 3:24 PM ET.",
+    sign: "Capricorn",
+    tide: "Imbolctide",
+    polarity: "Waxing",
+    element: "Earth Receptive",
+    intent: "To Resonate",
+    timing: "Best celebrated the morning of January 7 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 1, 6),
+    type: "dark-moon",
+    description: "Dark Moon in Aquarius — Solar Eclipse. Exact conjunction Saturday, February 6 at 10:56 AM ET. A solar eclipse amplifies the dark moon portal; intention-setting during an eclipse carries heightened potency.",
+    sign: "Aquarius",
+    tide: "Ostaratide",
+    polarity: "Waning",
+    element: "Air Projective",
+    intent: "To Know",
+    timing: "Best celebrated the morning of February 6 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 2, 8),
+    type: "dark-moon",
+    description: "Dark Moon in Pisces. Exact conjunction Monday, March 8 at 4:29 AM ET.",
+    sign: "Pisces",
+    tide: "Ostaratide",
+    polarity: "Waning",
+    element: "Air Projective",
+    intent: "To Know",
+    timing: "Best celebrated the evening of March 7, within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 3, 6),
+    type: "dark-moon",
+    description: "Dark Moon in Aries. Exact conjunction Tuesday, April 6 at 7:51 PM ET.",
+    sign: "Aries",
+    tide: "Beltanetide",
+    polarity: "Waxing",
+    element: "Air Receptive",
+    intent: "To Wonder",
+    timing: "Best celebrated the afternoon of April 6 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 4, 6),
+    type: "dark-moon",
+    description: "Dark Moon in Taurus. Exact conjunction Thursday, May 6 at 6:59 AM ET.",
+    sign: "Taurus",
+    tide: "Lithatide",
+    polarity: "Waning",
+    element: "Fire Projective",
+    intent: "To Will",
+    timing: "Best celebrated the evening of May 5 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 5, 4),
+    type: "dark-moon",
+    description: "Dark Moon in Gemini. Exact conjunction Friday, June 4 at 3:40 PM ET.",
+    sign: "Gemini",
+    tide: "Lithatide",
+    polarity: "Waning",
+    element: "Fire Projective",
+    intent: "To Will",
+    timing: "Best celebrated the morning of June 4 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 6, 3),
+    type: "dark-moon",
+    description: "Dark Moon in Cancer. Exact conjunction Saturday, July 3 at 11:02 PM ET.",
+    sign: "Cancer",
+    tide: "Lammastide",
+    polarity: "Waxing",
+    element: "Fire Receptive",
+    intent: "To Surrender",
+    timing: "Best celebrated the afternoon of July 3 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 7, 2),
+    type: "dark-moon",
+    description: "Dark Moon in Leo — Solar Eclipse. Exact conjunction Monday, August 2 at 6:05 AM ET. A solar eclipse intensifies this new moon window; work done in this portal resonates outward with extra force.",
+    sign: "Leo",
+    tide: "Lammastide",
+    polarity: "Waxing",
+    element: "Fire Receptive",
+    intent: "To Surrender",
+    timing: "Best celebrated the evening of August 1 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 7, 31),
+    type: "dark-moon",
+    description: "Dark Moon in Virgo. Exact conjunction Tuesday, August 31 at 1:41 PM ET.",
+    sign: "Virgo",
+    tide: "Mabontide",
+    polarity: "Waning",
+    element: "Water Projective",
+    intent: "To Dare",
+    timing: "Best celebrated the morning of August 31 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 8, 29),
+    type: "dark-moon",
+    description: "Dark Moon in Libra. Exact conjunction Wednesday, September 29 at 10:36 PM ET.",
+    sign: "Libra",
+    tide: "Samhaintide",
+    polarity: "Waxing",
+    element: "Water Receptive",
+    intent: "To Accept",
+    timing: "Best celebrated the afternoon of September 29 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 9, 29),
+    type: "dark-moon",
+    description: "Dark Moon in Scorpio. Exact conjunction Friday, October 29 at 9:37 AM ET.",
+    sign: "Scorpio",
+    tide: "Samhaintide",
+    polarity: "Waxing",
+    element: "Water Receptive",
+    intent: "To Accept",
+    timing: "Best celebrated the evening of October 28 within 13 hours before the exact conjunction.",
+  },
+  {
+    name: "Dark Moon",
+    date: new Date(2027, 10, 27),
+    type: "dark-moon",
+    description: "Dark Moon in Sagittarius. Exact conjunction Saturday, November 27 at 10:24 PM ET.",
+    sign: "Sagittarius",
+    tide: "Yuletide",
+    polarity: "Waning",
+    element: "Earth Projective",
+    intent: "To be Silent",
+    timing: "Best celebrated the afternoon of November 27 within 13 hours before the exact conjunction.",
   },
 ];
 
@@ -887,6 +1446,134 @@ export const ASTRO_EVENTS: AstronomicalEvent[] = [
   { name: "June Solstice", date: new Date(2026, 5, 21), type: "solstice", description: "The summer solstice — the longest day of the year in the Northern Hemisphere. The Sun reaches its northernmost point." },
   { name: "September Equinox", date: new Date(2026, 8, 23), type: "equinox", description: "The autumn equinox — day and night are equal in length. The Sun crosses the celestial equator moving southward." },
   { name: "December Solstice", date: new Date(2026, 11, 21), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
+  // ── 2027 ────────────────────────────────────────────────────────────────────
+  // Meteor showers
+  { name: "Quadrantids Meteor Shower", date: new Date(2027, 0, 3), type: "meteor-shower", description: "One of the strongest annual meteor showers, peaking from the radiant in Boötes. Best viewed in the hours before dawn.", endDate: new Date(2027, 0, 4) },
+  { name: "Lyrids Meteor Shower", date: new Date(2027, 3, 22), type: "meteor-shower", description: "Annual meteor shower originating from the debris of Comet Thatcher. Look toward the constellation Lyra after midnight.", endDate: new Date(2027, 3, 23) },
+  { name: "Eta Aquarids Meteor Shower", date: new Date(2027, 4, 6), type: "meteor-shower", description: "Debris from Halley's Comet creates swift meteors radiating from Aquarius. Best viewed from the Southern Hemisphere but visible worldwide before dawn.", endDate: new Date(2027, 4, 7) },
+  { name: "Delta Aquarids Meteor Shower", date: new Date(2027, 6, 28), type: "meteor-shower", description: "A steady summer shower with meteors radiating from the southern part of Aquarius. Best viewed after midnight.", endDate: new Date(2027, 6, 29) },
+  { name: "Perseids Meteor Shower", date: new Date(2027, 7, 12), type: "meteor-shower", description: "One of the most beloved annual showers, originating from Comet Swift-Tuttle. Look toward Perseus after midnight.", endDate: new Date(2027, 7, 13) },
+  { name: "Draconids Meteor Shower", date: new Date(2027, 9, 7), type: "meteor-shower", description: "Produced by debris from Comet Giacobini-Zinner; best viewed in the early evening toward the constellation Draco.", endDate: new Date(2027, 9, 7) },
+  { name: "Orionids Meteor Shower", date: new Date(2027, 9, 21), type: "meteor-shower", description: "Created by dust from Halley's Comet, radiating from Orion. Fast, bright meteors are visible in the hours after midnight.", endDate: new Date(2027, 9, 22) },
+  { name: "Taurids Meteor Shower", date: new Date(2027, 10, 4), type: "meteor-shower", description: "A slow-moving shower from Comet Encke with bright, sporadic fireballs radiating from Taurus.", endDate: new Date(2027, 10, 5) },
+  { name: "Leonids Meteor Shower", date: new Date(2027, 10, 17), type: "meteor-shower", description: "Meteors from Comet Tempel-Tuttle radiate from Leo. The shower can produce intense storms in some years.", endDate: new Date(2027, 10, 18) },
+  { name: "Geminids Meteor Shower", date: new Date(2027, 11, 13), type: "meteor-shower", description: "Debris from asteroid 3200 Phaethon creates one of the year's best showers. Multicolored meteors radiate from Gemini all night.", endDate: new Date(2027, 11, 14) },
+  { name: "Ursids Meteor Shower", date: new Date(2027, 11, 21), type: "meteor-shower", description: "A modest winter shower from Comet Tuttle, radiating from Ursa Minor near the winter solstice.", endDate: new Date(2027, 11, 22) },
+  // Planet oppositions
+  { name: "Mars at Opposition", date: new Date(2027, 1, 19), type: "planet-event", description: "Mars rises opposite the Sun and shines at its brightest for 2027 — an ideal night for planetary observation." },
+  { name: "Jupiter at Opposition", date: new Date(2027, 1, 10), type: "planet-event", description: "Jupiter is at its closest approach to Earth and fully illuminated by the Sun — the best night to view Jupiter and its moons this year." },
+  { name: "Saturn at Opposition", date: new Date(2027, 9, 18), type: "planet-event", description: "Saturn rises opposite the Sun, shining bright in the night sky. Its rings are tilted favorably for viewing." },
+  { name: "Neptune at Opposition", date: new Date(2027, 8, 28), type: "planet-event", description: "Neptune is at its closest approach to Earth for 2027. Although too faint for the naked eye, a telescope will reveal its blue-green disc." },
+  { name: "Uranus at Opposition", date: new Date(2027, 10, 30), type: "planet-event", description: "Uranus reaches opposition, shining at its brightest and rising at sunset. Binoculars reveal it as a pale blue-green dot." },
+  // Planet elongations
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2027, 1, 3), type: "planet-event", description: "Mercury reaches its greatest angular separation east of the Sun — look for it low in the western sky just after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2027, 2, 17), type: "planet-event", description: "Mercury appears at its greatest angular distance west of the Sun — best seen in the eastern sky just before sunrise." },
+  { name: "Venus at Greatest Western Elongation", date: new Date(2027, 0, 3), type: "planet-event", description: "Venus shines brilliantly in the morning sky at its greatest angular distance from the Sun before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2027, 4, 28), type: "planet-event", description: "Mercury appears at its greatest separation east of the Sun — look for it in the western sky after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2027, 6, 15), type: "planet-event", description: "Mercury visible in the eastern pre-dawn sky at maximum angular distance from the Sun." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2027, 8, 24), type: "planet-event", description: "Mercury visible low in the western sky at dusk, at its greatest evening separation from the Sun." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2027, 10, 4), type: "planet-event", description: "Mercury at maximum morning elongation — visible in the east before sunrise." },
+  // Solstices & Equinoxes
+  { name: "March Equinox", date: new Date(2027, 2, 20), type: "equinox", description: "The spring equinox — day and night are equal in length. The Sun crosses the celestial equator moving northward." },
+  { name: "June Solstice", date: new Date(2027, 5, 21), type: "solstice", description: "The summer solstice — the longest day of the year in the Northern Hemisphere. The Sun reaches its northernmost point." },
+  { name: "September Equinox", date: new Date(2027, 8, 23), type: "equinox", description: "The autumn equinox — day and night are equal in length. The Sun crosses the celestial equator moving southward." },
+  { name: "December Solstice", date: new Date(2027, 11, 22), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
+  // ── 2028 ────────────────────────────────────────────────────────────────────
+  // Meteor showers
+  { name: "Quadrantids Meteor Shower", date: new Date(2028, 0, 3), type: "meteor-shower", description: "One of the strongest annual meteor showers, peaking from the radiant in Boötes. Best viewed in the hours before dawn.", endDate: new Date(2028, 0, 4) },
+  { name: "Lyrids Meteor Shower", date: new Date(2028, 3, 22), type: "meteor-shower", description: "Annual shower from Comet Thatcher, radiating from Lyra after midnight.", endDate: new Date(2028, 3, 23) },
+  { name: "Eta Aquarids Meteor Shower", date: new Date(2028, 4, 6), type: "meteor-shower", description: "Halley's Comet debris creates swift pre-dawn meteors from Aquarius.", endDate: new Date(2028, 4, 7) },
+  { name: "Delta Aquarids Meteor Shower", date: new Date(2028, 6, 28), type: "meteor-shower", description: "Steady summer shower with meteors from southern Aquarius, best after midnight.", endDate: new Date(2028, 6, 29) },
+  { name: "Perseids Meteor Shower", date: new Date(2028, 7, 12), type: "meteor-shower", description: "The beloved annual shower from Comet Swift-Tuttle, radiating from Perseus after midnight.", endDate: new Date(2028, 7, 13) },
+  { name: "Draconids Meteor Shower", date: new Date(2028, 9, 7), type: "meteor-shower", description: "Comet Giacobini-Zinner debris; best viewed in the early evening toward Draco.", endDate: new Date(2028, 9, 7) },
+  { name: "Orionids Meteor Shower", date: new Date(2028, 9, 21), type: "meteor-shower", description: "Halley's Comet dust radiates from Orion; fast bright meteors after midnight.", endDate: new Date(2028, 9, 22) },
+  { name: "Taurids Meteor Shower", date: new Date(2028, 10, 4), type: "meteor-shower", description: "Slow sporadic fireballs from Comet Encke radiating from Taurus.", endDate: new Date(2028, 10, 5) },
+  { name: "Leonids Meteor Shower", date: new Date(2028, 10, 17), type: "meteor-shower", description: "Comet Tempel-Tuttle meteors from Leo; intensity varies year to year.", endDate: new Date(2028, 10, 18) },
+  { name: "Geminids Meteor Shower", date: new Date(2028, 11, 13), type: "meteor-shower", description: "Asteroid 3200 Phaethon debris creates multicolored meteors from Gemini all night.", endDate: new Date(2028, 11, 14) },
+  { name: "Ursids Meteor Shower", date: new Date(2028, 11, 21), type: "meteor-shower", description: "A modest winter shower from Comet Tuttle near the winter solstice.", endDate: new Date(2028, 11, 22) },
+  // Planet oppositions
+  { name: "Jupiter at Opposition", date: new Date(2028, 2, 12), type: "planet-event", description: "Jupiter at its closest and brightest for 2028 — ideal for observing its cloud bands and Galilean moons." },
+  { name: "Saturn at Opposition", date: new Date(2028, 9, 30), type: "planet-event", description: "Saturn rises opposite the Sun, shining bright with its rings visible through a small telescope." },
+  { name: "Neptune at Opposition", date: new Date(2028, 8, 30), type: "planet-event", description: "Neptune at its nearest to Earth for 2028 — visible as a faint blue-green point through a telescope." },
+  { name: "Uranus at Opposition", date: new Date(2028, 11, 3), type: "planet-event", description: "Uranus at opposition, at its brightest and rising at sunset — binoculars show its blue-green tint." },
+  // Planet elongations
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2028, 0, 17), type: "planet-event", description: "Mercury visible low in the western sky after sunset at maximum evening elongation." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2028, 1, 27), type: "planet-event", description: "Mercury at maximum morning elongation — look for it in the eastern pre-dawn sky." },
+  { name: "Venus at Greatest Eastern Elongation", date: new Date(2028, 2, 22), type: "planet-event", description: "Venus blazes in the evening sky at its greatest angular distance east of the Sun." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2028, 4, 9), type: "planet-event", description: "Mercury at greatest evening elongation — visible in the west after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2028, 5, 26), type: "planet-event", description: "Mercury at greatest morning elongation — visible in the east before sunrise." },
+  { name: "Venus at Greatest Western Elongation", date: new Date(2028, 7, 11), type: "planet-event", description: "Venus at its brightest in the morning sky, rising well before the Sun." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2028, 8, 6), type: "planet-event", description: "Mercury at greatest evening elongation, visible after sunset in the west." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2028, 9, 17), type: "planet-event", description: "Mercury at maximum morning elongation, visible in the east before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2028, 11, 31), type: "planet-event", description: "Mercury ends the year at greatest evening elongation — look for it in the western twilight." },
+  // Solstices & Equinoxes
+  { name: "March Equinox", date: new Date(2028, 2, 20), type: "equinox", description: "The spring equinox — day and night are equal in length. The Sun crosses the celestial equator moving northward." },
+  { name: "June Solstice", date: new Date(2028, 5, 20), type: "solstice", description: "The summer solstice — the longest day of the year in the Northern Hemisphere. The Sun reaches its northernmost point." },
+  { name: "September Equinox", date: new Date(2028, 8, 22), type: "equinox", description: "The autumn equinox — day and night are equal in length. The Sun crosses the celestial equator moving southward." },
+  { name: "December Solstice", date: new Date(2028, 11, 21), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
+  // ── 2029 ────────────────────────────────────────────────────────────────────
+  // Meteor showers
+  { name: "Quadrantids Meteor Shower", date: new Date(2029, 0, 3), type: "meteor-shower", description: "One of the strongest annual showers from Boötes, peaking before dawn.", endDate: new Date(2029, 0, 4) },
+  { name: "Lyrids Meteor Shower", date: new Date(2029, 3, 22), type: "meteor-shower", description: "Annual shower from Comet Thatcher, radiating from Lyra after midnight.", endDate: new Date(2029, 3, 23) },
+  { name: "Eta Aquarids Meteor Shower", date: new Date(2029, 4, 6), type: "meteor-shower", description: "Halley's Comet debris; swift pre-dawn meteors from Aquarius.", endDate: new Date(2029, 4, 7) },
+  { name: "Delta Aquarids Meteor Shower", date: new Date(2029, 6, 28), type: "meteor-shower", description: "Steady summer shower from southern Aquarius, best after midnight.", endDate: new Date(2029, 6, 29) },
+  { name: "Perseids Meteor Shower", date: new Date(2029, 7, 12), type: "meteor-shower", description: "Comet Swift-Tuttle creates the beloved Perseids, radiating from Perseus after midnight.", endDate: new Date(2029, 7, 13) },
+  { name: "Draconids Meteor Shower", date: new Date(2029, 9, 7), type: "meteor-shower", description: "Evening shower from Comet Giacobini-Zinner, best viewed toward Draco.", endDate: new Date(2029, 9, 7) },
+  { name: "Orionids Meteor Shower", date: new Date(2029, 9, 21), type: "meteor-shower", description: "Halley's Comet debris creates fast meteors from Orion after midnight.", endDate: new Date(2029, 9, 22) },
+  { name: "Taurids Meteor Shower", date: new Date(2029, 10, 4), type: "meteor-shower", description: "Slow sporadic fireballs from Comet Encke radiating from Taurus.", endDate: new Date(2029, 10, 5) },
+  { name: "Leonids Meteor Shower", date: new Date(2029, 10, 17), type: "meteor-shower", description: "Comet Tempel-Tuttle meteors from Leo; can produce brief intense bursts.", endDate: new Date(2029, 10, 18) },
+  { name: "Geminids Meteor Shower", date: new Date(2029, 11, 13), type: "meteor-shower", description: "Asteroid Phaethon debris; multicolored meteors from Gemini all night.", endDate: new Date(2029, 11, 14) },
+  { name: "Ursids Meteor Shower", date: new Date(2029, 11, 21), type: "meteor-shower", description: "Modest winter shower from Comet Tuttle near the December solstice.", endDate: new Date(2029, 11, 22) },
+  // Planet oppositions
+  { name: "Mars at Opposition", date: new Date(2029, 2, 25), type: "planet-event", description: "Mars at its closest and brightest of 2029 — rises at sunset and is visible all night long." },
+  { name: "Jupiter at Opposition", date: new Date(2029, 3, 11), type: "planet-event", description: "Jupiter at its nearest to Earth for 2029 — ideal for observing cloud bands and the Galilean moons." },
+  { name: "Saturn at Opposition", date: new Date(2029, 10, 13), type: "planet-event", description: "Saturn at opposition, shining bright with rings visible in a small telescope." },
+  { name: "Neptune at Opposition", date: new Date(2029, 9, 2), type: "planet-event", description: "Neptune at its nearest for 2029 — visible as a faint blue-green point through a telescope." },
+  { name: "Uranus at Opposition", date: new Date(2029, 11, 8), type: "planet-event", description: "Uranus at opposition, at its brightest — binoculars reveal its blue-green tint." },
+  // Planet elongations
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2029, 1, 9), type: "planet-event", description: "Mercury at maximum morning elongation — look east before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2029, 3, 21), type: "planet-event", description: "Mercury at greatest evening elongation — visible in the western twilight." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2029, 5, 8), type: "planet-event", description: "Mercury at maximum morning elongation — visible in the east before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2029, 7, 19), type: "planet-event", description: "Mercury at greatest evening elongation — look for it low in the west after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2029, 8, 30), type: "planet-event", description: "Mercury at maximum morning elongation — visible in the eastern pre-dawn sky." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2029, 11, 14), type: "planet-event", description: "Mercury ends 2029 at greatest evening elongation — visible in the western twilight." },
+  { name: "Venus at Greatest Eastern Elongation", date: new Date(2029, 9, 27), type: "planet-event", description: "Venus blazes as an evening star at its greatest angular distance east of the Sun." },
+  // Solstices & Equinoxes
+  { name: "March Equinox", date: new Date(2029, 2, 20), type: "equinox", description: "The spring equinox — day and night are equal in length. The Sun crosses the celestial equator moving northward." },
+  { name: "June Solstice", date: new Date(2029, 5, 21), type: "solstice", description: "The summer solstice — the longest day of the year in the Northern Hemisphere. The Sun reaches its northernmost point." },
+  { name: "September Equinox", date: new Date(2029, 8, 22), type: "equinox", description: "The autumn equinox — day and night are equal in length. The Sun crosses the celestial equator moving southward." },
+  { name: "December Solstice", date: new Date(2029, 11, 21), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
+  // ── 2030 ────────────────────────────────────────────────────────────────────
+  // Meteor showers
+  { name: "Quadrantids Meteor Shower", date: new Date(2030, 0, 3), type: "meteor-shower", description: "One of the year's strongest showers, peaking from Boötes before dawn.", endDate: new Date(2030, 0, 4) },
+  { name: "Lyrids Meteor Shower", date: new Date(2030, 3, 22), type: "meteor-shower", description: "Annual shower from Comet Thatcher, radiating from Lyra after midnight.", endDate: new Date(2030, 3, 23) },
+  { name: "Eta Aquarids Meteor Shower", date: new Date(2030, 4, 6), type: "meteor-shower", description: "Halley's Comet debris; swift pre-dawn meteors from Aquarius.", endDate: new Date(2030, 4, 7) },
+  { name: "Delta Aquarids Meteor Shower", date: new Date(2030, 6, 28), type: "meteor-shower", description: "Steady summer shower from southern Aquarius, best after midnight.", endDate: new Date(2030, 6, 29) },
+  { name: "Perseids Meteor Shower", date: new Date(2030, 7, 12), type: "meteor-shower", description: "The beloved annual shower from Comet Swift-Tuttle, radiating from Perseus.", endDate: new Date(2030, 7, 13) },
+  { name: "Draconids Meteor Shower", date: new Date(2030, 9, 7), type: "meteor-shower", description: "Evening shower toward Draco from Comet Giacobini-Zinner.", endDate: new Date(2030, 9, 7) },
+  { name: "Orionids Meteor Shower", date: new Date(2030, 9, 21), type: "meteor-shower", description: "Halley's Comet debris radiates from Orion; fast bright meteors after midnight.", endDate: new Date(2030, 9, 22) },
+  { name: "Taurids Meteor Shower", date: new Date(2030, 10, 4), type: "meteor-shower", description: "Slow sporadic fireballs from Comet Encke in Taurus.", endDate: new Date(2030, 10, 5) },
+  { name: "Leonids Meteor Shower", date: new Date(2030, 10, 17), type: "meteor-shower", description: "Comet Tempel-Tuttle meteors from Leo; potential for brief outbursts.", endDate: new Date(2030, 10, 18) },
+  { name: "Geminids Meteor Shower", date: new Date(2030, 11, 13), type: "meteor-shower", description: "Asteroid Phaethon debris; multicolored meteors from Gemini throughout the night.", endDate: new Date(2030, 11, 14) },
+  { name: "Ursids Meteor Shower", date: new Date(2030, 11, 21), type: "meteor-shower", description: "Modest winter shower from Comet Tuttle near the December solstice.", endDate: new Date(2030, 11, 22) },
+  // Planet oppositions
+  { name: "Jupiter at Opposition", date: new Date(2030, 4, 13), type: "planet-event", description: "Jupiter at closest approach for 2030 — the best night to view the giant planet and its moons." },
+  { name: "Saturn at Opposition", date: new Date(2030, 10, 27), type: "planet-event", description: "Saturn at opposition; its rings are well-placed for viewing through a small telescope." },
+  { name: "Neptune at Opposition", date: new Date(2030, 9, 5), type: "planet-event", description: "Neptune at its nearest to Earth for 2030 — visible as a faint blue disc through a telescope." },
+  { name: "Uranus at Opposition", date: new Date(2030, 11, 12), type: "planet-event", description: "Uranus at opposition, rising at sunset and shining at its annual best." },
+  // Planet elongations
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2030, 0, 22), type: "planet-event", description: "Mercury at maximum morning elongation — visible in the east before sunrise." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2030, 3, 4), type: "planet-event", description: "Mercury at greatest evening elongation — look west at dusk." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2030, 4, 21), type: "planet-event", description: "Mercury at maximum morning elongation — visible before sunrise in the east." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2030, 7, 2), type: "planet-event", description: "Mercury at greatest evening elongation — visible in the western sky after sunset." },
+  { name: "Mercury at Greatest Western Elongation", date: new Date(2030, 8, 15), type: "planet-event", description: "Mercury at maximum morning elongation — look east before the Sun rises." },
+  { name: "Mercury at Greatest Eastern Elongation", date: new Date(2030, 10, 26), type: "planet-event", description: "Mercury at greatest evening elongation — visible low in the western twilight." },
+  { name: "Venus at Greatest Western Elongation", date: new Date(2030, 2, 17), type: "planet-event", description: "Venus shines brilliantly as a morning star at maximum angular distance west of the Sun." },
+  // Solstices & Equinoxes
+  { name: "March Equinox", date: new Date(2030, 2, 20), type: "equinox", description: "The spring equinox — day and night are equal in length. The Sun crosses the celestial equator moving northward." },
+  { name: "June Solstice", date: new Date(2030, 5, 21), type: "solstice", description: "The summer solstice — the longest day of the year in the Northern Hemisphere. The Sun reaches its northernmost point." },
+  { name: "September Equinox", date: new Date(2030, 8, 22), type: "equinox", description: "The autumn equinox — day and night are equal in length. The Sun crosses the celestial equator moving southward." },
+  { name: "December Solstice", date: new Date(2030, 11, 21), type: "solstice", description: "The winter solstice — the shortest day of the year in the Northern Hemisphere. The Sun reaches its southernmost point." },
 ];
 
 export function getAstroEventForDate(date: Date): AstronomicalEvent | null {
