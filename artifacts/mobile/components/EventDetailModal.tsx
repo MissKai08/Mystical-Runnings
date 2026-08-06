@@ -63,7 +63,7 @@ export function EventDetailModal({ event, onClose }: Props) {
           {/* Title */}
           <Text style={[styles.title, { color: colors.foreground }]}>{event.title}</Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
             {/* Description */}
             <Text style={[styles.description, { color: colors.mutedForeground }]}>
               {event.description}
@@ -139,6 +139,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     maxHeight: "80%",
+    overflow: "hidden",
+  },
+  scrollArea: {
+    flex: 1,
   },
   handle: {
     width: 40,

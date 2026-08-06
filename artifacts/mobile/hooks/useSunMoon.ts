@@ -150,21 +150,28 @@ async function fetchUsnoTimes(loc: CachedLocation, date: Date): Promise<SunMoonT
       arr.find((e) => e.phen === phen)?.time ?? null;
 
     const data: UsnoRsttData = {
-      sunrise: findTime(sundata, "R"),
-      sunset: findTime(sundata, "S"),
-      moonrise: findTime(moondata, "R"),
-      moonset: findTime(moondata, "S"),
+      sunrise: findTime(sundata, "Rise"),
+      sunset: findTime(sundata, "Set"),
+      moonrise: findTime(moondata, "Rise"),
+      moonset: findTime(moondata, "Set"),
     };
 
     await AsyncStorage.setItem(cacheKey, JSON.stringify({ data, savedAt: Date.now() }));
 
-    return {
+    const result: SunMoonTimes = {
       sunrise: parseUsnoTime(data.sunrise, date),
       sunset: parseUsnoTime(data.sunset, date),
       moonrise: parseUsnoTime(data.moonrise, date),
       moonset: parseUsnoTime(data.moonset, date),
       cityName: loc.cityName,
     };
+
+    // If all four times are null the response was malformed — fall back to SunCalc
+    if (!result.sunrise && !result.sunset && !result.moonrise && !result.moonset) {
+      return null;
+    }
+
+    return result;
   } catch {
     return null;
   }

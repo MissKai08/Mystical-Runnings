@@ -1,6 +1,16 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
 import { Share, Platform } from "react-native";
+
+// StorageAccessFramework is not reflected in the static types for this version of expo-file-system.
+// We access it via a typed alias so the rest of the file can use it without repeated `any` casts.
+interface SAFType {
+  requestDirectoryPermissionsAsync(): Promise<{ granted: boolean; directoryUri: string }>;
+  createFileAsync(folderUri: string, filename: string, mimeType: string): Promise<string>;
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const StorageAccessFramework: SAFType = (FileSystem as any).StorageAccessFramework;
 
 const BACKUP_VERSION = 1;
 
@@ -57,9 +67,7 @@ function generateBackupFilename(): string {
 /** (Android only) Request a folder via SAF and persist it */
 export async function pickBackupFolder(): Promise<string | null> {
   if (Platform.OS !== "android") return null;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fs = (await import("expo-file-system")) as any;
-  const result = await fs.StorageAccessFramework.requestDirectoryPermissionsAsync();
+  const result = await StorageAccessFramework.requestDirectoryPermissionsAsync();
   if (!result.granted) return null;
   await AsyncStorage.setItem(BACKUP_FOLDER_URI_KEY, result.directoryUri);
   return result.directoryUri;
@@ -142,10 +150,8 @@ export async function exportBackup(destination: BackupDestination = "local"): Pr
     const folderUri = await getBackupFolderUri();
     if (folderUri) {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fs = (await import("expo-file-system")) as any;
-        const fileUri = await fs.StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
-        await fs.writeAsStringAsync(fileUri, json);
+        const fileUri = await StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
+        await FileSystem.writeAsStringAsync(fileUri, json);
         await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
         return;
       } catch {
@@ -256,10 +262,8 @@ async function exportBackupSilent(): Promise<void> {
       const folderUri = await getBackupFolderUri();
       if (folderUri) {
         try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const fs = (await import("expo-file-system")) as any;
-          const fileUri = await fs.StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
-          await fs.writeAsStringAsync(fileUri, json);
+            const fileUri = await StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
+          await FileSystem.writeAsStringAsync(fileUri, json);
           await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
           return;
         } catch {

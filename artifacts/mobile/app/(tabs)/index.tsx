@@ -1016,52 +1016,56 @@ export default function HomeScreen() {
     >
       <Pressable style={styles.intentionOverlay} onPress={() => setProfileOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
-          <Pressable style={[styles.intentionModalSheet, { paddingBottom: Math.max(24, insets.bottom + 16) }]} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.intentionModalHandle} />
-            <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
-            <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
-              Personalize your experience. Enter your first name and birthday so the app can greet you on your special day.
-            </Text>
+          <Pressable
+            style={[styles.intentionModalSheet, { maxHeight: "85%", paddingBottom: Math.max(24, insets.bottom + 16) }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              <View style={styles.intentionModalHandle} />
+              <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
+              <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
+                Personalize your experience. Enter your first name and birthday so the app can greet you on your special day.
+              </Text>
 
-            <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>First Name</Text>
-            <TextInput
-              style={[styles.intentionInput, { height: 44, marginBottom: 12 }]}
-              value={profileDraft.firstName}
-              onChangeText={(v) => setProfileDraft((d) => ({ ...d, firstName: v }))}
-              placeholder="Your first name"
-              placeholderTextColor="#6D6A8A"
-              autoCapitalize="words"
-              autoCorrect={false}
-              maxLength={40}
-            />
+              <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>First Name</Text>
+              <TextInput
+                style={[styles.intentionInput, { height: 44, marginBottom: 12 }]}
+                value={profileDraft.firstName}
+                onChangeText={(v) => setProfileDraft((d) => ({ ...d, firstName: v }))}
+                placeholder="Your first name"
+                placeholderTextColor="#6D6A8A"
+                autoCapitalize="words"
+                autoCorrect={false}
+                maxLength={40}
+              />
 
-            <View style={styles.profileBirthRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Month (1–12)</Text>
-                <TextInput
-                  style={[styles.intentionInput, { height: 44 }]}
-                  value={profileDraft.birthMonth}
-                  onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthMonth: v.replace(/[^0-9]/g, "") }))}
-                  placeholder="e.g. 7"
-                  placeholderTextColor="#6D6A8A"
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
+              <View style={styles.profileBirthRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Month (1–12)</Text>
+                  <TextInput
+                    style={[styles.intentionInput, { height: 44 }]}
+                    value={profileDraft.birthMonth}
+                    onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthMonth: v.replace(/[^0-9]/g, "") }))}
+                    placeholder="e.g. 7"
+                    placeholderTextColor="#6D6A8A"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Day (1–31)</Text>
+                  <TextInput
+                    style={[styles.intentionInput, { height: 44 }]}
+                    value={profileDraft.birthDay}
+                    onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthDay: v.replace(/[^0-9]/g, "") }))}
+                    placeholder="e.g. 14"
+                    placeholderTextColor="#6D6A8A"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                  />
+                </View>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Day (1–31)</Text>
-                <TextInput
-                  style={[styles.intentionInput, { height: 44 }]}
-                  value={profileDraft.birthDay}
-                  onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthDay: v.replace(/[^0-9]/g, "") }))}
-                  placeholder="e.g. 14"
-                  placeholderTextColor="#6D6A8A"
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-              </View>
-            </View>
-
+            </ScrollView>
             <View style={[styles.intentionModalBtns, { marginTop: 16 }]}>
               <Pressable style={styles.intentionModalCancel} onPress={() => setProfileOpen(false)}>
                 <Text style={styles.intentionModalCancelText}>Cancel</Text>

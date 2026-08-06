@@ -140,8 +140,17 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 
   async function handlePickFolder() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const uri = await pickBackupFolder();
-    if (uri) setBackupFolderUri(uri);
+    try {
+      const uri = await pickBackupFolder();
+      if (uri) {
+        setBackupFolderUri(uri);
+        showFeedback("success", "Backup folder set.");
+      } else {
+        showFeedback("error", "Couldn't set backup folder — try again.");
+      }
+    } catch {
+      showFeedback("error", "Couldn't set backup folder — try again.");
+    }
   }
 
   function handleExportDestChange(dest: BackupDestination) {

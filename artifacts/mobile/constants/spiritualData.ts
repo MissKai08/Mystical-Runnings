@@ -111,64 +111,7 @@ const KNOWN_NEW_MOON_MS = new Date(Date.UTC(2000, 0, 6, 18, 14, 0)).getTime();
 // Authoritative major-phase dates sourced from USNO Astronomical Applications.
 // Key: "YYYY-M-D" (local calendar date, UTC). Value: major EventType.
 // This lookup takes priority over the mathematical formula for 2024–2027.
-const PHASE_LOOKUP: Record<string, "new-moon" | "first-quarter" | "full-moon" | "last-quarter"> = {
-  // ── 2024 ──
-  "2024-1-4":"last-quarter", "2024-1-11":"new-moon", "2024-1-18":"first-quarter", "2024-1-25":"full-moon",
-  "2024-2-2":"last-quarter", "2024-2-9":"new-moon", "2024-2-16":"first-quarter", "2024-2-24":"full-moon",
-  "2024-3-3":"last-quarter", "2024-3-10":"new-moon", "2024-3-17":"first-quarter", "2024-3-25":"full-moon",
-  "2024-4-2":"last-quarter", "2024-4-8":"new-moon", "2024-4-15":"first-quarter", "2024-4-23":"full-moon",
-  "2024-4-30":"last-quarter", "2024-5-7":"new-moon", "2024-5-15":"first-quarter", "2024-5-23":"full-moon",
-  "2024-5-30":"last-quarter", "2024-6-6":"new-moon", "2024-6-14":"first-quarter", "2024-6-22":"full-moon",
-  "2024-6-28":"last-quarter", "2024-7-5":"new-moon", "2024-7-13":"first-quarter", "2024-7-21":"full-moon",
-  "2024-7-27":"last-quarter", "2024-8-4":"new-moon", "2024-8-12":"first-quarter", "2024-8-19":"full-moon",
-  "2024-8-26":"last-quarter", "2024-9-3":"new-moon", "2024-9-11":"first-quarter", "2024-9-18":"full-moon",
-  "2024-9-24":"last-quarter", "2024-10-2":"new-moon", "2024-10-10":"first-quarter", "2024-10-17":"full-moon",
-  "2024-10-24":"last-quarter", "2024-11-1":"new-moon", "2024-11-9":"first-quarter", "2024-11-15":"full-moon",
-  "2024-11-23":"last-quarter", "2024-12-1":"new-moon", "2024-12-8":"first-quarter", "2024-12-15":"full-moon",
-  "2024-12-22":"last-quarter", "2024-12-30":"new-moon",
-  // ── 2025 ──
-  "2025-1-6":"first-quarter", "2025-1-13":"full-moon", "2025-1-21":"last-quarter", "2025-1-29":"new-moon",
-  "2025-2-5":"first-quarter", "2025-2-12":"full-moon", "2025-2-20":"last-quarter", "2025-2-28":"new-moon",
-  "2025-3-6":"first-quarter", "2025-3-14":"full-moon", "2025-3-22":"last-quarter", "2025-3-29":"new-moon",
-  "2025-4-5":"first-quarter", "2025-4-13":"full-moon", "2025-4-20":"last-quarter", "2025-4-27":"new-moon",
-  "2025-5-4":"first-quarter", "2025-5-12":"full-moon", "2025-5-20":"last-quarter", "2025-5-26":"new-moon",
-  "2025-6-3":"first-quarter", "2025-6-11":"full-moon", "2025-6-18":"last-quarter", "2025-6-25":"new-moon",
-  "2025-7-2":"first-quarter", "2025-7-10":"full-moon", "2025-7-18":"last-quarter", "2025-7-24":"new-moon",
-  "2025-8-1":"first-quarter", "2025-8-9":"full-moon", "2025-8-16":"last-quarter", "2025-8-23":"new-moon",
-  "2025-8-31":"first-quarter", "2025-9-7":"full-moon", "2025-9-14":"last-quarter", "2025-9-21":"new-moon",
-  "2025-9-29":"first-quarter", "2025-10-7":"full-moon", "2025-10-13":"last-quarter", "2025-10-21":"new-moon",
-  "2025-10-29":"first-quarter", "2025-11-5":"full-moon", "2025-11-12":"last-quarter", "2025-11-20":"new-moon",
-  "2025-11-28":"first-quarter", "2025-12-4":"full-moon", "2025-12-12":"last-quarter", "2025-12-20":"new-moon",
-  "2025-12-27":"first-quarter",
-  // ── 2026 ──
-  "2026-1-3":"full-moon", "2026-1-10":"last-quarter", "2026-1-18":"new-moon", "2026-1-26":"first-quarter",
-  "2026-2-1":"full-moon", "2026-2-9":"last-quarter", "2026-2-17":"new-moon", "2026-2-24":"first-quarter",
-  "2026-3-3":"full-moon", "2026-3-11":"last-quarter", "2026-3-19":"new-moon", "2026-3-25":"first-quarter",
-  "2026-4-2":"full-moon", "2026-4-10":"last-quarter", "2026-4-17":"new-moon", "2026-4-24":"first-quarter",
-  "2026-5-1":"full-moon", "2026-5-9":"last-quarter", "2026-5-16":"new-moon", "2026-5-23":"first-quarter",
-  "2026-5-31":"full-moon", "2026-6-8":"last-quarter", "2026-6-15":"new-moon", "2026-6-21":"first-quarter",
-  "2026-6-29":"full-moon", "2026-7-7":"last-quarter", "2026-7-14":"new-moon", "2026-7-21":"first-quarter",
-  "2026-7-29":"full-moon", "2026-8-6":"last-quarter", "2026-8-12":"new-moon", "2026-8-20":"first-quarter",
-  "2026-8-28":"full-moon", "2026-9-4":"last-quarter", "2026-9-12":"new-moon", "2026-9-19":"first-quarter",
-  "2026-9-26":"full-moon", "2026-10-3":"last-quarter", "2026-10-11":"new-moon", "2026-10-18":"first-quarter",
-  "2026-10-26":"full-moon", "2026-11-1":"last-quarter", "2026-11-9":"new-moon", "2026-11-17":"first-quarter",
-  "2026-11-24":"full-moon", "2026-12-1":"last-quarter", "2026-12-9":"new-moon", "2026-12-17":"first-quarter",
-  "2026-12-24":"full-moon", "2026-12-31":"last-quarter",
-  // ── 2027 ──
-  "2027-1-7":"new-moon", "2027-1-15":"first-quarter", "2027-1-22":"full-moon", "2027-1-29":"last-quarter",
-  "2027-2-6":"new-moon", "2027-2-14":"first-quarter", "2027-2-20":"full-moon", "2027-2-28":"last-quarter",
-  "2027-3-8":"new-moon", "2027-3-15":"first-quarter", "2027-3-22":"full-moon", "2027-3-30":"last-quarter",
-  "2027-4-6":"new-moon", "2027-4-13":"first-quarter", "2027-4-20":"full-moon", "2027-4-28":"last-quarter",
-  "2027-5-6":"new-moon", "2027-5-13":"first-quarter", "2027-5-20":"full-moon", "2027-5-28":"last-quarter",
-  "2027-6-4":"new-moon", "2027-6-11":"first-quarter", "2027-6-19":"full-moon", "2027-6-27":"last-quarter",
-  "2027-7-4":"new-moon", "2027-7-10":"first-quarter", "2027-7-18":"full-moon", "2027-7-26":"last-quarter",
-  "2027-8-2":"new-moon", "2027-8-9":"first-quarter", "2027-8-17":"full-moon", "2027-8-25":"last-quarter",
-  "2027-8-31":"new-moon", "2027-9-7":"first-quarter", "2027-9-15":"full-moon", "2027-9-23":"last-quarter",
-  "2027-9-30":"new-moon", "2027-10-7":"first-quarter", "2027-10-15":"full-moon", "2027-10-22":"last-quarter",
-  "2027-10-29":"new-moon", "2027-11-6":"first-quarter", "2027-11-14":"full-moon", "2027-11-21":"last-quarter",
-  "2027-11-28":"new-moon", "2027-12-6":"first-quarter", "2027-12-13":"full-moon", "2027-12-20":"last-quarter",
-  "2027-12-27":"new-moon",
-};
+// PHASE_LOOKUP removed — USNO live API is now the primary source for all years via USNO_YEAR_CACHE.
 
 function moonAge(date: Date): number {
   const noon = new Date(date);
@@ -186,43 +129,13 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
   const Q1 = LUNAR_CYCLE_DAYS / 4;
   const Q2 = LUNAR_CYCLE_DAYS / 2;
   const Q3 = (3 * LUNAR_CYCLE_DAYS) / 4;
+  const year = date.getFullYear();
 
   const phase = moonAge(date);
   const phaseFraction = phase / LUNAR_CYCLE_DAYS;
   const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
 
-  // Check hardcoded USNO lookup table first (covers 2024–2027).
-  const lookupKey = `${date.getUTCFullYear()}-${date.getUTCMonth() + 1}-${date.getUTCDate()}`;
-  const hardcoded = PHASE_LOOKUP[lookupKey];
-  if (hardcoded) {
-    const nameMap: Record<string, string> = {
-      "new-moon": "New Moon",
-      "first-quarter": "First Quarter",
-      "full-moon": "Full Moon",
-      "last-quarter": "Last Quarter",
-    };
-    return { phase, phaseFraction, name: nameMap[hardcoded]!, illumination, isMajorPhase: true, eventType: hardcoded };
-  }
-
-  // For years inside the 2024–2027 range, the lookup table is the ONLY
-  // source of truth for major phases. Dates not in the table are minor phases.
-  const year = date.getFullYear();
-  if (year >= 2024 && year <= 2027) {
-    let eventType: EventType;
-    let name: string;
-    if (phase < Q1) {
-      name = "Waxing Crescent"; eventType = "waxing-crescent";
-    } else if (phase < Q2) {
-      name = "Waxing Gibbous";  eventType = "waxing-gibbous";
-    } else if (phase < Q3) {
-      name = "Waning Gibbous";  eventType = "waning-gibbous";
-    } else {
-      name = "Waning Crescent"; eventType = "waning-crescent";
-    }
-    return { phase, phaseFraction, name, illumination, isMajorPhase: false, eventType };
-  }
-
-  // Primary fallback: USNO phases year-cache (async-populated via prefetchUsnoPhases / initUsnoCache).
+  // Primary: USNO year-phases cache (populated for all years by initUsnoCache / prefetchUsnoPhases).
   const cacheKey = `${year}-${date.getMonth() + 1}-${date.getDate()}`;
   if (USNO_YEAR_CACHE[year]) {
     const cachedPhase = USNO_YEAR_CACHE[year][cacheKey];
@@ -235,7 +148,7 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
       };
       return { phase, phaseFraction, name: phaseNameMap[cachedPhase]!, illumination, isMajorPhase: true, eventType: cachedPhase };
     }
-    // Year is in cache but this date is not a major phase — return minor phase
+    // Year cached but this date is not a major phase
     let minorName: string;
     let minorType: EventType;
     if (phase < Q1) { minorName = "Waxing Crescent"; minorType = "waxing-crescent"; }
@@ -245,7 +158,10 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
     return { phase, phaseFraction, name: minorName, illumination, isMajorPhase: false, eventType: minorType };
   }
 
-  // Final fallback: mathematical closest-day formula (works offline, no cache required).
+  // Cache cold — trigger background prefetch so next call gets USNO data.
+  prefetchUsnoPhases(year).catch(() => {});
+
+  // Last resort: mathematical closest-day formula (works fully offline).
   const dPrev = new Date(date); dPrev.setDate(dPrev.getDate() - 1);
   const dNext = new Date(date); dNext.setDate(dNext.getDate() + 1);
   const prev = moonAge(dPrev);
@@ -294,26 +210,13 @@ const USNO_PHASE_KEY_MAP: Record<string, "new-moon" | "first-quarter" | "full-mo
   "Last Quarter": "last-quarter",
 };
 
-const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-function parseUsnoPhaseDate(dateStr: string): string | null {
-  // dateStr format: "YYYY MMM DD", e.g. "2028 Jan 12"
-  const parts = dateStr.split(" ");
-  if (parts.length !== 3) return null;
-  const year = parseInt(parts[0], 10);
-  const monthIdx = MONTH_ABBR.indexOf(parts[1]);
-  const day = parseInt(parts[2], 10);
-  if (isNaN(year) || monthIdx < 0 || isNaN(day)) return null;
-  return `${year}-${monthIdx + 1}-${day}`;
-}
-
 /** Fetch moon phases for a given year from USNO API and store in memory + AsyncStorage. */
 export async function prefetchUsnoPhases(year: number): Promise<void> {
-  // Skip years already covered by PHASE_LOOKUP
-  if (year >= 2024 && year <= 2027) return;
+  // Skip if already loaded in memory
+  if (USNO_YEAR_CACHE[year]) return;
   const storageKey = `@usno_phases_${year}`;
   try {
-    // Check AsyncStorage cache first
+    // Check AsyncStorage cache first (30-day TTL)
     const cached = await AsyncStorage.getItem(storageKey);
     if (cached) {
       const parsed = JSON.parse(cached) as { data: Record<string, "new-moon"|"first-quarter"|"full-moon"|"last-quarter">; savedAt: number };
@@ -323,16 +226,18 @@ export async function prefetchUsnoPhases(year: number): Promise<void> {
       }
     }
 
+    // Fetch from USNO API — actual response shape: { phasedata: [{ phase, day, month, year, time }] }
     const resp = await fetch(`https://aa.usno.navy.mil/api/moon/phases/year?year=${year}&nump=99`);
     if (!resp.ok) return;
-    const json = await resp.json() as { phasedata?: { phase: string; date: string; time: string }[] };
+    const json = await resp.json() as { phasedata?: { phase: string; day: number; month: number; year: number; time: string }[] };
     const phasedata = json?.phasedata ?? [];
 
     const dayMap: Record<string, "new-moon"|"first-quarter"|"full-moon"|"last-quarter"> = {};
     for (const entry of phasedata) {
       const eventType = USNO_PHASE_KEY_MAP[entry.phase];
-      const key = parseUsnoPhaseDate(entry.date);
-      if (eventType && key) dayMap[key] = eventType;
+      if (eventType) {
+        dayMap[`${entry.year}-${entry.month}-${entry.day}`] = eventType;
+      }
     }
 
     USNO_YEAR_CACHE[year] = dayMap;
@@ -342,12 +247,11 @@ export async function prefetchUsnoPhases(year: number): Promise<void> {
   }
 }
 
-/** Call once on app start to warm the in-memory cache from any previously fetched data in AsyncStorage. */
+/** Call once on app start to warm the in-memory cache for the current and upcoming years. */
 export async function initUsnoCache(): Promise<void> {
-  // Preload current and upcoming years (outside the PHASE_LOOKUP range)
   const currentYear = new Date().getFullYear();
-  const yearsToLoad = [currentYear, currentYear + 1, currentYear + 2].filter(y => y > 2027);
-  await Promise.allSettled(yearsToLoad.map(y => prefetchUsnoPhases(y)));
+  // Preload current year + next two years
+  await Promise.allSettled([currentYear, currentYear + 1, currentYear + 2].map(y => prefetchUsnoPhases(y)));
 }
 
 export const MERCURY_RETROGRADES: RetrogradePeriod[] = [

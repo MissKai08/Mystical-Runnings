@@ -21,7 +21,7 @@ import { FontScaleProvider } from "@/contexts/FontScaleContext";
 import { UserProfileProvider } from "@/contexts/UserProfileContext";
 import { runAutoBackupIfDue } from "@/utils/backup";
 import { initUsnoCache } from "@/constants/spiritualData";
-import { checkAndAlertTodayEvents } from "@/utils/notificationScheduler";
+import { checkAndAlertTodayEvents, requestPermissions } from "@/utils/notificationScheduler";
 import { loadNotificationSettings } from "@/utils/notificationSettings";
 
 // Prevent the native splash screen from auto-hiding before fonts load.
@@ -54,6 +54,11 @@ export default function RootLayout() {
     runAutoBackupIfDue().catch(() => {});
     initUsnoCache().catch(() => {});
     loadNotificationSettings().then((settings) => {
+      // Request OS permission proactively on startup when master is enabled,
+      // matching how location permission is already requested on first launch.
+      if (settings.masterEnabled) {
+        requestPermissions().catch(() => {});
+      }
       checkAndAlertTodayEvents(settings).catch(() => {});
     }).catch(() => {});
   }, [appReady]);

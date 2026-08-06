@@ -165,6 +165,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     maxHeight: "88%",
+    overflow: "hidden",
   },
   handle: {
     width: 40,
@@ -212,7 +213,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   scroll: {
-    flexGrow: 0,
+    flex: 1,
   },
   orisas: {
     flexDirection: "row",

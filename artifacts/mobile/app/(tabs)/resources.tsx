@@ -88,6 +88,14 @@ const RESOURCES: Resource[] = [
     color: "#34D399",
   },
   {
+    title: "2027 Witch's Wheel of the Year Calendar",
+    source: "Witch on Fire · Patheos",
+    category: "Paganism",
+    url: "https://www.patheos.com/blogs/witchonfire/2026/07/2027-witchs-wheel-of-the-year-calendar/",
+    emoji: "🌿",
+    color: "#34D399",
+  },
+  {
     title: "Moon Phases 2026 — Lunar Calendar",
     source: "Google Calendar",
     category: "Moon",
