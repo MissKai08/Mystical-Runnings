@@ -493,7 +493,7 @@ export async function scheduleAllNotifications(
   // Daily Odu Reflection — pre-schedule 30 days at 7:30 AM
   if (settings.types.oduReflection) {
     for (let i = 0; i < 30 && scheduled < 62; i++) {
-      const date = addDays(now, i + 1);
+      const date = addDays(now, i);
       date.setHours(0, 0, 0, 0);
       const odu = getDailyOdu(date);
       const reflection = ODU_REFLECTIONS[odu.name] ?? odu.guidance;
@@ -523,7 +523,7 @@ export async function scheduleAllNotifications(
   if (settings.types.dailyBriefing) {
     const now2 = new Date();
     for (let i = 0; i < 30 && scheduled < 62; i++) {
-      const date = addDays(now2, i + 1);
+      const date = addDays(now2, i);
       date.setHours(0, 0, 0, 0);
       const items = getDailyBriefingItems(date, settings);
       if (items.length === 0) continue;
@@ -552,7 +552,7 @@ export async function scheduleAllNotifications(
   // Daily Sacred Intention Reminder — pre-schedule 30 days at 8 PM
   if (settings.types.sacredIntentionReminder) {
     for (let i = 0; i < 30 && scheduled < 62; i++) {
-      const date = addDays(now, i + 1);
+      const date = addDays(now, i);
       date.setHours(0, 0, 0, 0);
       const trigger = new Date(date);
       trigger.setHours(20, 0, 0, 0);

@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Share,
   Linking,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -97,6 +98,7 @@ export default function HomeScreen() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState({ firstName: "", birthMonth: "", birthDay: "" });
   const { scaleIdx, fs, handleScaleChange } = useFontScale();
+  const { height: screenHeight } = useWindowDimensions();
   const { profile, setProfile } = useUserProfile();
   const isBirthday = useMemo(() => profile ? isTodayBirthday(profile, today) : false, [profile, today]);
 
@@ -132,10 +134,20 @@ export default function HomeScreen() {
   }, [lastNewMoonDate]);
 
   const handleSaveProfile = useCallback(async () => {
-    const month = parseInt(profileDraft.birthMonth, 10);
-    const day = parseInt(profileDraft.birthDay, 10);
-    if (!profileDraft.firstName.trim() || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) return;
-    const p: UserProfile = { firstName: profileDraft.firstName.trim(), birthMonth: month, birthDay: day };
+    const name = profileDraft.firstName.trim();
+    if (!name) return;
+    const monthStr = profileDraft.birthMonth.trim();
+    const dayStr = profileDraft.birthDay.trim();
+    let birthMonth: number | undefined;
+    let birthDay: number | undefined;
+    if (monthStr || dayStr) {
+      const month = parseInt(monthStr, 10);
+      const day = parseInt(dayStr, 10);
+      if (isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) return;
+      birthMonth = month;
+      birthDay = day;
+    }
+    const p: UserProfile = { firstName: name, birthMonth, birthDay };
     await saveUserProfile(p);
     setProfile(p);
     setProfileOpen(false);
@@ -409,8 +421,8 @@ export default function HomeScreen() {
               Haptics.selectionAsync();
               setProfileDraft({
                 firstName: profile?.firstName ?? "",
-                birthMonth: profile ? String(profile.birthMonth) : "",
-                birthDay: profile ? String(profile.birthDay) : "",
+                birthMonth: profile?.birthMonth != null ? String(profile.birthMonth) : "",
+                birthDay: profile?.birthDay != null ? String(profile.birthDay) : "",
               });
               setProfileOpen(true);
             }}
@@ -1017,7 +1029,7 @@ export default function HomeScreen() {
       <Pressable style={styles.intentionOverlay} onPress={() => setProfileOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
           <Pressable
-            style={[styles.intentionModalSheet, { maxHeight: "85%", paddingBottom: Math.max(24, insets.bottom + 16) }]}
+            style={[styles.intentionModalSheet, { maxHeight: screenHeight * 0.85, paddingBottom: Math.max(24, insets.bottom + 16) }]}
             onPress={(e) => e.stopPropagation()}
           >
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>

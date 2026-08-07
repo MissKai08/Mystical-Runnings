@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
@@ -20,6 +21,7 @@ interface Props {
 export function OseDetailModal({ group, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
 
   if (!group) return null;
 
@@ -35,6 +37,7 @@ export function OseDetailModal({ group, onClose }: Props) {
               backgroundColor: colors.background,
               borderColor: group.color + "55",
               paddingBottom: Platform.OS === "web" ? 32 : insets.bottom + 24,
+              maxHeight: screenHeight * 0.88,
             },
           ]}
           onPress={() => {}}
@@ -164,7 +167,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     paddingHorizontal: 20,
     paddingTop: 12,
-    maxHeight: "88%",
     overflow: "hidden",
   },
   handle: {
@@ -213,7 +215,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   scroll: {
-    flex: 1,
+    flexShrink: 1,
   },
   orisas: {
     flexDirection: "row",

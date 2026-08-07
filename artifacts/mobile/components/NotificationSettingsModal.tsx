@@ -374,7 +374,10 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
           {/* Advance notice */}
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              NOTIFY ME
+              EVENT REMINDERS
+            </Text>
+            <Text style={[styles.sectionIntro, { color: colors.mutedForeground }]}>
+              Applies to upcoming sabbats, moons, and holidays listed below.
             </Text>
             <View
               style={[
@@ -409,24 +412,26 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
               })}
             </View>
             <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
-              Reminder delivered at 8:00 AM on the selected day before each event.
-              Ifa Prayer Days notify at 7:00 AM every Thursday. Ose Calendar transitions notify at 7:00 AM on the day they begin.
+              {"Delivered at 8:00 AM, " + settings.advanceDays + " day(s) before each event."}
+            </Text>
+            <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
+              Two exceptions fire same-day, regardless of this setting: Ifa Prayer Day at 7:00 AM every Thursday, and Ose Calendar transitions at 7:00 AM on the day they begin.
             </Text>
           </View>
 
           {/* Daily briefing toggle */}
           <View style={styles.section}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              MORNING BRIEFING
+              DAILY NOTIFICATIONS
+            </Text>
+            <Text style={[styles.sectionIntro, { color: colors.mutedForeground }]}>
+              These are separate from event reminders above. Each repeats daily at its own fixed time (shown per row).
             </Text>
             <View style={[styles.typeList, { borderColor: colors.border }]}>
               {BRIEFING_ROWS.map((row, idx) =>
                 renderTypeRow(row, idx, true)
               )}
             </View>
-            <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
-              Delivers at 7 AM each morning with a summary of the day's sacred energies, moon phases, and holidays.
-            </Text>
           </View>
 
           {/* Spiritual event type toggles */}
@@ -505,6 +510,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1.2,
     marginLeft: 2,
+  },
+  sectionIntro: {
+    fontSize: 12,
+    marginBottom: 8,
+    lineHeight: 16,
   },
   segmentRow: {
     flexDirection: "row",

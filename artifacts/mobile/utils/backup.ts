@@ -1,16 +1,8 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
+import { StorageAccessFramework } from "expo-file-system/legacy";
 import { Share, Platform } from "react-native";
-
-// StorageAccessFramework is not reflected in the static types for this version of expo-file-system.
-// We access it via a typed alias so the rest of the file can use it without repeated `any` casts.
-interface SAFType {
-  requestDirectoryPermissionsAsync(): Promise<{ granted: boolean; directoryUri: string }>;
-  createFileAsync(folderUri: string, filename: string, mimeType: string): Promise<string>;
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const StorageAccessFramework: SAFType = (FileSystem as any).StorageAccessFramework;
 
 const BACKUP_VERSION = 1;
 

@@ -232,12 +232,22 @@ export async function prefetchUsnoPhases(year: number): Promise<void> {
     const json = await resp.json() as { phasedata?: { phase: string; day: number; month: number; year: number; time: string }[] };
     const phasedata = json?.phasedata ?? [];
 
+    const dtf = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric", month: "numeric", day: "numeric",
+    });
+
     const dayMap: Record<string, "new-moon"|"first-quarter"|"full-moon"|"last-quarter"> = {};
     for (const entry of phasedata) {
       const eventType = USNO_PHASE_KEY_MAP[entry.phase];
-      if (eventType) {
-        dayMap[`${entry.year}-${entry.month}-${entry.day}`] = eventType;
-      }
+      if (!eventType) continue;
+      const [hh, mm] = entry.time.split(":").map(Number);
+      const utcDate = new Date(Date.UTC(entry.year, entry.month - 1, entry.day, hh, mm));
+      const parts = dtf.formatToParts(utcDate);
+      const y = parts.find(p => p.type === "year")!.value;
+      const m = parts.find(p => p.type === "month")!.value;
+      const d = parts.find(p => p.type === "day")!.value;
+      dayMap[`${y}-${m}-${d}`] = eventType;
     }
 
     USNO_YEAR_CACHE[year] = dayMap;
