@@ -143,22 +143,23 @@ export async function exportBackup(destination: BackupDestination = "local"): Pr
     return;
   }
 
-  // Native — Android: try SAF picked folder first for local
+  // Native — Android: local export requires a chosen SAF folder, no invisible fallback
   if (Platform.OS === "android" && destination === "local") {
     const folderUri = await getBackupFolderUri();
-    if (folderUri) {
-      try {
-        const fileUri = await StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
-        await FileSystem.writeAsStringAsync(fileUri, json);
-        await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
-        return;
-      } catch {
-        // Fall through to Documents fallback if SAF fails
-      }
+    if (!folderUri) {
+      throw new Error("Choose a backup folder first.");
+    }
+    try {
+      const fileUri = await StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
+      await FileSystem.writeAsStringAsync(fileUri, json);
+      await AsyncStorage.setItem(LAST_MANUAL_EXPORT_KEY, Date.now().toString());
+      return;
+    } catch {
+      throw new Error("Couldn't save to your chosen folder — it may have been moved or its permission revoked. Choose the folder again.");
     }
   }
 
-  // Native — write to Documents folder (iOS / Android fallback)
+  // Native — write to Documents folder (iOS local export, or staging file for Cloud share on either platform)
   const { File, Paths } = await import("expo-file-system");
   const file = new File(Paths.document, filename);
   file.write(json);
@@ -255,29 +256,30 @@ async function exportBackupSilent(): Promise<void> {
   const json = JSON.stringify(backup, null, 2);
   const filename = generateBackupFilename();
 
-  if (Platform.OS !== "web") {
-    if (Platform.OS === "android") {
-      const folderUri = await getBackupFolderUri();
-      if (folderUri) {
-        try {
-            const fileUri = await StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
-          await FileSystem.writeAsStringAsync(fileUri, json);
-          await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
-          return;
-        } catch {
-          // Fall through to Documents fallback
-        }
-      }
+  if (Platform.OS === "android") {
+    const folderUri = await getBackupFolderUri();
+    if (!folderUri) {
+      // No folder chosen — skip rather than writing somewhere invisible.
+      // The UI already warns "Auto-backup is on — choose a folder" in this state.
+      return;
     }
+    try {
+      const fileUri = await StorageAccessFramework.createFileAsync(folderUri, filename, "application/json");
+      await FileSystem.writeAsStringAsync(fileUri, json);
+      await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
+    } catch {
+      // Chosen folder failed (moved / permission revoked) — skip rather than
+      // silently falling back to invisible app storage.
+    }
+    return;
+  }
+
+  if (Platform.OS !== "web") {
     try {
       const { File, Paths } = await import("expo-file-system");
       const file = new File(Paths.document, filename);
       file.write(json);
     } catch {
-      // If even the Documents fallback fails, don't crash — but don't silently
-      // pretend it succeeded either. Re-throw so runAutoBackupIfDue's outer
-      // catch handles it consistently (still silent to the user, per existing
-      // design), rather than leaving LAST_AUTO_BACKUP_KEY stale forever.
       throw new Error("Auto-backup Documents fallback write failed");
     }
   }

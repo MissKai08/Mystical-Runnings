@@ -1804,7 +1804,7 @@ export const OSE_GROUPS: OseGroup[] = [
   },
 ];
 
-const OSE_ANCHOR_MS = new Date(2026, 3, 26).getTime(); // April 26, 2026 = Day 0
+const OSE_ANCHOR_MS = new Date(2026, 3, 26, 12, 0, 0).getTime(); // April 26, 2026, noon = Day 0
 
 export function getOseDay(date: Date): OseGroup {
   const noon = new Date(date);

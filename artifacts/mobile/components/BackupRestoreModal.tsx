@@ -178,6 +178,16 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
 
   async function handleExport() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    if (Platform.OS === "android" && exportDest === "local" && !backupFolderUri) {
+      const uri = await pickBackupFolder();
+      if (!uri) {
+        showFeedback("error", "Choose a backup folder to save locally.");
+        return;
+      }
+      setBackupFolderUri(uri);
+    }
+
     setExporting(true);
     try {
       await exportBackup(exportDest);
@@ -195,7 +205,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             ? "✦ Saved to Documents — find it in the Files app or enable iCloud Drive to sync automatically."
             : backupFolderUri
               ? `✦ Saved to ${getBackupFolderDisplayName(backupFolderUri)}.`
-              : "✦ Saved to Documents — find it in your Files app."
+              : "✦ Saved to app storage — not visible in Files. Choose a backup folder to save somewhere you can find it."
         );
       }
     } catch (e: unknown) {
@@ -397,7 +407,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   </View>
                 )}
                 <Text style={s.sectionHint}>
-                  Local exports and auto-backups write to this folder. Cloud (Share) always opens the share sheet, regardless of this setting. If not set, files save to your internal Documents folder.
+                  Local exports and auto-backups write to this folder. Cloud (Share) always opens the share sheet, regardless of this setting. Required on Android for Local exports and auto-backup — you'll be prompted to choose one if it's not set yet.
                 </Text>
               </View>
             )}
@@ -440,7 +450,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     : Platform.OS === "android"
                     ? backupFolderUri
                       ? "Saves silently to your chosen backup folder."
-                      : "No folder chosen — tap 'Backup Folder' below to set a destination, or backups save to Documents."
+                      : "No folder chosen — auto-backup won't run until you tap 'Backup Folder' below to set one."
                     : "Saves a backup file each time the schedule is due."}
                 </Text>
               )}

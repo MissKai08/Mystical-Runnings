@@ -1033,7 +1033,7 @@ export default function HomeScreen() {
             style={[styles.intentionModalSheet, { maxHeight: screenHeight * 0.85, paddingBottom: Math.max(24, insets.bottom + 16) }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ flex: 1, flexShrink: 1 }}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }}>
               <View style={styles.intentionModalHandle} />
               <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
               <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
