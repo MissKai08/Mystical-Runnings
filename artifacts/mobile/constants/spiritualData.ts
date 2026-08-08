@@ -136,7 +136,16 @@ export function getMoonPhaseData(date: Date): MoonPhaseData {
   const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * phaseFraction)));
 
   // Primary: USNO year-phases cache (populated for all years by initUsnoCache / prefetchUsnoPhases).
-  const cacheKey = `${year}-${date.getMonth() + 1}-${date.getDate()}`;
+  // Use the same Eastern-time conversion as the write side so keys always match.
+  const etDtf = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "numeric", day: "numeric",
+  });
+  const etParts = etDtf.formatToParts(date);
+  const etY = etParts.find(p => p.type === "year")!.value;
+  const etM = etParts.find(p => p.type === "month")!.value;
+  const etD = etParts.find(p => p.type === "day")!.value;
+  const cacheKey = `${etY}-${etM}-${etD}`;
   if (USNO_YEAR_CACHE[year]) {
     const cachedPhase = USNO_YEAR_CACHE[year][cacheKey];
     if (cachedPhase) {

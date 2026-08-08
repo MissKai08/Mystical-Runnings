@@ -215,6 +215,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   scroll: {
+    flex: 1,
     flexShrink: 1,
   },
   orisas: {

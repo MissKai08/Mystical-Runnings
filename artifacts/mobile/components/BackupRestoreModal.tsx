@@ -24,9 +24,20 @@ import {
   setAutoBackupFrequency,
   pickBackupFolder,
   getBackupFolderUri,
+  clearBackupFolderUri,
   AutoBackupFrequency,
   BackupDestination,
 } from "@/utils/backup";
+
+function getBackupFolderDisplayName(uri: string): string {
+  try {
+    const decoded = decodeURIComponent(uri);
+    const segs = decoded.split(/[:/]/);
+    return segs[segs.length - 1] || "your chosen folder";
+  } catch {
+    return "your chosen folder";
+  }
+}
 
 interface Props {
   visible: boolean;
@@ -138,6 +149,13 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
     await setAutoBackupFrequency(freq);
   }
 
+  async function handleClearFolder() {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    await clearBackupFolderUri();
+    setBackupFolderUri(null);
+    showFeedback("success", "Backup folder cleared.");
+  }
+
   async function handlePickFolder() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
@@ -175,7 +193,9 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
           "success",
           Platform.OS === "ios"
             ? "✦ Saved to Documents — find it in the Files app or enable iCloud Drive to sync automatically."
-            : "✦ Saved to Documents — find it in your Files app."
+            : backupFolderUri
+              ? `✦ Saved to ${getBackupFolderDisplayName(backupFolderUri)}.`
+              : "✦ Saved to Documents — find it in your Files app."
         );
       }
     } catch (e: unknown) {
@@ -364,6 +384,11 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   <Pressable style={s.folderBtn} onPress={handlePickFolder}>
                     <Text style={s.folderBtnText}>{backupFolderUri ? "Change" : "Choose"}</Text>
                   </Pressable>
+                  {backupFolderUri && (
+                    <Pressable onPress={handleClearFolder} style={{ marginLeft: 8 }}>
+                      <Text style={[s.folderBtnText, { color: colors.mutedForeground }]}>Clear</Text>
+                    </Pressable>
+                  )}
                 </View>
                 {autoFreq !== "off" && !backupFolderUri && (
                   <View style={s.folderWarn}>
@@ -372,7 +397,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   </View>
                 )}
                 <Text style={s.sectionHint}>
-                  Exports and auto-backups write to this folder. If not set, files save to your internal Documents folder.
+                  Local exports and auto-backups write to this folder. Cloud (Share) always opens the share sheet, regardless of this setting. If not set, files save to your internal Documents folder.
                 </Text>
               </View>
             )}
@@ -419,6 +444,9 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     : "Saves a backup file each time the schedule is due."}
                 </Text>
               )}
+              <Text style={s.sectionHint}>
+                Auto-backup saves locally only — use Cloud (Share) above for manual cloud backups.
+              </Text>
 
               {lastAutoBackup && autoFreq !== "off" && (
                 <View style={s.lastRow}>

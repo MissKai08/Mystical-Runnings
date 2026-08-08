@@ -34,8 +34,8 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
   return (
     <ImageBackground
       source={SPLASH_IMAGE}
-      style={{ position: "absolute", top: 0, left: 0, width, height, zIndex: 9999, alignItems: "center", justifyContent: "flex-end" }}
-      resizeMode="cover"
+      style={{ position: "absolute", top: 0, left: 0, width, height, zIndex: 9999, alignItems: "center", justifyContent: "flex-end", backgroundColor: "#080714" }}
+      resizeMode="contain"
     >
       <View style={[styles.progressSection, { width: width - 88 }]}>
         <View style={styles.progressTrack}>

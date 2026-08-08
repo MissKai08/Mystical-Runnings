@@ -74,7 +74,7 @@ const MONTH_NAMES = [
 export default function HomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const today = useMemo(() => new Date(), []);
+  const today = new Date();
   const moon = useMemo(() => getMoonPhaseData(today), [today]);
   const retrograde = useMemo(() => getMercuryRetrogradeInfo(today), [today]);
   const prayerDay = useMemo(() => isIfaPrayerDay(today), [today]);
@@ -155,6 +155,7 @@ export default function HomeScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
+  const tabBarHeight = Platform.OS === "web" ? 84 : Platform.OS === "android" ? 56 + insets.bottom : 60;
 
   const todayHolidays = useMemo(() => getHolidaysForDate(today), [today]);
   const hasAnyAlert = !!(retrograde || prayerDay || festival || sabbat || namedMoon || darkMoon || eclipse || todayHolidays.length > 0);
@@ -366,7 +367,7 @@ export default function HomeScreen() {
     <>
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={[styles.content, { paddingTop: topPad + 8, paddingBottom: bottomPad + 40 }]}
+      contentContainerStyle={[styles.content, { paddingTop: topPad + 8, paddingBottom: tabBarHeight + 24 }]}
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.brandHeader}>
@@ -1032,7 +1033,7 @@ export default function HomeScreen() {
             style={[styles.intentionModalSheet, { maxHeight: screenHeight * 0.85, paddingBottom: Math.max(24, insets.bottom + 16) }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ flex: 1, flexShrink: 1 }}>
               <View style={styles.intentionModalHandle} />
               <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
               <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>

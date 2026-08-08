@@ -66,6 +66,12 @@ export async function pickBackupFolder(): Promise<string | null> {
 }
 
 /** (Android only) Return the previously picked folder URI, or null */
+/** (Android only) Clear the previously picked backup folder */
+export async function clearBackupFolderUri(): Promise<void> {
+  if (Platform.OS !== "android") return;
+  await AsyncStorage.removeItem(BACKUP_FOLDER_URI_KEY);
+}
+
 export async function getBackupFolderUri(): Promise<string | null> {
   if (Platform.OS !== "android") return null;
   return AsyncStorage.getItem(BACKUP_FOLDER_URI_KEY);
@@ -263,9 +269,17 @@ async function exportBackupSilent(): Promise<void> {
         }
       }
     }
-    const { File, Paths } = await import("expo-file-system");
-    const file = new File(Paths.document, filename);
-    file.write(json);
+    try {
+      const { File, Paths } = await import("expo-file-system");
+      const file = new File(Paths.document, filename);
+      file.write(json);
+    } catch {
+      // If even the Documents fallback fails, don't crash — but don't silently
+      // pretend it succeeded either. Re-throw so runAutoBackupIfDue's outer
+      // catch handles it consistently (still silent to the user, per existing
+      // design), rather than leaving LAST_AUTO_BACKUP_KEY stale forever.
+      throw new Error("Auto-backup Documents fallback write failed");
+    }
   }
   await AsyncStorage.setItem(LAST_AUTO_BACKUP_KEY, Date.now().toString());
 }

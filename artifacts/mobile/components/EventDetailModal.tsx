@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   scrollArea: {
+    flex: 1,
     flexShrink: 1,
   },
   handle: {
