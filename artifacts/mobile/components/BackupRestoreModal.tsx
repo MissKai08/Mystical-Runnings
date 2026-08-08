@@ -367,7 +367,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     ? "Saves to your Documents folder. Open the Files app to find it. Enable iCloud Drive to sync it automatically."
                     : backupFolderUri
                       ? "Saves to your chosen backup folder."
-                      : "Saves to app storage — not visible in Files. Choose a backup folder above to save somewhere you can find."
+                      : "Saves locally. Choose a folder under Backup Folder below."
                   : Platform.OS === "ios"
                   ? "Saves the file and opens the share sheet — choose iCloud Drive, AirDrop, email, or any app."
                   : "Saves the file and opens the share sheet — choose Google Drive, Gmail, or any app."}
