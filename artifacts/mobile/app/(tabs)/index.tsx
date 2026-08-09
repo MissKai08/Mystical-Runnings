@@ -12,7 +12,7 @@ import {
   Linking,
   useWindowDimensions,
 } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import { ScrollView, GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -1027,6 +1027,7 @@ export default function HomeScreen() {
       animationType="slide"
       onRequestClose={() => setProfileOpen(false)}
     >
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <Pressable style={styles.intentionOverlay} onPress={() => setProfileOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ width: "100%" }}>
           <Pressable
@@ -1093,6 +1094,7 @@ export default function HomeScreen() {
           </Pressable>
         </KeyboardAvoidingView>
       </Pressable>
+      </GestureHandlerRootView>
     </Modal>
     </>
   );

@@ -8,7 +8,7 @@ import {
   Platform,
   useWindowDimensions,
 } from "react-native";
-import { ScrollView } from "react-native-gesture-handler";
+import { ScrollView, GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { OseGroup, OSE_GROUPS } from "@/constants/spiritualData";
@@ -29,6 +29,7 @@ export function OseDetailModal({ group, onClose }: Props) {
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
       <Pressable style={styles.overlay} onPress={onClose}>
         <Pressable
           style={[
@@ -150,6 +151,7 @@ export function OseDetailModal({ group, onClose }: Props) {
           </Pressable>
         </Pressable>
       </Pressable>
+      </GestureHandlerRootView>
     </Modal>
   );
 }
