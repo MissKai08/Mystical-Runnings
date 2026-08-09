@@ -27,8 +27,6 @@ export function OseDetailModal({ group, onClose }: Props) {
   useEffect(() => {
     if (group) {
       sheetRef.current?.present();
-    } else {
-      sheetRef.current?.dismiss();
     }
   }, [group]);
 

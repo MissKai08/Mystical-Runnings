@@ -38,8 +38,6 @@ export function EventDetailModal({ event, onClose }: Props) {
   useEffect(() => {
     if (event) {
       sheetRef.current?.present();
-    } else {
-      sheetRef.current?.dismiss();
     }
   }, [event]);
 
