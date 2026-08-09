@@ -1,14 +1,11 @@
-import React from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import {
-  Modal,
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Platform,
-  useWindowDimensions,
-} from "react-native";
-import { ScrollView, GestureHandlerRootView } from "react-native-gesture-handler";
+  BottomSheetModal,
+  BottomSheetBackdrop,
+  BottomSheetScrollView,
+  BottomSheetBackdropProps,
+} from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
@@ -29,131 +26,147 @@ interface Props {
 export function EventDetailModal({ event, onClose }: Props) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { height: screenHeight } = useWindowDimensions();
+  const sheetRef = useRef<BottomSheetModal>(null);
 
-  if (!event) return null;
+  // Keep rendering the last event's content while the sheet plays its
+  // closing animation, instead of the content vanishing the instant the
+  // parent clears `event` to null.
+  const lastEventRef = useRef<EventDetail | null>(null);
+  if (event) lastEventRef.current = event;
+  const data = event ?? lastEventRef.current;
+
+  useEffect(() => {
+    if (event) {
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
+    }
+  }, [event]);
+
+  const renderBackdrop = useCallback(
+    (backdropProps: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop
+        {...backdropProps}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        opacity={0.72}
+        pressBehavior="close"
+      />
+    ),
+    []
+  );
+
+  const snapPoints = useMemo(() => ["80%"], []);
+
+  if (!data) return null;
 
   return (
-    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      enablePanDownToClose
+      backdropComponent={renderBackdrop}
+      onDismiss={onClose}
+      backgroundStyle={{
+        backgroundColor: colors.background,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        borderWidth: 1,
+        borderColor: data.color + "55",
+        borderBottomWidth: 0,
+      }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
+    >
+      <View style={styles.header}>
+        {/* Category badge */}
+        <View
           style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.background,
-              borderColor: event.color + "55",
-              paddingBottom: Platform.OS === "web" ? 32 : insets.bottom + 24,
-              maxHeight: screenHeight * 0.8,
-            },
+            styles.badge,
+            { backgroundColor: data.color + "22", borderColor: data.color + "55" },
           ]}
-          onPress={() => {}}
         >
-          {/* Handle */}
-          <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          <Text style={[styles.badgeText, { color: data.color }]}>{data.category}</Text>
+        </View>
 
-          {/* Category badge */}
+        {/* Title */}
+        <Text style={[styles.title, { color: colors.foreground }]}>{data.title}</Text>
+      </View>
+
+      <BottomSheetScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Description */}
+        <Text style={[styles.description, { color: colors.mutedForeground }]}>
+          {data.description}
+        </Text>
+
+        {/* Key/value rows */}
+        {data.rows && data.rows.length > 0 && (
           <View
-            style={[
-              styles.badge,
-              { backgroundColor: event.color + "22", borderColor: event.color + "55" },
-            ]}
+            style={[styles.rowsBox, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
-            <Text style={[styles.badgeText, { color: event.color }]}>
-              {event.category}
-            </Text>
-          </View>
-
-          {/* Title */}
-          <Text style={[styles.title, { color: colors.foreground }]}>{event.title}</Text>
-
-          <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollArea}>
-            {/* Description */}
-            <Text style={[styles.description, { color: colors.mutedForeground }]}>
-              {event.description}
-            </Text>
-
-            {/* Key/value rows */}
-            {event.rows && event.rows.length > 0 && (
+            {data.rows.map((row, i) => (
               <View
-                style={[styles.rowsBox, { backgroundColor: colors.card, borderColor: colors.border }]}
-              >
-                {event.rows.map((row, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.row,
-                      i < event.rows!.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
-                    ]}
-                  >
-                    <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>
-                      {row.label}
-                    </Text>
-                    <Text style={[styles.rowValue, { color: colors.foreground }]}>
-                      {row.value}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Guidance */}
-            {event.guidance && (
-              <View
+                key={i}
                 style={[
-                  styles.guidanceBox,
-                  { backgroundColor: event.color + "15", borderLeftColor: event.color },
+                  styles.row,
+                  i < data.rows!.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
                 ]}
               >
-                <Text style={[styles.guidanceLabel, { color: event.color }]}>Guidance</Text>
-                <Text style={[styles.guidanceText, { color: colors.foreground }]}>
-                  {event.guidance}
+                <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>
+                  {row.label}
+                </Text>
+                <Text style={[styles.rowValue, { color: colors.foreground }]}>
+                  {row.value}
                 </Text>
               </View>
-            )}
-          </ScrollView>
+            ))}
+          </View>
+        )}
 
-          {/* Close */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.closeBtn,
-              { backgroundColor: event.color, opacity: pressed ? 0.8 : 1 },
+        {/* Guidance */}
+        {data.guidance && (
+          <View
+            style={[
+              styles.guidanceBox,
+              { backgroundColor: data.color + "15", borderLeftColor: data.color },
             ]}
-            onPress={onClose}
           >
-            <Text style={styles.closeBtnText}>Close</Text>
-          </Pressable>
+            <Text style={[styles.guidanceLabel, { color: data.color }]}>Guidance</Text>
+            <Text style={[styles.guidanceText, { color: colors.foreground }]}>
+              {data.guidance}
+            </Text>
+          </View>
+        )}
+      </BottomSheetScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
+        <Pressable
+          style={({ pressed }) => [
+            styles.closeBtn,
+            { backgroundColor: data.color, opacity: pressed ? 0.8 : 1 },
+          ]}
+          onPress={() => sheetRef.current?.dismiss()}
+        >
+          <Text style={styles.closeBtnText}>Close</Text>
         </Pressable>
-      </Pressable>
-      </GestureHandlerRootView>
-    </Modal>
+      </View>
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.72)",
-    justifyContent: "flex-end",
-  },
-  sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderWidth: 1,
-    borderBottomWidth: 0,
+  header: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    overflow: "hidden",
+    paddingTop: 4,
   },
-  scrollArea: {
-    flexShrink: 1,
+  scrollContent: {
+    paddingHorizontal: 20,
   },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    alignSelf: "center",
-    marginBottom: 20,
+  footer: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
   },
   badge: {
     alignSelf: "flex-start",
@@ -227,7 +240,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
-    marginTop: 8,
   },
   closeBtnText: {
     color: "#fff",

@@ -12,6 +12,7 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -72,16 +73,18 @@ export default function RootLayout() {
           <FontScaleProvider>
             <UserProfileProvider>
               <GestureHandlerRootView style={{ flex: 1 }}>
-                <KeyboardProvider>
-                  {!appReady ? (
-                    <AppSplashScreen
-                      fontsLoaded={fontsLoaded ?? false}
-                      onComplete={() => setAppReady(true)}
-                    />
-                  ) : (
-                    <RootLayoutNav />
-                  )}
-                </KeyboardProvider>
+                <BottomSheetModalProvider>
+                  <KeyboardProvider>
+                    {!appReady ? (
+                      <AppSplashScreen
+                        fontsLoaded={fontsLoaded ?? false}
+                        onComplete={() => setAppReady(true)}
+                      />
+                    ) : (
+                      <RootLayoutNav />
+                    )}
+                  </KeyboardProvider>
+                </BottomSheetModalProvider>
               </GestureHandlerRootView>
             </UserProfileProvider>
           </FontScaleProvider>

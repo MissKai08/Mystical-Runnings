@@ -58,6 +58,7 @@
   "dependencies": {
     "@expo-google-fonts/genos": "^0.4.1",
     "@expo-google-fonts/zen-dots": "^0.4.2",
+    "@gorhom/bottom-sheet": "^5.2.14",
     "@types/suncalc": "^1.9.2",
     "expo-document-picker": "^14.0.8",
     "expo-file-system": "^19.0.23",
