@@ -2,7 +2,6 @@ import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   Platform,
   Pressable,
@@ -13,6 +12,7 @@ import {
   Linking,
   useWindowDimensions,
 } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import {
