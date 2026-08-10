@@ -1055,6 +1055,7 @@ export default function HomeScreen() {
       enablePanDownToClose
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
       backdropComponent={renderProfileBackdrop}
       onDismiss={() => setProfileOpen(false)}
       backgroundStyle={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
