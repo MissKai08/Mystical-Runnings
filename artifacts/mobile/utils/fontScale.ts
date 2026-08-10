@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const STORAGE_KEY = "@mystical_font_scale_v1";
 
 const SCALE_STEPS = [0.871, 0.967, 1.0625, 1.19, 1.339];
-export const DEFAULT_SCALE_INDEX = 2;
+export const DEFAULT_SCALE_INDEX = 0;
 
 export async function loadFontScaleIndex(): Promise<number> {
   try {

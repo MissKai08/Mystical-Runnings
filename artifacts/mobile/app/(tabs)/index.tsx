@@ -17,6 +17,7 @@ import {
   BottomSheetModal,
   BottomSheetBackdrop,
   BottomSheetScrollView,
+  BottomSheetTextInput,
   BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -1074,7 +1075,7 @@ export default function HomeScreen() {
         contentContainerStyle={{ paddingHorizontal: 20 }}
       >
         <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>First Name</Text>
-        <TextInput
+        <BottomSheetTextInput
           style={[styles.intentionInput, { height: 44, marginBottom: 12 }]}
           value={profileDraft.firstName}
           onChangeText={(v) => setProfileDraft((d) => ({ ...d, firstName: v }))}
@@ -1088,7 +1089,7 @@ export default function HomeScreen() {
         <View style={styles.profileBirthRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Month (1–12)</Text>
-            <TextInput
+            <BottomSheetTextInput
               style={[styles.intentionInput, { height: 44 }]}
               value={profileDraft.birthMonth}
               onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthMonth: v.replace(/[^0-9]/g, "") }))}
@@ -1100,7 +1101,7 @@ export default function HomeScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Day (1–31)</Text>
-            <TextInput
+            <BottomSheetTextInput
               style={[styles.intentionInput, { height: 44 }]}
               value={profileDraft.birthDay}
               onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthDay: v.replace(/[^0-9]/g, "") }))}
@@ -1139,7 +1140,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   brandTitle: {
-    fontSize: 46,
+    fontSize: 42,
     letterSpacing: 0.5,
     textAlign: "center",
     fontFamily: "ZenDots_400Regular",
