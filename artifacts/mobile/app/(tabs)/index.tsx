@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,13 +13,6 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { ScrollView, GestureHandlerRootView } from "react-native-gesture-handler";
-import {
-  BottomSheetModal,
-  BottomSheetBackdrop,
-  BottomSheetScrollView,
-  BottomSheetTextInput,
-  BottomSheetBackdropProps,
-} from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -104,27 +97,7 @@ export default function HomeScreen() {
   const [moonWaterOpen, setMoonWaterOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState({ firstName: "", birthMonth: "", birthDay: "" });
-  const profileSheetRef = useRef<BottomSheetModal>(null);
-  const profileSnapPoints = useMemo(() => ["60%"], []);
 
-  useEffect(() => {
-    if (profileOpen) {
-      profileSheetRef.current?.present();
-    }
-  }, [profileOpen]);
-
-  const renderProfileBackdrop = useCallback(
-    (backdropProps: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...backdropProps}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        opacity={0.72}
-        pressBehavior="close"
-      />
-    ),
-    []
-  );
   const { scaleIdx, fs, handleScaleChange } = useFontScale();
   const { height: screenHeight } = useWindowDimensions();
   const { profile, setProfile } = useUserProfile();
@@ -178,7 +151,7 @@ export default function HomeScreen() {
     const p: UserProfile = { firstName: name, birthMonth, birthDay };
     await saveUserProfile(p);
     setProfile(p);
-    profileSheetRef.current?.dismiss();
+    setProfileOpen(false);
   }, [profileDraft]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -1049,85 +1022,83 @@ export default function HomeScreen() {
     </Modal>
 
     {/* Profile / Personalization Modal */}
-    <BottomSheetModal
-      ref={profileSheetRef}
-      snapPoints={profileSnapPoints}
-      enableDynamicSizing={false}
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      backdropComponent={renderProfileBackdrop}
-      onDismiss={() => setProfileOpen(false)}
-      backgroundStyle={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}
-      handleIndicatorStyle={{ backgroundColor: colors.border }}
+    <Modal
+      visible={profileOpen}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setProfileOpen(false)}
     >
-      <View style={{ paddingHorizontal: 20, paddingTop: 4 }}>
-        <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
-        <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
-          Personalize your experience. Enter your first name and birthday so the app can greet you on your special day.
-        </Text>
-      </View>
-
-      <BottomSheetScrollView
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 20 }}
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>First Name</Text>
-        <BottomSheetTextInput
-          style={[styles.intentionInput, { height: 44, marginBottom: 12 }]}
-          value={profileDraft.firstName}
-          onChangeText={(v) => setProfileDraft((d) => ({ ...d, firstName: v }))}
-          placeholder="Your first name"
-          placeholderTextColor="#6D6A8A"
-          autoCapitalize="words"
-          autoCorrect={false}
-          maxLength={40}
-        />
+        <View style={{ paddingHorizontal: 20, paddingTop: Platform.OS === "ios" ? 16 : 20 }}>
+          <Text style={[styles.intentionModalTitle, { color: colors.foreground }]}>👤 Your Profile</Text>
+          <Text style={[styles.intentionModalSub, { color: colors.mutedForeground }]}>
+            Personalize your experience. Enter your first name and birthday so the app can greet you on your special day.
+          </Text>
+        </View>
 
-        <View style={styles.profileBirthRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Month (1–12)</Text>
-            <BottomSheetTextInput
-              style={[styles.intentionInput, { height: 44 }]}
-              value={profileDraft.birthMonth}
-              onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthMonth: v.replace(/[^0-9]/g, "") }))}
-              placeholder="e.g. 7"
-              placeholderTextColor="#6D6A8A"
-              keyboardType="number-pad"
-              maxLength={2}
-            />
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20 }}
+        >
+          <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>First Name</Text>
+          <TextInput
+            style={[styles.intentionInput, { height: 44, marginBottom: 12 }]}
+            value={profileDraft.firstName}
+            onChangeText={(v) => setProfileDraft((d) => ({ ...d, firstName: v }))}
+            placeholder="Your first name"
+            placeholderTextColor="#6D6A8A"
+            autoCapitalize="words"
+            autoCorrect={false}
+            maxLength={40}
+          />
+
+          <View style={styles.profileBirthRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Month (1–12)</Text>
+              <TextInput
+                style={[styles.intentionInput, { height: 44 }]}
+                value={profileDraft.birthMonth}
+                onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthMonth: v.replace(/[^0-9]/g, "") }))}
+                placeholder="e.g. 7"
+                placeholderTextColor="#6D6A8A"
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Day (1–31)</Text>
+              <TextInput
+                style={[styles.intentionInput, { height: 44 }]}
+                value={profileDraft.birthDay}
+                onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthDay: v.replace(/[^0-9]/g, "") }))}
+                placeholder="e.g. 14"
+                placeholderTextColor="#6D6A8A"
+                keyboardType="number-pad"
+                maxLength={2}
+              />
+            </View>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.profileLabel, { color: colors.mutedForeground }]}>Birth Day (1–31)</Text>
-            <BottomSheetTextInput
-              style={[styles.intentionInput, { height: 44 }]}
-              value={profileDraft.birthDay}
-              onChangeText={(v) => setProfileDraft((d) => ({ ...d, birthDay: v.replace(/[^0-9]/g, "") }))}
-              placeholder="e.g. 14"
-              placeholderTextColor="#6D6A8A"
-              keyboardType="number-pad"
-              maxLength={2}
-            />
+        </ScrollView>
+
+        <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: Math.max(24, insets.bottom + 16) }}>
+          <View style={styles.intentionModalBtns}>
+            <Pressable style={styles.intentionModalCancel} onPress={() => setProfileOpen(false)}>
+              <Text style={styles.intentionModalCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.intentionModalSave, { opacity: profileDraft.firstName.trim() ? 1 : 0.5 }]}
+              onPress={handleSaveProfile}
+            >
+              <Text style={styles.intentionModalSaveText}>✦ Save Profile</Text>
+            </Pressable>
           </View>
         </View>
-      </BottomSheetScrollView>
-
-      <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: Math.max(24, insets.bottom + 16) }}>
-        <View style={styles.intentionModalBtns}>
-          <Pressable style={styles.intentionModalCancel} onPress={() => profileSheetRef.current?.dismiss()}>
-            <Text style={styles.intentionModalCancelText}>Cancel</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.intentionModalSave, { opacity: profileDraft.firstName.trim() ? 1 : 0.5 }]}
-            onPress={handleSaveProfile}
-          >
-            <Text style={styles.intentionModalSaveText}>✦ Save Profile</Text>
-          </Pressable>
-        </View>
-      </View>
-    </BottomSheetModal>
+      </KeyboardAvoidingView>
+    </Modal>
     </>
   );
 }
