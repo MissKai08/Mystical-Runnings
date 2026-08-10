@@ -62,6 +62,7 @@ export function EventDetailModal({ event, onClose }: Props) {
     <BottomSheetModal
       ref={sheetRef}
       snapPoints={snapPoints}
+      enableDynamicSizing={false}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       onDismiss={onClose}

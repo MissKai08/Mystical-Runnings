@@ -53,6 +53,7 @@ export function OseDetailModal({ group, onClose }: Props) {
     <BottomSheetModal
       ref={sheetRef}
       snapPoints={snapPoints}
+      enableDynamicSizing={false}
       enablePanDownToClose
       backdropComponent={renderBackdrop}
       onDismiss={onClose}
