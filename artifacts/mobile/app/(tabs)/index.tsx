@@ -966,59 +966,51 @@ export default function HomeScreen() {
     {/* Lunar Intention Modal */}
     <Modal
       visible={intentionModalOpen}
-      transparent
       animationType="slide"
+      presentationStyle="pageSheet"
       onRequestClose={() => setIntentionModalOpen(false)}
     >
-      <Pressable style={styles.intentionOverlay} onPress={() => setIntentionModalOpen(false)}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={{ width: "100%" }}
-        >
-          <Pressable
-            style={[styles.intentionModalSheet, { paddingBottom: Math.max(24, insets.bottom + 16) }]}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <View style={styles.intentionModalHandle} />
-            <Text style={styles.intentionModalTitle}>🌑 Lunar Intention</Text>
-            <Text style={styles.intentionModalSub}>
-              Speak what you wish to call into being this lunar cycle.
-            </Text>
-            <TextInput
-              style={styles.intentionInput}
-              value={intentionDraft}
-              onChangeText={setIntentionDraft}
-              placeholder="Write your intention here..."
-              placeholderTextColor="#6D6A8A"
-              multiline
-              autoFocus
-              maxLength={300}
-            />
-            <Text style={styles.intentionCharCount}>{intentionDraft.length}/300</Text>
-            <View style={styles.intentionModalBtns}>
-              <Pressable
-                style={styles.intentionModalCancel}
-                onPress={() => setIntentionModalOpen(false)}
-              >
-                <Text style={styles.intentionModalCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.intentionModalSave, { opacity: intentionDraft.trim() ? 1 : 0.5 }]}
-                onPress={async () => {
-                  if (lastNewMoonDate && intentionDraft.trim()) {
-                    await saveIntention(lastNewMoonDate, intentionDraft.trim());
-                    setCurrentIntention(intentionDraft.trim());
-                    setIntentionModalOpen(false);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  }
-                }}
-              >
-                <Text style={styles.intentionModalSaveText}>✦ Plant Intention</Text>
-              </Pressable>
-            </View>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Pressable>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="height">
+        <View style={[styles.intentionModalSheet, { flex: 1, paddingBottom: Math.max(24, insets.bottom + 16) }]}>
+          <View style={styles.intentionModalHandle} />
+          <Text style={styles.intentionModalTitle}>🌑 Lunar Intention</Text>
+          <Text style={styles.intentionModalSub}>
+            Speak what you wish to call into being this lunar cycle.
+          </Text>
+          <TextInput
+            style={styles.intentionInput}
+            value={intentionDraft}
+            onChangeText={setIntentionDraft}
+            placeholder="Write your intention here..."
+            placeholderTextColor="#6D6A8A"
+            multiline
+            autoFocus
+            maxLength={300}
+          />
+          <Text style={styles.intentionCharCount}>{intentionDraft.length}/300</Text>
+          <View style={styles.intentionModalBtns}>
+            <Pressable
+              style={styles.intentionModalCancel}
+              onPress={() => setIntentionModalOpen(false)}
+            >
+              <Text style={styles.intentionModalCancelText}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.intentionModalSave, { opacity: intentionDraft.trim() ? 1 : 0.5 }]}
+              onPress={async () => {
+                if (lastNewMoonDate && intentionDraft.trim()) {
+                  await saveIntention(lastNewMoonDate, intentionDraft.trim());
+                  setCurrentIntention(intentionDraft.trim());
+                  setIntentionModalOpen(false);
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }
+              }}
+            >
+              <Text style={styles.intentionModalSaveText}>✦ Plant Intention</Text>
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
 
     {/* Profile / Personalization Modal */}

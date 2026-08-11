@@ -17,11 +17,15 @@ import * as Speech from "expo-speech";
 import { getDailyOdu, ODU_LIST, ODU_REFLECTIONS, getMoonPhaseData, type OduEntry } from "@/constants/spiritualData";
 import MoonSoundBath from "@/components/MoonSoundBath";
 import { useFontScale } from "@/contexts/FontScaleContext";
+import { getVoicePreference } from "@/utils/voicePreference";
+import VoicePickerModal from "@/components/VoicePickerModal";
 
-function speak(text: string) {
+async function speak(text: string) {
   Speech.stop();
+  const voiceId = await getVoicePreference();
   Speech.speak(text, {
-    language: "en-NG",
+    voice: voiceId ?? undefined,
+    language: voiceId ? undefined : "en-NG",
     pitch: 0.85,
     rate: 0.65,
   });
@@ -188,6 +192,7 @@ export default function PrayerScreen() {
   const [oduExpanded, setOduExpanded] = useState(false);
   const [castRevealed, setCastRevealed] = useState(false);
   const [soundBathOpen, setSoundBathOpen] = useState(false);
+  const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [expandedOdu, setExpandedOdu] = useState<number | null>(null);
 
   const dailyOdu: OduEntry = useMemo(() => getDailyOdu(new Date()), []);
@@ -222,7 +227,12 @@ export default function PrayerScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
-        <Text style={[styles.screenTitle, { color: colors.foreground }]}>Ifa Prayer</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={[styles.screenTitle, { color: colors.foreground }]}>Ifa Prayer</Text>
+          <Pressable onPress={() => { Haptics.selectionAsync(); setVoicePickerOpen(true); }} hitSlop={10}>
+            <Feather name="volume-2" size={18} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
         <View style={[styles.tabRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <Pressable
             style={[styles.tabBtn, activeTab === "guide" && { backgroundColor: colors.primary }]}
@@ -807,6 +817,9 @@ export default function PrayerScreen() {
 
       {/* Moon Sound Bath modal */}
       <MoonSoundBath visible={soundBathOpen} onClose={() => setSoundBathOpen(false)} />
+
+      {/* Voice Picker modal */}
+      <VoicePickerModal visible={voicePickerOpen} onClose={() => setVoicePickerOpen(false)} />
     </View>
   );
 }

@@ -61,6 +61,8 @@ import SacredAltar from "@/components/SacredAltar";
 import LunarLetterModal from "@/components/LunarLetterModal";
 import { generateLunarLetter, LunarLetterData } from "@/utils/lunarLetter";
 import IntentionsModal from "@/components/IntentionsModal";
+import LunarLettersHistoryModal from "@/components/LunarLettersHistoryModal";
+import LunarIntentionsHistoryModal from "@/components/LunarIntentionsHistoryModal";
 import Svg, { Path } from "react-native-svg";
 import { useFontScale } from "@/contexts/FontScaleContext";
 
@@ -642,6 +644,8 @@ export default function JournalScreen() {
   const [lunarLetterOpen, setLunarLetterOpen] = useState(false);
   const [lunarLetterData, setLunarLetterData] = useState<LunarLetterData | null>(null);
   const [intentionsOpen, setIntentionsOpen] = useState(false);
+  const [lunarLettersHistoryOpen, setLunarLettersHistoryOpen] = useState(false);
+  const [lunarIntentionsHistoryOpen, setLunarIntentionsHistoryOpen] = useState(false);
 
   // Crystal charging countdown — recompute every minute when in full moon window
   useEffect(() => {
@@ -1184,6 +1188,15 @@ export default function JournalScreen() {
           <Feather name="chevron-right" size={14} color="#D4A84388" />
         </Pressable>
 
+        {/* Past Letters link */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); setLunarLettersHistoryOpen(true); }}
+          style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", paddingRight: 4, paddingTop: 4, gap: 4 }}
+        >
+          <Text style={{ fontSize: 12, color: "#D4A843AA", fontWeight: "500" }}>Past Letters</Text>
+          <Feather name="chevron-right" size={11} color="#D4A84366" />
+        </Pressable>
+
         {/* Sacred Intentions button */}
         <Pressable
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setIntentionsOpen(true); }}
@@ -1230,6 +1243,18 @@ export default function JournalScreen() {
               colors={colors}
             />
         }
+
+        {/* Lunar Intentions history */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); setLunarIntentionsHistoryOpen(true); }}
+          style={[styles.lunarLetterBtn, { backgroundColor: "#C4B5FD14", borderColor: "#C4B5FD44", marginTop: 8 }]}
+        >
+          <Text style={[styles.lunarLetterBtnGlyph, { color: "#C4B5FD" }]}>🌑</Text>
+          <Text style={[styles.lunarLetterBtnText, { color: "#C4B5FD" }]}>
+            Lunar Intentions
+          </Text>
+          <Feather name="chevron-right" size={14} color="#C4B5FD88" />
+        </Pressable>
       </View>
 
       {/* Single unified scroll — everything below the header scrolls together */}
@@ -1670,6 +1695,19 @@ export default function JournalScreen() {
         alreadySaved={lunarLetterSaved}
         onSave={handleSaveLunarLetter}
         onClose={() => setLunarLetterOpen(false)}
+      />
+
+      {/* Lunar Letters History Modal */}
+      <LunarLettersHistoryModal
+        visible={lunarLettersHistoryOpen}
+        entries={entries}
+        onClose={() => setLunarLettersHistoryOpen(false)}
+      />
+
+      {/* Lunar Intentions History Modal */}
+      <LunarIntentionsHistoryModal
+        visible={lunarIntentionsHistoryOpen}
+        onClose={() => setLunarIntentionsHistoryOpen(false)}
       />
 
       {/* Moon Water Blessing Modal */}
