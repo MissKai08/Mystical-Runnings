@@ -25,3 +25,10 @@ export async function clearVoicePreference(): Promise<void> {
     // silently ignore
   }
 }
+
+export const PREFERRED_DEFAULT_VOICE_ID = "en-ng-x-tfn-network";
+
+export async function getEffectiveVoicePreference(): Promise<string> {
+  const saved = await getVoicePreference();
+  return saved ?? PREFERRED_DEFAULT_VOICE_ID;
+}

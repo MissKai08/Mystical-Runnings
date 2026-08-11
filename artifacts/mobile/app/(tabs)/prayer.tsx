@@ -17,15 +17,15 @@ import * as Speech from "expo-speech";
 import { getDailyOdu, ODU_LIST, ODU_REFLECTIONS, getMoonPhaseData, type OduEntry } from "@/constants/spiritualData";
 import MoonSoundBath from "@/components/MoonSoundBath";
 import { useFontScale } from "@/contexts/FontScaleContext";
-import { getVoicePreference } from "@/utils/voicePreference";
+import { getEffectiveVoicePreference } from "@/utils/voicePreference";
 import VoicePickerModal from "@/components/VoicePickerModal";
 
 async function speak(text: string) {
   Speech.stop();
-  const voiceId = await getVoicePreference();
+  const voiceId = await getEffectiveVoicePreference();
   Speech.speak(text, {
-    voice: voiceId ?? undefined,
-    language: voiceId ? undefined : "en-NG",
+    voice: voiceId,
+    language: "en-NG",
     pitch: 0.85,
     rate: 0.65,
   });
@@ -229,8 +229,13 @@ export default function PrayerScreen() {
       <View style={[styles.header, { paddingTop: topPad + 12, borderBottomColor: colors.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <Text style={[styles.screenTitle, { color: colors.foreground }]}>Ifa Prayer</Text>
-          <Pressable onPress={() => { Haptics.selectionAsync(); setVoicePickerOpen(true); }} hitSlop={10}>
-            <Feather name="volume-2" size={18} color={colors.mutedForeground} />
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setVoicePickerOpen(true); }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+            hitSlop={10}
+          >
+            <Feather name="volume-2" size={16} color={colors.mutedForeground} />
+            <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground }}>Voice</Text>
           </Pressable>
         </View>
         <View style={[styles.tabRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>

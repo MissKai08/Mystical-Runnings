@@ -39,6 +39,15 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
       const english = all.filter(
         (v) => v.language?.toLowerCase().startsWith("en") ?? false
       );
+      english.sort((a, b) => {
+        const aIsNG = a.language?.toLowerCase() === "en-ng";
+        const bIsNG = b.language?.toLowerCase() === "en-ng";
+        if (aIsNG && !bIsNG) return -1;
+        if (bIsNG && !aIsNG) return 1;
+        const langCompare = (a.language ?? "").localeCompare(b.language ?? "");
+        if (langCompare !== 0) return langCompare;
+        return (a.name ?? a.identifier).localeCompare(b.name ?? b.identifier);
+      });
       setVoices(english.length > 0 ? english : all);
       setSelectedId(saved);
     } finally {
