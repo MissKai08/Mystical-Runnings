@@ -9,6 +9,8 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
@@ -70,9 +72,12 @@ function CheckInModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <Pressable style={ci.overlay} onPress={onClose}>
-        <Pressable style={[ci.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
           <Text style={[ci.title, { color: colors.foreground }]}>Check In</Text>
           <Text style={[ci.intentionPreview, { color: colors.mutedForeground }]} numberOfLines={2}>
             "{intentionText}"
@@ -101,8 +106,8 @@ function CheckInModal({
                 : <Text style={ci.saveTxt}>Save</Text>}
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -186,9 +191,12 @@ function AddIntentionModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <Pressable style={ai.overlay} onPress={onClose}>
-        <Pressable style={[ai.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
           <Text style={[ai.title, { color: colors.foreground }]}>Set an Intention</Text>
           <Text style={[ai.subtitle, { color: colors.mutedForeground }]}>
             What do you wish to call into being?
@@ -239,8 +247,8 @@ function AddIntentionModal({
                 : <Text style={ai.saveTxt}>Set Intention</Text>}
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -328,9 +336,12 @@ function EditIntentionModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <Pressable style={ei.overlay} onPress={onClose}>
-        <Pressable style={[ei.sheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
           <Text style={[ei.title, { color: colors.foreground }]}>Edit Intention</Text>
           <TextInput
             style={[ei.input, { color: colors.foreground, borderColor: colors.border }]}
@@ -356,8 +367,8 @@ function EditIntentionModal({
                 : <Text style={ei.saveTxt}>Save Changes</Text>}
             </Pressable>
           </View>
-        </Pressable>
-      </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

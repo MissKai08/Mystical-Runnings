@@ -231,11 +231,11 @@ export default function PrayerScreen() {
           <Text style={[styles.screenTitle, { color: colors.foreground }]}>Ifa Prayer</Text>
           <Pressable
             onPress={() => { Haptics.selectionAsync(); setVoicePickerOpen(true); }}
-            style={{ flexDirection: "row", alignItems: "center", gap: 5 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
             hitSlop={10}
           >
-            <Feather name="volume-2" size={16} color={colors.mutedForeground} />
-            <Text style={{ fontSize: 12, fontWeight: "600", color: colors.mutedForeground }}>Voice</Text>
+            <Feather name="volume-2" size={20} color={colors.mutedForeground} />
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.mutedForeground }}>Voice</Text>
           </Pressable>
         </View>
         <View style={[styles.tabRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
