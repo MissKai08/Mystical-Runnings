@@ -20,6 +20,7 @@ import {
   addDays,
 } from "@/constants/spiritualData";
 import { ODU_REFLECTIONS } from "@/constants/spiritualData";
+import { Platform } from "react-native";
 import {
   RELIGIOUS_HOLIDAYS,
   getHolidaysForDate,
@@ -456,8 +457,12 @@ export async function scheduleAllNotifications(
   const events = [...getFutureEvents(settings), ...getJournalPromptEvents(settings)];
   let scheduled = 0;
 
-  // iOS allows max 64 local notifications.
-  // Reserve 2 slots for repeating triggers (Ifa prayer day + potential future repeats).
+  // iOS allows max 64 local notifications; reserve 2 slots for repeating triggers
+  // (Ifa prayer day + potential future repeats). Android has no equivalent OS-level
+  // cap, so this limit only applies on iOS — applying it on Android was starving
+  // whichever daily notification type happened to be scheduled last in this function.
+  const MAX_NOTIFICATIONS = Platform.OS === "ios" ? 62 : Number.MAX_SAFE_INTEGER;
+
   const sorted = events
     .map((e) => {
       // Ose transitions and journal prompts already carry their exact notify time;
@@ -469,7 +474,7 @@ export async function scheduleAllNotifications(
     })
     .filter((e) => e.trigger > now)
     .sort((a, b) => a.trigger.getTime() - b.trigger.getTime())
-    .slice(0, 62);
+    .slice(0, MAX_NOTIFICATIONS);
 
   for (const evt of sorted) {
     try {
@@ -492,7 +497,7 @@ export async function scheduleAllNotifications(
 
   // Daily Odu Reflection — pre-schedule 30 days at 7:30 AM
   if (settings.types.oduReflection) {
-    for (let i = 0; i < 30 && scheduled < 62; i++) {
+    for (let i = 0; i < 30 && scheduled < MAX_NOTIFICATIONS; i++) {
       const date = addDays(now, i);
       date.setHours(0, 0, 0, 0);
       const odu = getDailyOdu(date);
@@ -522,7 +527,7 @@ export async function scheduleAllNotifications(
   // Daily Sacred Briefing — pre-schedule 30 days of 7 AM morning summaries
   if (settings.types.dailyBriefing) {
     const now2 = new Date();
-    for (let i = 0; i < 30 && scheduled < 62; i++) {
+    for (let i = 0; i < 30 && scheduled < MAX_NOTIFICATIONS; i++) {
       const date = addDays(now2, i);
       date.setHours(0, 0, 0, 0);
       const items = getDailyBriefingItems(date, settings);
@@ -551,7 +556,7 @@ export async function scheduleAllNotifications(
 
   // Daily Sacred Intention Reminder — pre-schedule 30 days at 8 PM
   if (settings.types.sacredIntentionReminder) {
-    for (let i = 0; i < 30 && scheduled < 62; i++) {
+    for (let i = 0; i < 30 && scheduled < MAX_NOTIFICATIONS; i++) {
       const date = addDays(now, i);
       date.setHours(0, 0, 0, 0);
       const trigger = new Date(date);
