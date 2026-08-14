@@ -55,6 +55,7 @@ import { useSunMoon } from "@/hooks/useSunMoon";
 import { OseDetailModal } from "@/components/OseDetailModal";
 import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
 import MoonWaterModal from "@/components/MoonWaterModal";
+import LunarIntentionsHistoryModal from "@/components/LunarIntentionsHistoryModal";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
@@ -94,6 +95,7 @@ export default function HomeScreen() {
   const [intentionModalOpen, setIntentionModalOpen] = useState(false);
   const [intentionDraft, setIntentionDraft] = useState("");
   const [currentIntention, setCurrentIntention] = useState<string | null>(null);
+  const [pastIntentionsOpen, setPastIntentionsOpen] = useState(false);
   const [moonWaterOpen, setMoonWaterOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileDraft, setProfileDraft] = useState({ firstName: "", birthMonth: "", birthDay: "" });
@@ -614,8 +616,21 @@ export default function HomeScreen() {
               <Text style={[styles.intentionPromptSub, { color: colors.mutedForeground }]}>Active intention for this lunar cycle</Text>
             </>
           )}
+
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); setPastIntentionsOpen(true); }}
+            style={styles.intentionHistoryLink}
+          >
+            <Feather name="clock" size={11} color="#A78BFA88" />
+            <Text style={[styles.intentionHistoryLinkText, { color: "#A78BFA88" }]}>Past Intentions</Text>
+          </Pressable>
         </View>
       )}
+
+      <LunarIntentionsHistoryModal
+        visible={pastIntentionsOpen}
+        onClose={() => setPastIntentionsOpen(false)}
+      />
 
       {/* This Day in Spirit */}
       <View style={[styles.wisdomCard, { backgroundColor: colors.card, borderColor: "#D4A84333" }]}>
@@ -1551,6 +1566,16 @@ const styles = StyleSheet.create({
   },
   intentionEditText: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+  intentionHistoryLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginTop: 10,
+  },
+  intentionHistoryLinkText: {
+    fontSize: 11,
     fontWeight: "600",
   },
   intentionOverlay: {

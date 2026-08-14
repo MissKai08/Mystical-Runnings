@@ -153,7 +153,15 @@ const sc = StyleSheet.create({
 
 // ─── History card ─────────────────────────────────────────────────────────────
 
-function HistoryCard({ log, accent }: { log: RitualLog; accent: string }) {
+function HistoryCard({
+  log,
+  accent,
+  onEdit,
+}: {
+  log: RitualLog;
+  accent: string;
+  onEdit: (log: RitualLog) => void;
+}) {
   const colors = useColors();
   const [open, setOpen] = useState(false);
   const steps = getStepsForPhase(log.phase);
@@ -197,6 +205,15 @@ function HistoryCard({ log, accent }: { log: RitualLog; accent: string }) {
               {log.notes}
             </Text>
           )}
+          <Pressable
+            onPress={() => { Haptics.selectionAsync(); onEdit(log); }}
+            style={hc.editLink}
+          >
+            <Feather name="edit-2" size={12} color={accent} />
+            <Text style={[hc.editLinkText, { color: accent }]}>
+              {log.notes.trim() !== "" ? "Edit Notes" : "Add Notes"}
+            </Text>
+          </Pressable>
         </View>
       )}
     </Pressable>
@@ -225,7 +242,102 @@ const hc = StyleSheet.create({
     paddingLeft: 10,
     fontStyle: "italic",
   },
+  editLink: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  editLinkText: { fontSize: 12, fontWeight: "600" },
 });
+
+// ─── Edit History Notes Modal ────────────────────────────────────────────────
+
+function EditHistoryNotesModal({
+  visible,
+  log,
+  onClose,
+  onSaved,
+}: {
+  visible: boolean;
+  log: RitualLog | null;
+  onClose: () => void;
+  onSaved: (updated: RitualLog) => void;
+}) {
+  const colors = useColors();
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (visible && log) setText(log.notes);
+  }, [visible, log]);
+
+  const handleSave = async () => {
+    if (!log) return;
+    setSaving(true);
+    const updated: RitualLog = { ...log, notes: text, updatedAt: new Date().toISOString() };
+    await upsertLog(updated);
+    setSaving(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onSaved(updated);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: colors.background }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
+          <Text style={[hc.name, { color: colors.foreground, fontSize: 18, marginBottom: 4 }]}>
+            Edit Notes
+          </Text>
+          <Text style={[hc.date, { color: colors.mutedForeground, marginBottom: 16 }]}>
+            {log?.phaseName}
+          </Text>
+          <TextInput
+            value={text}
+            onChangeText={setText}
+            placeholder="Record what you prepared, felt, or noticed…"
+            placeholderTextColor={colors.mutedForeground}
+            style={{
+              color: colors.foreground,
+              fontSize: 15,
+              lineHeight: 22,
+              minHeight: 140,
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 12,
+              padding: 14,
+            }}
+            multiline
+            textAlignVertical="top"
+            autoFocus
+          />
+          <View style={{ flexDirection: "row", gap: 12, marginTop: 20 }}>
+            <Pressable
+              onPress={onClose}
+              style={{
+                flex: 1, borderWidth: 1, borderColor: colors.border,
+                borderRadius: 12, paddingVertical: 14, alignItems: "center",
+              }}
+            >
+              <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSave}
+              disabled={saving}
+              style={{
+                flex: 1, backgroundColor: "#D4A843", opacity: saving ? 0.6 : 1,
+                borderRadius: 12, paddingVertical: 14, alignItems: "center",
+              }}
+            >
+              <Text style={{ color: "#080714", fontWeight: "700" }}>
+                {saving ? "Saving…" : "Save"}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
 
 // ─── Phase accent colors ──────────────────────────────────────────────────────
 
@@ -265,6 +377,8 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
   const [history, setHistory] = useState<RitualLog[]>([]);
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const ritualScrollRef = useRef<ScrollView>(null);
+  const [editingLog, setEditingLog] = useState<RitualLog | null>(null);
 
   // Load current cycle log + history when modal opens
   useEffect(() => {
@@ -373,6 +487,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
 
         {tab === "ritual" ? (
           <ScrollView
+            ref={ritualScrollRef}
             contentContainerStyle={s.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -420,6 +535,9 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
+                onFocus={() => {
+                  setTimeout(() => ritualScrollRef.current?.scrollToEnd({ animated: true }), 150);
+                }}
                 placeholder="Record what you prepared, felt, or noticed…"
                 placeholderTextColor={colors.mutedForeground}
                 style={[s.notesInput, { color: colors.foreground }]}
@@ -469,6 +587,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
                     key={item.id}
                     log={item}
                     accent={PHASE_ACCENT[item.phase] ?? "#A78BFA"}
+                    onEdit={setEditingLog}
                   />
                 ))}
               </View>
@@ -476,6 +595,18 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
           </ScrollView>
         )}
       </KeyboardAvoidingView>
+      <EditHistoryNotesModal
+        visible={!!editingLog}
+        log={editingLog}
+        onClose={() => setEditingLog(null)}
+        onSaved={(updated) => {
+          setHistory((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+          if (log && log.id === updated.id) {
+            setLog(updated);
+            setNotes(updated.notes);
+          }
+        }}
+      />
     </Modal>
   );
 }

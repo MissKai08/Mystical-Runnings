@@ -7,15 +7,23 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { loadAllIntentions } from "@/utils/intentionsStorage";
+import { loadAllIntentions, saveIntention } from "@/utils/intentionsStorage";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
+
+function dateFromKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
 
 function labelForDateKey(dateKey: string): string {
   // dateKey format: "YYYY-MM-DD"
@@ -37,6 +45,20 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
   const colors = useColors();
   const [loading, setLoading] = useState(false);
   const [intentions, setIntentions] = useState<{ dateKey: string; text: string }[]>([]);
+  const [editing, setEditing] = useState<{ dateKey: string; text: string } | null>(null);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveEdit = async () => {
+    if (!editing) return;
+    setSaving(true);
+    await saveIntention(dateFromKey(editing.dateKey), draft);
+    setIntentions((prev) =>
+      prev.map((i) => (i.dateKey === editing.dateKey ? { ...i, text: draft.trim() } : i))
+    );
+    setSaving(false);
+    setEditing(null);
+  };
 
   useEffect(() => {
     if (!visible) return;
@@ -94,6 +116,12 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
                   <Text style={[styles.cardDate, { color: "#A78BFA" }]}>
                     🌑 {labelForDateKey(dateKey)}
                   </Text>
+                  <Pressable
+                    onPress={() => { setEditing({ dateKey, text }); setDraft(text); }}
+                    hitSlop={8}
+                  >
+                    <Feather name="edit-2" size={14} color="#A78BFA" />
+                  </Pressable>
                 </View>
                 <Text style={[styles.cardText, { color: colors.foreground }]}>
                   {text}
@@ -103,6 +131,69 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
           </ScrollView>
         )}
       </View>
+
+      <Modal
+        visible={!!editing}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setEditing(null)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: colors.background }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
+            <Text style={[styles.title, { color: colors.foreground, marginBottom: 4 }]}>
+              Edit Intention
+            </Text>
+            {editing && (
+              <Text style={[styles.cardDate, { color: "#A78BFA", marginBottom: 16 }]}>
+                🌑 {labelForDateKey(editing.dateKey)}
+              </Text>
+            )}
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              multiline
+              textAlignVertical="top"
+              autoFocus
+              style={{
+                color: colors.foreground,
+                fontSize: 15,
+                lineHeight: 22,
+                minHeight: 120,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                padding: 14,
+              }}
+            />
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 20 }}>
+              <Pressable
+                onPress={() => setEditing(null)}
+                style={{
+                  flex: 1, borderWidth: 1, borderColor: colors.border,
+                  borderRadius: 12, paddingVertical: 14, alignItems: "center",
+                }}
+              >
+                <Text style={{ color: colors.mutedForeground, fontWeight: "600" }}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSaveEdit}
+                disabled={saving || !draft.trim()}
+                style={{
+                  flex: 1, backgroundColor: "#7C3AED", opacity: saving || !draft.trim() ? 0.6 : 1,
+                  borderRadius: 12, paddingVertical: 14, alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                  {saving ? "Saving…" : "Save"}
+                </Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
     </Modal>
   );
 }
@@ -151,6 +242,7 @@ const styles = StyleSheet.create({
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   cardDate: {
     fontSize: 13,
