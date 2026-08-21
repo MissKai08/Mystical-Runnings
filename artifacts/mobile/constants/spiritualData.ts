@@ -286,9 +286,16 @@ export const MERCURY_RETROGRADES: RetrogradePeriod[] = [
   { start: new Date(2027, 1, 9), end: new Date(2027, 2, 3), label: "Mercury Retrograde in Pisces" },
   { start: new Date(2027, 5, 10), end: new Date(2027, 6, 4), label: "Mercury Retrograde in Cancer" },
   { start: new Date(2027, 9, 7), end: new Date(2027, 9, 28), label: "Mercury Retrograde in Scorpio" },
-  { start: new Date(2028, 0, 24), end: new Date(2028, 1, 24), label: "Mercury Retrograde in Aquarius" },
-  { start: new Date(2028, 4, 21), end: new Date(2028, 5, 24), label: "Mercury Retrograde in Gemini" },
+  { start: new Date(2028, 0, 24), end: new Date(2028, 1, 14), label: "Mercury Retrograde in Aquarius" },
+  { start: new Date(2028, 4, 21), end: new Date(2028, 5, 13), label: "Mercury Retrograde in Gemini" },
   { start: new Date(2028, 8, 19), end: new Date(2028, 9, 11), label: "Mercury Retrograde in Libra" },
+  { start: new Date(2029, 0, 7), end: new Date(2029, 0, 27), label: "Mercury Retrograde in Aquarius/Capricorn" },
+  { start: new Date(2029, 4, 1), end: new Date(2029, 4, 25), label: "Mercury Retrograde in Taurus" },
+  { start: new Date(2029, 8, 2), end: new Date(2029, 8, 24), label: "Mercury Retrograde in Virgo/Libra" },
+  { start: new Date(2029, 11, 22), end: new Date(2030, 0, 11), label: "Mercury Retrograde in Capricorn" },
+  { start: new Date(2030, 3, 12), end: new Date(2030, 4, 6), label: "Mercury Retrograde in Taurus/Aries" },
+  { start: new Date(2030, 7, 15), end: new Date(2030, 8, 8), label: "Mercury Retrograde in Virgo" },
+  { start: new Date(2030, 11, 5), end: new Date(2030, 11, 25), label: "Mercury Retrograde in Capricorn/Sagittarius" },
 ];
 
 export const IFA_FESTIVALS: IfaFestival[] = [
