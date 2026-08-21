@@ -418,7 +418,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 <Text style={s.sectionTitle}>Auto-Backup</Text>
                 {autoFreq !== "off" && (
                   <Text style={s.nextRunBadge}>
-                    Next: {nextRunLabel(autoFreq, lastAutoBackup)}
+                    Due: {nextRunLabel(autoFreq, lastAutoBackup)}
                   </Text>
                 )}
               </View>
@@ -444,6 +444,11 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                   Auto-backup is off. Use the Export button below to save manually whenever you like.
                 </Text>
               ) : (
+                <Text style={s.sectionHint}>
+                  Checked each time you open the app — if it's due, it backs up then. It won't run while the app is closed.
+                </Text>
+              )}
+              {autoFreq !== "off" && (
                 <Text style={s.sectionHint}>
                   {Platform.OS === "ios"
                     ? "Saves silently to your Documents folder (syncs to iCloud Drive if enabled in Settings)."
