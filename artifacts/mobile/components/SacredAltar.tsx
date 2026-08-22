@@ -47,7 +47,7 @@ export const ALTAR_SYMBOLS: AltarSymbol[] = [
   { emoji: "🪄", label: "Obatala", color: "#E0F2FE" },
   { emoji: "🌺", label: "Offering", color: "#F472B6" },
   { emoji: "🗡️", label: "Ogun", color: "#92400E" },
-  { emoji: "🍆", label: "Okra", color: "#4ADE80" },
+  { emoji: "🥒", label: "Okra", color: "#4ADE80" },
   { emoji: "⭕", label: "Olodumare", color: "#FDE047" },
   { emoji: "🔆", label: "Ori", color: "#F59E0B" },
   { emoji: "💛", label: "Oshun", color: "#FCD34D" },

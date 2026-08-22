@@ -158,6 +158,8 @@ export default function CalendarScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [specialEntries, setSpecialEntries] = useState<SpecialCalendarEntry[]>([]);
   const [specialModalOpen, setSpecialModalOpen] = useState(false);
+  const [jumpModalOpen, setJumpModalOpen] = useState(false);
+  const [jumpYear, setJumpYear] = useState(displayDate.getFullYear());
   const [specialEditingId, setSpecialEditingId] = useState<string | null>(null);
   const [specialTitle, setSpecialTitle] = useState("");
   const [specialNote, setSpecialNote] = useState("");
@@ -277,6 +279,21 @@ export default function CalendarScreen() {
     const today = new Date();
     setSelectedDate(today);
     setDisplayDate(today);
+  };
+
+  const openJumpModal = () => {
+    Haptics.selectionAsync();
+    setJumpYear(displayDate.getFullYear());
+    setJumpModalOpen(true);
+  };
+
+  const handleJumpToMonth = (monthIndex: number) => {
+    Haptics.selectionAsync();
+    const day = Math.min(selectedDate.getDate(), new Date(jumpYear, monthIndex + 1, 0).getDate());
+    const target = new Date(jumpYear, monthIndex, day);
+    setDisplayDate(target);
+    setSelectedDate(target);
+    setJumpModalOpen(false);
   };
 
   const handlePrevRef = useRef(handlePrev);
@@ -431,7 +448,9 @@ export default function CalendarScreen() {
             <Pressable onPress={handlePrev} style={styles.navBtn} hitSlop={8}>
               <Feather name="chevron-left" size={22} color={colors.foreground} />
             </Pressable>
-            <Text style={[styles.headerTitle, { color: colors.foreground, flex: 1, textAlign: "center" }]}>{headerTitle}</Text>
+            <Pressable onPress={openJumpModal} style={{ flex: 1 }} hitSlop={8}>
+              <Text style={[styles.headerTitle, { color: colors.foreground, textAlign: "center" }]}>{headerTitle}</Text>
+            </Pressable>
             <Pressable onPress={handleToday} style={styles.todayBtn} hitSlop={8}>
               <Text style={[styles.todayBtnText, { color: "#D4A843" }]}>Today</Text>
             </Pressable>
@@ -626,6 +645,41 @@ export default function CalendarScreen() {
                 )}
                 <Pressable onPress={() => { setSpecialModalOpen(false); setSpecialEditingId(null); }} style={styles.cancelSpecialBtn}>
                   <Text style={[styles.cancelSpecialText, { color: colors.mutedForeground }]}>Cancel</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal visible={jumpModalOpen} transparent animationType="slide" onRequestClose={() => setJumpModalOpen(false)}>
+            <View style={styles.modalBackdrop}>
+              <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Jump to Date</Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 16 }}>
+                  <Pressable onPress={() => setJumpYear((y) => y - 1)} hitSlop={8}>
+                    <Feather name="chevron-left" size={20} color={colors.foreground} />
+                  </Pressable>
+                  <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}>{jumpYear}</Text>
+                  <Pressable onPress={() => setJumpYear((y) => y + 1)} hitSlop={8}>
+                    <Feather name="chevron-right" size={20} color={colors.foreground} />
+                  </Pressable>
+                </View>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, justifyContent: "center" }}>
+                  {MONTH_NAMES.map((m, i) => (
+                    <Pressable
+                      key={m}
+                      onPress={() => handleJumpToMonth(i)}
+                      style={{
+                        width: "28%", paddingVertical: 12, borderRadius: 10,
+                        alignItems: "center", backgroundColor: colors.card,
+                        borderWidth: 1, borderColor: colors.border,
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{m.slice(0, 3)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                <Pressable onPress={() => setJumpModalOpen(false)} style={{ marginTop: 16, alignItems: "center" }}>
+                  <Text style={{ color: colors.mutedForeground }}>Cancel</Text>
                 </Pressable>
               </View>
             </View>

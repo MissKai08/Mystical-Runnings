@@ -10,10 +10,11 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
-import { loadAllIntentions, saveIntention } from "@/utils/intentionsStorage";
+import { loadAllIntentions, saveIntention, deleteIntention } from "@/utils/intentionsStorage";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -48,6 +49,20 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
   const [editing, setEditing] = useState<{ dateKey: string; text: string } | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const handleDelete = (dateKey: string) => {
+    Alert.alert("Delete Intention", "Remove this lunar intention permanently?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          await deleteIntention(dateFromKey(dateKey));
+          setIntentions((prev) => prev.filter((i) => i.dateKey !== dateKey));
+        },
+      },
+    ]);
+  };
 
   const handleSaveEdit = async () => {
     if (!editing) return;
@@ -116,12 +131,17 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
                   <Text style={[styles.cardDate, { color: "#A78BFA" }]}>
                     🌑 {labelForDateKey(dateKey)}
                   </Text>
-                  <Pressable
-                    onPress={() => { setEditing({ dateKey, text }); setDraft(text); }}
-                    hitSlop={8}
-                  >
-                    <Feather name="edit-2" size={14} color="#A78BFA" />
-                  </Pressable>
+                  <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
+                    <Pressable
+                      onPress={() => { setEditing({ dateKey, text }); setDraft(text); }}
+                      hitSlop={8}
+                    >
+                      <Feather name="edit-2" size={14} color="#A78BFA" />
+                    </Pressable>
+                    <Pressable onPress={() => handleDelete(dateKey)} hitSlop={8}>
+                      <Feather name="trash-2" size={14} color="#EF4444" />
+                    </Pressable>
+                  </View>
                 </View>
                 <Text style={[styles.cardText, { color: colors.foreground }]}>
                   {text}

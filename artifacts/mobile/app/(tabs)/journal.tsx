@@ -131,7 +131,12 @@ function groupEntriesByDate(entries: JournalEntry[]): { date: string; entries: J
     map.set(e.date, arr);
   }
   return Array.from(map.entries())
-    .sort((a, b) => b[0].localeCompare(a[0]))
+    .sort((a, b) => {
+      const aPinned = a[1].some((e) => e.pinned) ? 1 : 0;
+      const bPinned = b[1].some((e) => e.pinned) ? 1 : 0;
+      if (bPinned !== aPinned) return bPinned - aPinned;
+      return b[0].localeCompare(a[0]);
+    })
     .map(([date, entries]) => ({ date, entries }));
 }
 
