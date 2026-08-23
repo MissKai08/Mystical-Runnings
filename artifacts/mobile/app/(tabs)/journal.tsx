@@ -11,7 +11,6 @@ import {
   Platform,
   Alert,
   LayoutChangeEvent,
-  findNodeHandle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -683,6 +682,7 @@ export default function JournalScreen() {
   }, [inFullMoonWindow]);
 
   const scrollViewRef = useRef<ScrollView>(null);
+  const scrollContentRef = useRef<View>(null);
   const dateGroupRefs = useRef<Map<string, View>>(new Map());
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -1021,16 +1021,12 @@ export default function JournalScreen() {
       setHighlightDate(date);
       highlightTimer.current = setTimeout(() => setHighlightDate(null), 2000);
       requestAnimationFrame(() => {
-        const scrollResponder = scrollViewRef.current;
-        if (!scrollResponder) return;
-        const innerViewNode = (scrollResponder as any).getInnerViewNode
-          ? (scrollResponder as any).getInnerViewNode()
-          : findNodeHandle(scrollResponder);
-        if (!innerViewNode) return;
+        const contentNode = scrollContentRef.current;
+        if (!contentNode) return;
         (node as any).measureLayout(
-          innerViewNode,
+          contentNode,
           (_x: number, y: number) => {
-            scrollResponder.scrollTo({ y: Math.max(0, y - 16), animated: true });
+            scrollNode.scrollTo({ y: Math.max(0, y - 16), animated: true });
           },
           () => {}
         );
@@ -1254,7 +1250,7 @@ export default function JournalScreen() {
             style={[styles.calToggleBtn, calMode === "week" && styles.calToggleBtnActive]}
           >
             <Text style={[styles.calToggleTxt, { color: calMode === "week" ? "#D4A843" : colors.mutedForeground }]}>
-              Week
+              Current Week
             </Text>
           </Pressable>
           <Pressable
@@ -1296,6 +1292,7 @@ export default function JournalScreen() {
         }}
         scrollEventThrottle={16}
       >
+        <View ref={scrollContentRef}>
         {/* Search bar */}
         {entries.length > 0 && (
           <View style={[styles.searchWrap, { borderBottomColor: colors.border }]}>
@@ -1680,6 +1677,7 @@ export default function JournalScreen() {
             ))}
           </View>
         )}
+        </View>
       </ScrollView>
 
       {/* FAB */}
@@ -2128,7 +2126,13 @@ function EntryCard({ entry, colors, onPress, onEdit, onDelete, onPin }: { entry:
   const { fs } = useFontScale();
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const editedTime = entry.editedAt
-    ? new Date(entry.editedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    ? new Date(entry.editedAt).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
     : null;
 
   // Derive Odu from the entry date — deterministic, works for all existing entries
@@ -2297,7 +2301,13 @@ function EntryDetailSheet({
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   const editedTime = entry.editedAt
-    ? new Date(entry.editedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    ? new Date(entry.editedAt).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      })
     : null;
   const moonEmoji = moonPhaseEmoji(entry.moonPhase);
   const entryOdu = useMemo(() => {

@@ -23,7 +23,8 @@ export type EventType =
   | "planet-elongation"
   | "planet-event"
   | "solstice"
-  | "equinox";
+  | "equinox"
+  | "special";
 
 export interface MoonPhaseData {
   phase: number;
@@ -102,6 +103,7 @@ export const EVENT_COLORS: Record<EventType, string> = {
   "planet-event": "#FBBF24",
   solstice: "#10B981",
   equinox: "#34D399",
+  special: "#EC4899",
 };
 
 const LUNAR_CYCLE_DAYS = 29.53058867;

@@ -43,7 +43,7 @@ import { useUserProfile } from "@/contexts/UserProfileContext";
 import { loadEntries, type JournalEntry } from "@/utils/journalStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Modal, TextInput, Alert } from "react-native";
-import { SpecialCalendarEntry, SPECIAL_CALENDAR_KEY, loadSpecialCalendarEntries, saveSpecialCalendarEntries } from "@/utils/specialCalendar";
+import { SpecialCalendarEntry, SPECIAL_CALENDAR_KEY, SPECIAL_EVENT_COLOR, loadSpecialCalendarEntries, saveSpecialCalendarEntries } from "@/utils/specialCalendar";
 
 const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
@@ -230,15 +230,30 @@ export default function CalendarScreen() {
     return undefined;
   }, [profile, selectedDate]);
 
+  const combinedSearchIndex = useMemo(() => {
+    const specialAsResults: CalSearchResult[] = specialEntries.map((e) => {
+      const [y, m, d] = e.date.split("-").map(Number);
+      return {
+        id: `special-${e.id}`,
+        name: e.title,
+        date: new Date(y, m - 1, d),
+        description: [e.category, e.note].filter(Boolean).join(" · "),
+        color: SPECIAL_EVENT_COLOR,
+        type: "special" as EventType,
+      };
+    });
+    return [...SEARCH_INDEX, ...specialAsResults].sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [specialEntries]);
+
   const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return SEARCH_INDEX;
+    if (!searchQuery.trim()) return combinedSearchIndex;
     const q = searchQuery.toLowerCase();
-    return SEARCH_INDEX.filter(
+    return combinedSearchIndex.filter(
       (e) =>
         e.name.toLowerCase().includes(q) ||
         e.description.toLowerCase().includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, combinedSearchIndex]);
 
   const handlePrev = () => {
     Haptics.selectionAsync();
@@ -433,12 +448,14 @@ export default function CalendarScreen() {
       <View style={[styles.header, { paddingTop: topPad + 12 }]}>
         {searchMode ? (
           <View style={styles.searchRow}>
-            <SearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholder="Search events, moons, sabbats…"
-              autoFocus
-            />
+            <View style={{ flex: 1 }}>
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search events, moons, sabbats…"
+                autoFocus
+              />
+            </View>
             <Pressable onPress={closeSearch} style={styles.cancelBtn} hitSlop={8}>
               <Text style={[styles.cancelText, { color: colors.primary }]}>Cancel</Text>
             </Pressable>
