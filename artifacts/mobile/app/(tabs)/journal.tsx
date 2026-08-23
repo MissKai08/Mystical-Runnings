@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   LayoutChangeEvent,
+  findNodeHandle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -682,8 +683,9 @@ export default function JournalScreen() {
   }, [inFullMoonWindow]);
 
   const scrollViewRef = useRef<ScrollView>(null);
-  const offsetMap = useRef<Map<string, number>>(new Map());
+  const dateGroupRefs = useRef<Map<string, View>>(new Map());
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => () => { if (highlightTimer.current) clearTimeout(highlightTimer.current); }, []);
 
@@ -820,6 +822,7 @@ export default function JournalScreen() {
     }
     setSaving(true);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const existingEntry = editingEntryId ? entries.find((e) => e.id === editingEntryId) : undefined;
     const entry: JournalEntry = {
       id: editingEntryId ?? generateId(),
       date: composerDate ?? todayKey(),
@@ -837,7 +840,9 @@ export default function JournalScreen() {
               height: canvasSize.height,
             }
           : undefined,
-      createdAt: Date.now(),
+      createdAt: existingEntry?.createdAt ?? Date.now(),
+      editedAt: existingEntry ? Date.now() : undefined,
+      pinned: existingEntry?.pinned,
     };
     await saveEntry(entry);
     setEntries(await loadEntries());
@@ -1007,14 +1012,29 @@ export default function JournalScreen() {
   }, [shieldTokens, entries, freezes]);
 
   const handleDayPress = useCallback((date: string) => {
-    const offset = offsetMap.current.get(date);
-    if (offset !== undefined) {
+    const node = dateGroupRefs.current.get(date);
+    const scrollNode = scrollViewRef.current;
+    if (node && scrollNode) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       setCalMode("week");
-      scrollViewRef.current?.scrollTo({ y: Math.max(0, offset - 16), animated: true });
       if (highlightTimer.current) clearTimeout(highlightTimer.current);
       setHighlightDate(date);
       highlightTimer.current = setTimeout(() => setHighlightDate(null), 2000);
+      requestAnimationFrame(() => {
+        const scrollResponder = scrollViewRef.current;
+        if (!scrollResponder) return;
+        const innerViewNode = (scrollResponder as any).getInnerViewNode
+          ? (scrollResponder as any).getInnerViewNode()
+          : findNodeHandle(scrollResponder);
+        if (!innerViewNode) return;
+        (node as any).measureLayout(
+          innerViewNode,
+          (_x: number, y: number) => {
+            scrollResponder.scrollTo({ y: Math.max(0, y - 16), animated: true });
+          },
+          () => {}
+        );
+      });
     }
   }, [setCalMode]);
 
@@ -1203,28 +1223,28 @@ export default function JournalScreen() {
           <Feather name="chevron-right" size={11} color="#D4A84366" />
         </Pressable>
 
-        {/* Sacred Intentions button */}
-        <Pressable
-          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setIntentionsOpen(true); }}
-          style={[styles.lunarLetterBtn, { backgroundColor: "#7C3AED14", borderColor: "#7C3AED44" }]}
-        >
-          <Text style={[styles.lunarLetterBtnGlyph, { color: "#A78BFA" }]}>○</Text>
-          <Text style={[styles.lunarLetterBtnText, { color: "#A78BFA" }]}>
-            Sacred Intentions
-          </Text>
-          <Feather name="chevron-right" size={14} color="#A78BFA88" />
-        </Pressable>
-
         {/* Lunar Intentions history */}
         <Pressable
           onPress={() => { Haptics.selectionAsync(); setLunarIntentionsHistoryOpen(true); }}
-          style={[styles.lunarLetterBtn, { backgroundColor: "#C4B5FD14", borderColor: "#C4B5FD44", marginTop: 8 }]}
+          style={[styles.lunarLetterBtn, { backgroundColor: "#C4B5FD14", borderColor: "#C4B5FD44" }]}
         >
-          <Text style={[styles.lunarLetterBtnGlyph, { color: "#C4B5FD" }]}>🌑</Text>
+          <Text style={[styles.lunarLetterBtnGlyph, { color: "#C4B5FD" }]}>✧</Text>
           <Text style={[styles.lunarLetterBtnText, { color: "#C4B5FD" }]}>
             Lunar Intentions
           </Text>
           <Feather name="chevron-right" size={14} color="#C4B5FD88" />
+        </Pressable>
+
+        {/* Sacred Intentions button */}
+        <Pressable
+          onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setIntentionsOpen(true); }}
+          style={[styles.lunarLetterBtn, { backgroundColor: "#7C3AED14", borderColor: "#7C3AED44", marginTop: 8 }]}
+        >
+          <Text style={[styles.lunarLetterBtnGlyph, { color: "#A78BFA" }]}>✨️</Text>
+          <Text style={[styles.lunarLetterBtnText, { color: "#A78BFA" }]}>
+            Sacred Intentions
+          </Text>
+          <Feather name="chevron-right" size={14} color="#A78BFA88" />
         </Pressable>
 
         {/* Calendar mode toggle */}
@@ -1271,6 +1291,10 @@ export default function JournalScreen() {
         contentContainerStyle={{ paddingBottom: bottomPad + 100 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        onScroll={(e) => {
+          setShowBackToTop(e.nativeEvent.contentOffset.y > 400);
+        }}
+        scrollEventThrottle={16}
       >
         {/* Search bar */}
         {entries.length > 0 && (
@@ -1626,11 +1650,14 @@ export default function JournalScreen() {
             {grouped.map(({ date, entries: dayEntries }) => (
               <View
                 key={date}
+                ref={(el) => {
+                  if (el) dateGroupRefs.current.set(date, el);
+                  else dateGroupRefs.current.delete(date);
+                }}
                 style={[
                   styles.dateGroup,
                   highlightDate === date && styles.dateGroupHighlight,
                 ]}
-                onLayout={(e) => { offsetMap.current.set(date, e.nativeEvent.layout.y); }}
               >
                 <Text style={[styles.dateHeader, { color: colors.mutedForeground }]}>
                   {formatEntryDate(date).toUpperCase()}
@@ -1662,6 +1689,33 @@ export default function JournalScreen() {
           onPress={openComposer}
         >
           <Feather name="edit-3" size={22} color="#080714" />
+        </Pressable>
+      )}
+      {showBackToTop && (
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+          }}
+          style={{
+            position: "absolute",
+            left: 20,
+            bottom: bottomPad + 80,
+            width: 48,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: colors.card,
+            borderWidth: 1,
+            borderColor: colors.border,
+            alignItems: "center",
+            justifyContent: "center",
+            shadowColor: "#000",
+            shadowOpacity: 0.3,
+            shadowRadius: 6,
+            elevation: 4,
+          }}
+        >
+          <Feather name="arrow-up" size={20} color="#D4A843" />
         </Pressable>
       )}
 
@@ -2073,6 +2127,9 @@ export default function JournalScreen() {
 function EntryCard({ entry, colors, onPress, onEdit, onDelete, onPin }: { entry: JournalEntry; colors: ReturnType<typeof useColors>; onPress: () => void; onEdit: () => void; onDelete: () => void; onPin: () => void }) {
   const { fs } = useFontScale();
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const editedTime = entry.editedAt
+    ? new Date(entry.editedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : null;
 
   // Derive Odu from the entry date — deterministic, works for all existing entries
   const entryOdu = useMemo(() => {
@@ -2115,7 +2172,9 @@ function EntryCard({ entry, colors, onPress, onEdit, onDelete, onPin }: { entry:
               {entry.isLunarLetter ? "Lunar Letter" : entry.inputType === "drawing" ? "Handwritten" : "Text"}
             </Text>
           </View>
-          <Text style={[styles.entryTime, { color: colors.mutedForeground }]}>{time}</Text>
+          <Text style={[styles.entryTime, { color: colors.mutedForeground }]}>
+            {time}{editedTime ? ` · edited ${editedTime}` : ""}
+          </Text>
         </View>
         <View style={styles.entryActions}>
           <Pressable onPress={onPin} hitSlop={8} style={styles.actionBtn}>
@@ -2237,6 +2296,9 @@ function EntryDetailSheet({
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom;
   const time = new Date(entry.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const editedTime = entry.editedAt
+    ? new Date(entry.editedAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    : null;
   const moonEmoji = moonPhaseEmoji(entry.moonPhase);
   const entryOdu = useMemo(() => {
     const [y, m, d] = entry.date.split("-").map(Number);
@@ -2261,7 +2323,9 @@ function EntryDetailSheet({
               {entry.isLunarLetter ? "Lunar Letter" : entry.inputType === "drawing" ? "Handwritten" : "Text Entry"}
             </Text>
           </View>
-          <Text style={[detailStyles.sheetTime, { color: colors.mutedForeground }]}>{time}</Text>
+          <Text style={[detailStyles.sheetTime, { color: colors.mutedForeground }]}>
+            {time}{editedTime ? ` · edited ${editedTime}` : ""}
+          </Text>
         </View>
         <Pressable onPress={onClose} hitSlop={12} style={detailStyles.closeBtn}>
           <Feather name="x" size={20} color={colors.mutedForeground} />

@@ -63,6 +63,7 @@ export interface JournalEntry {
   isLunarLetter?: boolean;
   letterMonth?: string;
   createdAt: number;
+  editedAt?: number;
   pinned?: boolean;
 }
 

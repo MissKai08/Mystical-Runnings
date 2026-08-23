@@ -238,6 +238,9 @@ export default function PrayerScreen() {
             <Text style={{ fontSize: 14, fontWeight: "700", color: colors.mutedForeground }}>Voice</Text>
           </Pressable>
         </View>
+        <Text style={{ fontSize: 12, color: colors.mutedForeground, marginTop: 4, opacity: 0.8 }}>
+          Not a fan of the voice reading your prayers? Tap "Voice" above to preview and choose a different one.
+        </Text>
         <View style={[styles.tabRow, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <Pressable
             style={[styles.tabBtn, activeTab === "guide" && { backgroundColor: colors.primary }]}
