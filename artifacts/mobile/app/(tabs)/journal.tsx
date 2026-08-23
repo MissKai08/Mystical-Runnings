@@ -1010,12 +1010,13 @@ export default function JournalScreen() {
     const offset = offsetMap.current.get(date);
     if (offset !== undefined) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setCalMode("week");
       scrollViewRef.current?.scrollTo({ y: Math.max(0, offset - 16), animated: true });
       if (highlightTimer.current) clearTimeout(highlightTimer.current);
       setHighlightDate(date);
       highlightTimer.current = setTimeout(() => setHighlightDate(null), 2000);
     }
-  }, []);
+  }, [setCalMode]);
 
   const freezeArr = useMemo(() => [...freezes], [freezes]);
   const streak = useMemo(() => calculateStreak(entries, freezeArr), [entries, freezeArr]);
@@ -1214,6 +1215,18 @@ export default function JournalScreen() {
           <Feather name="chevron-right" size={14} color="#A78BFA88" />
         </Pressable>
 
+        {/* Lunar Intentions history */}
+        <Pressable
+          onPress={() => { Haptics.selectionAsync(); setLunarIntentionsHistoryOpen(true); }}
+          style={[styles.lunarLetterBtn, { backgroundColor: "#C4B5FD14", borderColor: "#C4B5FD44", marginTop: 8 }]}
+        >
+          <Text style={[styles.lunarLetterBtnGlyph, { color: "#C4B5FD" }]}>🌑</Text>
+          <Text style={[styles.lunarLetterBtnText, { color: "#C4B5FD" }]}>
+            Lunar Intentions
+          </Text>
+          <Feather name="chevron-right" size={14} color="#C4B5FD88" />
+        </Pressable>
+
         {/* Calendar mode toggle */}
         <View style={styles.calToggleRow}>
           <Pressable
@@ -1249,17 +1262,6 @@ export default function JournalScreen() {
             />
         }
 
-        {/* Lunar Intentions history */}
-        <Pressable
-          onPress={() => { Haptics.selectionAsync(); setLunarIntentionsHistoryOpen(true); }}
-          style={[styles.lunarLetterBtn, { backgroundColor: "#C4B5FD14", borderColor: "#C4B5FD44", marginTop: 8 }]}
-        >
-          <Text style={[styles.lunarLetterBtnGlyph, { color: "#C4B5FD" }]}>🌑</Text>
-          <Text style={[styles.lunarLetterBtnText, { color: "#C4B5FD" }]}>
-            Lunar Intentions
-          </Text>
-          <Feather name="chevron-right" size={14} color="#C4B5FD88" />
-        </Pressable>
       </View>
 
       {/* Single unified scroll — everything below the header scrolls together */}

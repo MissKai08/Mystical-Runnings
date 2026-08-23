@@ -356,7 +356,9 @@ export default function ResourcesScreen() {
       </Text>
 
       {CATEGORIES.map((cat) => {
-        const items = RESOURCES.filter((r) => r.category === cat);
+        const items = RESOURCES
+          .filter((r) => r.category === cat)
+          .sort((a, b) => a.title.localeCompare(b.title));
         return (
           <View key={cat} style={styles.categorySection}>
             <Text style={[styles.categoryLabel, { color: colors.mutedForeground }]}>{cat.toUpperCase()}</Text>

@@ -3,6 +3,8 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import { StorageAccessFramework } from "expo-file-system/legacy";
 import { Share, Platform } from "react-native";
+import { scheduleAllNotifications } from "@/utils/notificationScheduler";
+import { loadNotificationSettings } from "@/utils/notificationSettings";
 
 const BACKUP_VERSION = 1;
 
@@ -228,6 +230,13 @@ async function restoreFromJson(json: string): Promise<void> {
   }
 
   await AsyncStorage.multiSet(pairs);
+
+  try {
+    const settings = await loadNotificationSettings();
+    await scheduleAllNotifications(settings);
+  } catch (e) {
+    console.warn("Failed to reschedule notifications after restore:", e);
+  }
 }
 
 /** "off" means auto-backup is disabled. Manual export via the Export button is always available. */

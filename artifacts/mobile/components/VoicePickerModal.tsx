@@ -81,10 +81,16 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
 
   async function handleClear() {
     Haptics.selectionAsync();
-    Speech.stop();
     setSelectedId(null);
-    setPreviewingId(null);
     await clearVoicePreference();
+    Speech.stop();
+    setPreviewingId("default");
+    Speech.speak(PREVIEW_TEXT, {
+      pitch: 0.85,
+      rate: 0.65,
+      onDone: () => setPreviewingId(null),
+      onError: () => setPreviewingId(null),
+    });
   }
 
   function voiceLabel(voice: Speech.Voice): string {
@@ -140,7 +146,7 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
             >
               <View style={styles.rowLeft}>
                 <Feather
-                  name="volume-2"
+                  name={previewingId === "default" ? "volume-2" : "volume-1"}
                   size={16}
                   color={selectedId === null ? "#D4A843" : colors.mutedForeground}
                 />
@@ -158,8 +164,11 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
                   </Text>
                 </View>
               </View>
-              {selectedId === null && (
+              {selectedId === null && previewingId !== "default" && (
                 <Feather name="check" size={16} color="#D4A843" />
+              )}
+              {previewingId === "default" && (
+                <ActivityIndicator size="small" color="#D4A843" />
               )}
             </Pressable>
 
