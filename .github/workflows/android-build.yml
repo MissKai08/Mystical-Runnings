@@ -1,0 +1,102 @@
+ name: Android Build
+
+on:
+  push:
+    branches:
+      - android-build-test   # test branch first — change to "main" once confirmed working
+  workflow_dispatch: {}       # lets you trigger it manually from the Actions tab too
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: artifacts/mobile
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Expo prebuild (generate native android project)
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/mystical-runnings.keystore
+
+      - name: Inject signing config into gradle.properties
+        run: |
+          cat >> android/gradle.properties << EOF
+          MYAPP_UPLOAD_STORE_FILE=mystical-runnings.keystore
+          MYAPP_UPLOAD_KEY_ALIAS=${{ secrets.KEY_ALIAS }}
+          MYAPP_UPLOAD_STORE_PASSWORD=${{ secrets.KEYSTORE_PASSWORD }}
+          MYAPP_UPLOAD_KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Patch build.gradle with signing config
+        run: |
+          python3 - << 'PYEOF'
+          import re
+
+          path = "android/app/build.gradle"
+          with open(path) as f:
+              content = f.read()
+
+          signing_config = '''
+              signingConfigs {
+                  release {
+                      storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                      storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                      keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                      keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+                  }
+              }
+          '''
+
+          # Insert signingConfigs block right after the opening "android {" line
+          content = re.sub(r'(android\s*\{)', r'\1\n' + signing_config, content, count=1)
+
+          # Point the release buildType at our new signingConfig
+          content = re.sub(
+              r'(buildTypes\s*\{\s*release\s*\{)',
+              r'\1\n            signingConfig signingConfigs.release',
+              content,
+              count=1,
+          )
+
+          with open(path, "w") as f:
+              f.write(content)
+
+          print("build.gradle patched.")
+          PYEOF
+
+      - name: Build release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mystical-runnings-release-apk
+          path: artifacts/mobile/android/app/build/outputs/apk/release/*.apk
