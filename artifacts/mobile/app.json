@@ -2,6 +2,7 @@
   "expo": {
     "name": "Mystical Runnings",
     "slug": "mobile",
+    "newArchEnabled": true,
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
