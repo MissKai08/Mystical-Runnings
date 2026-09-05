@@ -9,8 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    defaults:
+     env:
+      NODE_ENV: production
+      defaults:
       run:
         working-directory: artifacts/mobile
 
