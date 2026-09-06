@@ -645,6 +645,18 @@ export const NAMED_FULL_MOONS: WheelEvent[] = [
     intent: "To be Silent",
     timing: "Best celebrated the prior evening on Monday, November 23 — anytime, or within 13 hours prior to exact opposition.",
   },
+  {
+    name: "Cold Full Moon",
+    date: new Date(2026, 11, 23),
+    type: "named-moon",
+    description: "Full Moon in Cancer. Exact opposition Wednesday, December 23 at 8:28 pm.",
+    sign: "Cancer",
+    tide: "Yuletide",
+    polarity: "Waning",
+    element: "Earth Projective",
+    intent: "To be Silent",
+    timing: "Narrow window: celebrate after the Moon enters Cancer at 4:58 pm, and before the exact opposition, a window of about 3 hours 50 minutes.",
+  },
   // ── 2027 Named Full Moons (source: Heron Michelle / Patheos) ─────────────────
   {
     name: "Quickening Full Moon · Wolf Moon",
@@ -934,7 +946,7 @@ export const DARK_MOONS: WheelEvent[] = [
   },
   {
     name: "Dark Moon",
-    date: new Date(2026, 8, 12),
+    date: new Date(2026, 8, 10),
     type: "dark-moon",
     description: "Dark Moon in Virgo. Exact conjunction Thursday, September 10 at 11:27 pm.",
     sign: "Virgo",
@@ -946,7 +958,7 @@ export const DARK_MOONS: WheelEvent[] = [
   },
   {
     name: "Dark Moon",
-    date: new Date(2026, 9, 11),
+    date: new Date(2026, 9, 10),
     type: "dark-moon",
     description: "Dark Moon in Libra. Exact conjunction Saturday, October 10 at 11:50 am.",
     sign: "Libra",
@@ -970,7 +982,7 @@ export const DARK_MOONS: WheelEvent[] = [
   },
   {
     name: "Dark Moon",
-    date: new Date(2026, 11, 9),
+    date: new Date(2026, 11, 8),
     type: "dark-moon",
     description: "Dark Moon in Sagittarius. Exact conjunction Tuesday, December 8 at 7:52 pm.",
     sign: "Sagittarius",
