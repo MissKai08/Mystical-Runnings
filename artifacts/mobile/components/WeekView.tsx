@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   isSameDay,
   addDays,
@@ -51,6 +52,7 @@ const HOLIDAY_GUIDANCE: Record<HolidayRegion, string> = {
 
 export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions, specialEntries = [], ifaEnabled = true }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
@@ -87,7 +89,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                   onSelectDate(day);
                 }}
               >
-                <Text style={[styles.dayLabel, { color: colors.mutedForeground }]}>
+                <Text style={[styles.dayLabel, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>
                   {SHORT_DAYS[day.getDay()]}
                 </Text>
                 <View
@@ -101,6 +103,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={[
                       styles.dateText,
                       { color: isToday || isSelected ? "#fff" : colors.foreground },
+                      { fontSize: fs(15) },
                     ]}
                   >
                     {day.getDate()}
@@ -163,7 +166,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
             if (!hasEvents) {
               return (
                 <View key={i} style={[styles.dayEvents, { borderLeftColor: colors.border }]}>
-                  <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }]}>
+                  <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
                     {SHORT_DAYS[day.getDay()]} {day.getDate()}
                   </Text>
                   <Pressable
@@ -171,8 +174,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: `${oseDay.color}22`, opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: oseDay.color }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{oseDay.name}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{oseDay.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 </View>
               );
@@ -180,7 +183,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
 
             return (
               <View key={i} style={[styles.dayEvents, { borderLeftColor: colors.border }]}>
-                <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }]}>
+                <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
                   {SHORT_DAYS[day.getDay()]} {day.getDate()}
                 </Text>
                 {namedMoon && (
@@ -196,8 +199,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#A78BFA22", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{namedMoon.name}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{namedMoon.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {darkMoon && (
@@ -215,8 +218,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#4C1D9522", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>Dark Moon — {darkMoon.sign}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>Dark Moon — {darkMoon.sign}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {!namedMoon && !darkMoon && moon.isMajorPhase && (
@@ -241,8 +244,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#A78BFA22", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["full-moon"] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{moon.name}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{moon.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {eclipse && (
@@ -259,8 +262,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: eclipse.type === "solar-eclipse" ? "#F59E0B22" : "#EC489922", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS[eclipse.type] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{eclipse.name}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{eclipse.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {sabbat && (
@@ -276,8 +279,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#34D39922", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS.sabbat }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{sabbat.name.split(" —")[0]}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{sabbat.name.split(" —")[0]}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {retrograde && (
@@ -295,8 +298,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#F9731622", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS.retrograde }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>Mercury Retrograde</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>Mercury Retrograde</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {prayerDay && ifaEnabled && (
@@ -315,8 +318,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#D4A84322", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["ifa-prayer"] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>Ifa Prayer Day</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>Ifa Prayer Day</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {festival && ifaEnabled && (
@@ -331,8 +334,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: "#22D3EE22", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS["ifa-festival"] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{festival.name}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{festival.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {astro && (
@@ -355,8 +358,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: `${EVENT_COLORS[astro.type]}22`, opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: EVENT_COLORS[astro.type] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>{astro.name}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{astro.name}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 )}
                 {holidays.map((h, hi) => (
@@ -372,10 +375,10 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] + "22", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: HOLIDAY_REGION_COLOR[h.region] }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>
                       {HOLIDAY_REGION_FLAG[h.region]} {h.emoji} {h.name}
                     </Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 ))}
                 {daySpecial.map((entry, ei) => (
@@ -390,8 +393,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                     style={({ pressed }) => [styles.eventChip, { backgroundColor: SPECIAL_EVENT_COLOR + "22", opacity: pressed ? 0.8 : 1 }]}
                   >
                     <View style={[styles.chipDot, { backgroundColor: SPECIAL_EVENT_COLOR }]} />
-                    <Text style={[styles.chipText, { color: colors.foreground }]}>✨ {entry.title}</Text>
-                    <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>✨ {entry.title}</Text>
+                    <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </Pressable>
                 ))}
                 <Pressable
@@ -399,8 +402,8 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
                   style={({ pressed }) => [styles.eventChip, { backgroundColor: `${oseDay.color}22`, opacity: pressed ? 0.8 : 1 }]}
                 >
                   <View style={[styles.chipDot, { backgroundColor: oseDay.color }]} />
-                  <Text style={[styles.chipText, { color: colors.foreground }]}>{oseDay.name}</Text>
-                  <Text style={[styles.chipHint, { color: colors.mutedForeground }]}>Tap</Text>
+                  <Text style={[styles.chipText, { color: colors.foreground }, { fontSize: fs(13) }]}>{oseDay.name}</Text>
+                  <Text style={[styles.chipHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                 </Pressable>
               </View>
             );

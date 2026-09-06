@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import * as Haptics from "expo-haptics";
 import {
   NotificationSettings,
@@ -175,6 +176,7 @@ const ADVANCE_OPTIONS: { value: 1 | 2 | 3; label: string }[] = [
 
 export function NotificationSettingsModal({ visible, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const insets = useSafeAreaInsets();
   const topPad = Platform.OS === "ios" ? insets.top + 16 : 20;
 
@@ -255,13 +257,13 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
         ]}
       >
         <View style={[styles.typeEmoji]}>
-          <Text style={styles.typeEmojiText}>{row.emoji}</Text>
+          <Text style={[styles.typeEmojiText, { fontSize: fs(18) }]}>{row.emoji}</Text>
         </View>
         <View style={styles.typeText}>
-          <Text style={[styles.typeLabel, { color: colors.foreground }]}>
+          <Text style={[styles.typeLabel, { color: colors.foreground, fontSize: fs(14) }]}>
             {row.label}
           </Text>
-          <Text style={[styles.typeDesc, { color: colors.mutedForeground }]}>
+          <Text style={[styles.typeDesc, { color: colors.mutedForeground, fontSize: fs(12) }]}>
             {row.description}
           </Text>
         </View>
@@ -295,10 +297,10 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
             <Feather name="x" size={22} color={colors.mutedForeground} />
           </Pressable>
           <View style={styles.headerCenter}>
-            <Text style={[styles.headerTitle, { color: colors.foreground }]}>
+            <Text style={[styles.headerTitle, { color: colors.foreground, fontSize: fs(17) }]}>
               Reminders
             </Text>
-            <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
+            <Text style={[styles.headerSub, { color: colors.mutedForeground, fontSize: fs(12) }]}>
               Sacred event notifications
             </Text>
           </View>
@@ -321,10 +323,10 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
             ]}
           >
             <View style={styles.masterLeft}>
-              <Text style={[styles.masterTitle, { color: colors.foreground }]}>
+              <Text style={[styles.masterTitle, { color: colors.foreground, fontSize: fs(17) }]}>
                 {settings.masterEnabled ? "Notifications On" : "Notifications Off"}
               </Text>
-              <Text style={[styles.masterSub, { color: colors.mutedForeground }]}>
+              <Text style={[styles.masterSub, { color: colors.mutedForeground, fontSize: fs(13) }]}>
                 {settings.masterEnabled
                   ? `${activeTypeCount} event type${activeTypeCount === 1 ? "" : "s"} enabled`
                   : "Tap to enable sacred event reminders"}
@@ -347,7 +349,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
               ]}
             >
               <Feather name="alert-triangle" size={14} color="#F97316" />
-              <Text style={[styles.warnText, { color: "#F97316" }]}>
+              <Text style={[styles.warnText, { color: "#F97316", fontSize: fs(13) }]}>
                 Notification permission denied. Please enable it in your device
                 Settings → Notifications.
               </Text>
@@ -363,7 +365,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
               ]}
             >
               <Feather name="check" size={14} color="#34D399" />
-              <Text style={[styles.warnText, { color: "#34D399" }]}>
+              <Text style={[styles.warnText, { color: "#34D399", fontSize: fs(13) }]}>
                 {syncedCount === 0
                   ? "Synced — no upcoming events to schedule."
                   : `Synced — ${syncedCount} reminder${syncedCount === 1 ? "" : "s"} scheduled.`}
@@ -373,10 +375,10 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
 
           {/* Advance notice */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>
               EVENT REMINDERS
             </Text>
-            <Text style={[styles.sectionIntro, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionIntro, { color: colors.mutedForeground, fontSize: fs(12) }]}>
               Applies to upcoming sabbats, moons, and holidays listed below.
             </Text>
             <View
@@ -402,7 +404,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
                     <Text
                       style={[
                         styles.segmentLabel,
-                        { color: active ? "#080714" : colors.mutedForeground },
+                        { color: active ? "#080714" : colors.mutedForeground, fontSize: fs(12) },
                       ]}
                     >
                       {opt.label}
@@ -411,20 +413,20 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
                 );
               })}
             </View>
-            <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
+            <Text style={[styles.advanceNote, { color: colors.mutedForeground, fontSize: fs(11) }]}>
               {"Delivered at 8:00 AM, " + settings.advanceDays + " day(s) before each event."}
             </Text>
-            <Text style={[styles.advanceNote, { color: colors.mutedForeground }]}>
+            <Text style={[styles.advanceNote, { color: colors.mutedForeground, fontSize: fs(11) }]}>
               Two exceptions fire same-day, regardless of this setting: Ifa Prayer Day at 7:00 AM every Thursday, and Ose Calendar transitions at 7:00 AM on the day they begin.
             </Text>
           </View>
 
           {/* Daily briefing toggle */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>
               DAILY NOTIFICATIONS
             </Text>
-            <Text style={[styles.sectionIntro, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionIntro, { color: colors.mutedForeground, fontSize: fs(12) }]}>
               These are separate from event reminders above. Each repeats daily at its own fixed time (shown per row).
             </Text>
             <View style={[styles.typeList, { borderColor: colors.border }]}>
@@ -436,7 +438,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
 
           {/* Spiritual event type toggles */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>
               SPIRITUAL EVENTS
             </Text>
             <View style={[styles.typeList, { borderColor: colors.border }]}>
@@ -448,7 +450,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
 
           {/* Holiday toggles */}
           <View style={styles.section}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground, fontSize: fs(10) }]}>
               HOLIDAYS
             </Text>
             <View style={[styles.typeList, { borderColor: colors.border }]}>
@@ -459,7 +461,7 @@ export function NotificationSettingsModal({ visible, onClose }: Props) {
           </View>
 
           {/* Footer note */}
-          <Text style={[styles.footerNote, { color: colors.mutedForeground }]}>
+          <Text style={[styles.footerNote, { color: colors.mutedForeground, fontSize: fs(12) }]}>
             Reminders are scheduled locally on your device and update automatically.
             No account or internet required.
           </Text>

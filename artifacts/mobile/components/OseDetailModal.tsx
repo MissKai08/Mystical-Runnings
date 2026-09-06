@@ -8,6 +8,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { OseGroup, OSE_GROUPS } from "@/constants/spiritualData";
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 
 export function OseDetailModal({ group, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
 
@@ -75,13 +77,13 @@ export function OseDetailModal({ group, onClose }: Props) {
             { backgroundColor: data.color + "22", borderColor: data.color + "55" },
           ]}
         >
-          <Text style={[styles.dayBadgeText, { color: data.color }]}>
+          <Text style={[styles.dayBadgeText, { color: data.color }, { fontSize: fs(10) }]}>
             DAY {dayNum} OF 4 · OSE CALENDAR
           </Text>
         </View>
 
         {/* Title */}
-        <Text style={[styles.title, { color: colors.foreground }]}>{data.name}</Text>
+        <Text style={[styles.title, { color: colors.foreground }, { fontSize: fs(28) }]}>{data.name}</Text>
 
         {/* 4-step cycle indicator */}
         <View style={styles.cycleRow}>
@@ -102,6 +104,7 @@ export function OseDetailModal({ group, onClose }: Props) {
                   {
                     color: g.id === data.id ? g.color : colors.mutedForeground,
                     fontWeight: g.id === data.id ? "700" : "400",
+                    fontSize: fs(10),
                   },
                 ]}
               >
@@ -126,13 +129,13 @@ export function OseDetailModal({ group, onClose }: Props) {
                 { backgroundColor: data.color + "1E", borderColor: data.color + "55" },
               ]}
             >
-              <Text style={[styles.osaChipText, { color: data.color }]}>{o}</Text>
+              <Text style={[styles.osaChipText, { color: data.color }, { fontSize: fs(13) }]}>{o}</Text>
             </View>
           ))}
         </View>
 
         {/* Description */}
-        <Text style={[styles.description, { color: colors.mutedForeground }]}>
+        <Text style={[styles.description, { color: colors.mutedForeground }, { fontSize: fs(15) }]}>
           {data.description}
         </Text>
 
@@ -143,8 +146,8 @@ export function OseDetailModal({ group, onClose }: Props) {
             { backgroundColor: data.color + "15", borderLeftColor: data.color },
           ]}
         >
-          <Text style={[styles.guidanceTitle, { color: data.color }]}>Guidance</Text>
-          <Text style={[styles.guidanceText, { color: colors.foreground }]}>
+          <Text style={[styles.guidanceTitle, { color: data.color }, { fontSize: fs(11) }]}>Guidance</Text>
+          <Text style={[styles.guidanceText, { color: colors.foreground }, { fontSize: fs(14) }]}>
             {data.guidance}
           </Text>
         </View>
@@ -156,10 +159,10 @@ export function OseDetailModal({ group, onClose }: Props) {
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
-          <Text style={[styles.offeringsTitle, { color: colors.mutedForeground }]}>
+          <Text style={[styles.offeringsTitle, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>
             OFFERINGS
           </Text>
-          <Text style={[styles.offeringsText, { color: colors.foreground }]}>
+          <Text style={[styles.offeringsText, { color: colors.foreground }, { fontSize: fs(14) }]}>
             {data.offerings}
           </Text>
         </View>
@@ -173,7 +176,7 @@ export function OseDetailModal({ group, onClose }: Props) {
           ]}
           onPress={() => sheetRef.current?.dismiss()}
         >
-          <Text style={styles.closeBtnText}>Close</Text>
+          <Text style={[styles.closeBtnText, { fontSize: fs(15) }]}>Close</Text>
         </Pressable>
       </View>
     </BottomSheetModal>

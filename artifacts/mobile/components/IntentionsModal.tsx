@@ -15,6 +15,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   loadIntentions,
   addIntention,
@@ -58,6 +59,7 @@ function CheckInModal({
   onClose: () => void;
 }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -78,12 +80,12 @@ function CheckInModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
-          <Text style={[ci.title, { color: colors.foreground }]}>Check In</Text>
-          <Text style={[ci.intentionPreview, { color: colors.mutedForeground }]} numberOfLines={2}>
+          <Text style={[ci.title, { color: colors.foreground, fontSize: fs(17) }]}>Check In</Text>
+          <Text style={[ci.intentionPreview, { color: colors.mutedForeground, fontSize: fs(13) }]} numberOfLines={2}>
             "{intentionText}"
           </Text>
           <TextInput
-            style={[ci.input, { color: colors.foreground, borderColor: colors.border }]}
+            style={[ci.input, { color: colors.foreground, borderColor: colors.border, fontSize: fs(15) }]}
             placeholder="How is this intention unfolding…"
             placeholderTextColor={colors.mutedForeground}
             multiline
@@ -94,7 +96,7 @@ function CheckInModal({
           />
           <View style={ci.btnRow}>
             <Pressable onPress={onClose} style={[ci.cancelBtn, { borderColor: colors.border }]}>
-              <Text style={[ci.cancelTxt, { color: colors.mutedForeground }]}>Cancel</Text>
+              <Text style={[ci.cancelTxt, { color: colors.mutedForeground, fontSize: fs(14) }]}>Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
@@ -103,7 +105,7 @@ function CheckInModal({
             >
               {saving
                 ? <ActivityIndicator color="#080714" size="small" />
-                : <Text style={ci.saveTxt}>Save</Text>}
+                : <Text style={[ci.saveTxt, { fontSize: fs(14) }]}>Save</Text>}
             </Pressable>
           </View>
         </ScrollView>
@@ -167,6 +169,7 @@ function AddIntentionModal({
   onClose: () => void;
 }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const now = new Date();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
@@ -197,13 +200,13 @@ function AddIntentionModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
-          <Text style={[ai.title, { color: colors.foreground }]}>Set an Intention</Text>
-          <Text style={[ai.subtitle, { color: colors.mutedForeground }]}>
+          <Text style={[ai.title, { color: colors.foreground, fontSize: fs(17) }]}>Set an Intention</Text>
+          <Text style={[ai.subtitle, { color: colors.mutedForeground, fontSize: fs(13) }]}>
             What do you wish to call into being?
           </Text>
 
           <TextInput
-            style={[ai.input, { color: colors.foreground, borderColor: colors.border }]}
+            style={[ai.input, { color: colors.foreground, borderColor: colors.border, fontSize: fs(15) }]}
             placeholder="I intend to…"
             placeholderTextColor={colors.mutedForeground}
             multiline
@@ -213,7 +216,7 @@ function AddIntentionModal({
             autoFocus
           />
 
-          <Text style={[ai.cycleLabel, { color: colors.mutedForeground }]}>Cycle</Text>
+          <Text style={[ai.cycleLabel, { color: colors.mutedForeground, fontSize: fs(11) }]}>Cycle</Text>
           <View style={ai.cycleRow}>
             {cycles.map((c, i) => (
               <Pressable
@@ -225,17 +228,17 @@ function AddIntentionModal({
                   selectedCycle === i && { backgroundColor: "#D4A84322" },
                 ]}
               >
-                <Text style={[ai.cyclePillMain, { color: selectedCycle === i ? "#D4A843" : colors.foreground }]}>
+                <Text style={[ai.cyclePillMain, { color: selectedCycle === i ? "#D4A843" : colors.foreground, fontSize: fs(13) }]}>
                   {c.name}
                 </Text>
-                <Text style={[ai.cyclePillSub, { color: colors.mutedForeground }]}>{c.label}</Text>
+                <Text style={[ai.cyclePillSub, { color: colors.mutedForeground, fontSize: fs(11) }]}>{c.label}</Text>
               </Pressable>
             ))}
           </View>
 
           <View style={ai.btnRow}>
             <Pressable onPress={onClose} style={[ai.cancelBtn, { borderColor: colors.border }]}>
-              <Text style={[ai.cancelTxt, { color: colors.mutedForeground }]}>Cancel</Text>
+              <Text style={[ai.cancelTxt, { color: colors.mutedForeground, fontSize: fs(14) }]}>Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
@@ -244,7 +247,7 @@ function AddIntentionModal({
             >
               {saving
                 ? <ActivityIndicator color="#fff" size="small" />
-                : <Text style={ai.saveTxt}>Set Intention</Text>}
+                : <Text style={[ai.saveTxt, { fontSize: fs(14) }]}>Set Intention</Text>}
             </Pressable>
           </View>
         </ScrollView>
@@ -322,6 +325,7 @@ function EditIntentionModal({
   onClose: () => void;
 }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -342,9 +346,9 @@ function EditIntentionModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
-          <Text style={[ei.title, { color: colors.foreground }]}>Edit Intention</Text>
+          <Text style={[ei.title, { color: colors.foreground, fontSize: fs(17) }]}>Edit Intention</Text>
           <TextInput
-            style={[ei.input, { color: colors.foreground, borderColor: colors.border }]}
+            style={[ei.input, { color: colors.foreground, borderColor: colors.border, fontSize: fs(15) }]}
             placeholder="I intend to…"
             placeholderTextColor={colors.mutedForeground}
             multiline
@@ -355,7 +359,7 @@ function EditIntentionModal({
           />
           <View style={ei.btnRow}>
             <Pressable onPress={onClose} style={[ei.cancelBtn, { borderColor: colors.border }]}>
-              <Text style={[ei.cancelTxt, { color: colors.mutedForeground }]}>Cancel</Text>
+              <Text style={[ei.cancelTxt, { color: colors.mutedForeground, fontSize: fs(14) }]}>Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSave}
@@ -364,7 +368,7 @@ function EditIntentionModal({
             >
               {saving
                 ? <ActivityIndicator color="#080714" size="small" />
-                : <Text style={ei.saveTxt}>Save Changes</Text>}
+                : <Text style={[ei.saveTxt, { fontSize: fs(14) }]}>Save Changes</Text>}
             </Pressable>
           </View>
         </ScrollView>
@@ -432,6 +436,7 @@ function IntentionCard({
   onDelete: () => void;
   onEdit: () => void;
 }) {
+  const { fs } = useFontScale();
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[intention.status];
   const isActive = intention.status === "active";
@@ -474,15 +479,15 @@ function IntentionCard({
     >
       {/* Status stripe */}
       <View style={[s.statusStripe, { backgroundColor: cardBg, borderBottomColor: cardBorder }]}>
-        <Text style={[s.statusDot, { color: cfg.color }]}>{cfg.emoji}</Text>
-        <Text style={[s.statusLabel, { color: cfg.color }]}>{cfg.label}</Text>
+        <Text style={[s.statusDot, { color: cfg.color, fontSize: fs(11) }]}>{cfg.emoji}</Text>
+        <Text style={[s.statusLabel, { color: cfg.color, fontSize: fs(11) }]}>{cfg.label}</Text>
         <View style={[s.cycleBadge, { borderColor: cardBorder }]}>
-          <Text style={[s.cycleBadgeTxt, { color: colors.mutedForeground }]}>{intention.cycleName}</Text>
+          <Text style={[s.cycleBadgeTxt, { color: colors.mutedForeground, fontSize: fs(10) }]}>{intention.cycleName}</Text>
         </View>
         {intention.checkIns.length > 0 && (
           <View style={s.checkInCount}>
             <Feather name="check-circle" size={10} color={colors.mutedForeground} />
-            <Text style={[s.checkInCountTxt, { color: colors.mutedForeground }]}>
+            <Text style={[s.checkInCountTxt, { color: colors.mutedForeground, fontSize: fs(10) }]}>
               {intention.checkIns.length}
             </Text>
           </View>
@@ -490,7 +495,7 @@ function IntentionCard({
       </View>
 
       {/* Intention text */}
-      <Text style={[s.intentionText, { color: colors.foreground }]}>
+      <Text style={[s.intentionText, { color: colors.foreground, fontSize: fs(15) }]}>
         {intention.text}
       </Text>
 
@@ -505,7 +510,7 @@ function IntentionCard({
             size={12}
             color={colors.mutedForeground}
           />
-          <Text style={[s.checkInsToggleTxt, { color: colors.mutedForeground }]}>
+          <Text style={[s.checkInsToggleTxt, { color: colors.mutedForeground, fontSize: fs(12) }]}>
             {expanded ? "Hide" : "Show"} {intention.checkIns.length} check-in{intention.checkIns.length !== 1 ? "s" : ""}
           </Text>
         </Pressable>
@@ -515,8 +520,8 @@ function IntentionCard({
         <View style={[s.checkInsList, { borderTopColor: colors.border }]}>
           {[...intention.checkIns].reverse().map((ci) => (
             <View key={ci.id} style={[s.checkInItem, { borderLeftColor: cardBorder }]}>
-              <Text style={[s.checkInText, { color: colors.foreground }]}>{ci.text}</Text>
-              <Text style={[s.checkInDate, { color: colors.mutedForeground }]}>
+              <Text style={[s.checkInText, { color: colors.foreground, fontSize: fs(13) }]}>{ci.text}</Text>
+              <Text style={[s.checkInDate, { color: colors.mutedForeground, fontSize: fs(10) }]}>
                 {new Date(ci.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </Text>
             </View>
@@ -532,7 +537,7 @@ function IntentionCard({
             style={s.actionBtn}
           >
             <Feather name="plus-circle" size={13} color="#A78BFA" />
-            <Text style={[s.actionBtnTxt, { color: "#A78BFA" }]}>Check In</Text>
+            <Text style={[s.actionBtnTxt, { color: "#A78BFA", fontSize: fs(12) }]}>Check In</Text>
           </Pressable>
         )}
         <Pressable
@@ -540,14 +545,14 @@ function IntentionCard({
           style={s.actionBtn}
         >
           <Feather name="edit-2" size={13} color={colors.mutedForeground} />
-          <Text style={[s.actionBtnTxt, { color: colors.mutedForeground }]}>Edit</Text>
+          <Text style={[s.actionBtnTxt, { color: colors.mutedForeground, fontSize: fs(12) }]}>Edit</Text>
         </Pressable>
         <Pressable
           onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); onDelete(); }}
           style={s.actionBtn}
         >
           <Feather name="trash-2" size={13} color="#EF4444" />
-          <Text style={[s.actionBtnTxt, { color: "#EF4444" }]}>Delete</Text>
+          <Text style={[s.actionBtnTxt, { color: "#EF4444", fontSize: fs(12) }]}>Delete</Text>
         </Pressable>
       </View>
     </Pressable>
@@ -563,6 +568,7 @@ interface Props {
 
 export default function IntentionsModal({ visible, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [intentions, setIntentions] = useState<SacredIntention[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<SacredIntention | null>(null);
@@ -636,11 +642,11 @@ export default function IntentionsModal({ visible, onClose }: Props) {
         {/* Header */}
         <View style={[s.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose} hitSlop={10} style={s.closeBtn}>
-            <Text style={[s.closeTxt, { color: colors.mutedForeground }]}>✕</Text>
+            <Text style={[s.closeTxt, { color: colors.mutedForeground, fontSize: fs(18) }]}>✕</Text>
           </Pressable>
           <View style={s.headerCenter}>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>Sacred Intentions</Text>
-            <Text style={[s.headerSub, { color: "#A78BFA" }]}>
+            <Text style={[s.headerTitle, { color: colors.foreground, fontSize: fs(16) }]}>Sacred Intentions</Text>
+            <Text style={[s.headerSub, { color: "#A78BFA", fontSize: fs(12) }]}>
               {cycleNameForDate(now)}
             </Text>
           </View>
@@ -661,7 +667,7 @@ export default function IntentionsModal({ visible, onClose }: Props) {
           {/* Active count summary */}
           {activeCount > 0 && (
             <View style={[s.summaryBanner, { backgroundColor: "#7C3AED12", borderColor: "#7C3AED33" }]}>
-              <Text style={[s.summaryTxt, { color: "#A78BFA" }]}>
+              <Text style={[s.summaryTxt, { color: "#A78BFA", fontSize: fs(13) }]}>
                 {activeCount} active intention{activeCount !== 1 ? "s" : ""} this cycle
               </Text>
             </View>
@@ -670,16 +676,16 @@ export default function IntentionsModal({ visible, onClose }: Props) {
           {/* Current cycle */}
           {currentIntentions.length === 0 ? (
             <View style={[s.emptyState, { borderColor: colors.border }]}>
-              <Text style={s.emptyGlyph}>✦</Text>
-              <Text style={[s.emptyTitle, { color: colors.foreground }]}>No intentions yet</Text>
-              <Text style={[s.emptySub, { color: colors.mutedForeground }]}>
+              <Text style={[s.emptyGlyph, { fontSize: fs(28) }]}>✦</Text>
+              <Text style={[s.emptyTitle, { color: colors.foreground, fontSize: fs(17) }]}>No intentions yet</Text>
+              <Text style={[s.emptySub, { color: colors.mutedForeground, fontSize: fs(14) }]}>
                 Set an intention for {cycleNameForDate(now)} — something you wish to call into being this cycle.
               </Text>
               <Pressable
                 onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setAddOpen(true); }}
                 style={[s.emptyBtn, { backgroundColor: "#7C3AED", }]}
               >
-                <Text style={s.emptyBtnTxt}>Set Your First Intention</Text>
+                <Text style={[s.emptyBtnTxt, { fontSize: fs(14) }]}>Set Your First Intention</Text>
               </Pressable>
             </View>
           ) : (
@@ -703,7 +709,7 @@ export default function IntentionsModal({ visible, onClose }: Props) {
                 onPress={() => { Haptics.selectionAsync(); setShowPast((v) => !v); }}
                 style={[s.pastToggle, { borderTopColor: colors.border }]}
               >
-                <Text style={[s.pastToggleTxt, { color: colors.mutedForeground }]}>
+                <Text style={[s.pastToggleTxt, { color: colors.mutedForeground, fontSize: fs(13) }]}>
                   Past Intentions ({pastIntentions.length})
                 </Text>
                 <Feather
@@ -736,7 +742,7 @@ export default function IntentionsModal({ visible, onClose }: Props) {
               style={[s.footerBtn, { backgroundColor: "#7C3AED" }]}
             >
               <Feather name="plus" size={16} color="#fff" />
-              <Text style={s.footerBtnTxt}>New Intention</Text>
+              <Text style={[s.footerBtnTxt, { fontSize: fs(15) }]}>New Intention</Text>
             </Pressable>
           </View>
         )}

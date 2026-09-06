@@ -12,6 +12,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { getMoonPhaseData } from "@/constants/spiritualData";
 
 // ─── Phase → Frequency metadata ──────────────────────────────────────────────
@@ -224,6 +225,7 @@ const vb = StyleSheet.create({
 
 function WebSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () => void }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const audio = useWebAudioEngine();
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(0.7);
@@ -253,29 +255,29 @@ function WebSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () => vo
     <View style={[ms.container, { backgroundColor: "#080714" }]}>
       <View style={[ms.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={handleClose} hitSlop={12} style={ms.closeBtn}>
-          <Text style={[ms.closeTxt, { color: colors.mutedForeground }]}>✕</Text>
+          <Text style={[ms.closeTxt, { color: colors.mutedForeground, fontSize: fs(18) }]}>✕</Text>
         </Pressable>
         <View style={ms.headerCenter}>
-          <Text style={ms.headerTitle}>Moon Sound Bath</Text>
-          <Text style={[ms.headerSub, { color: sound.color }]}>{sound.hz}</Text>
+          <Text style={[ms.headerTitle, { fontSize: fs(16) }]}>Moon Sound Bath</Text>
+          <Text style={[ms.headerSub, { color: sound.color, fontSize: fs(12) }]}>{sound.hz}</Text>
         </View>
         <View style={ms.headerRight} />
       </View>
 
       <ScrollView contentContainerStyle={ms.body} showsVerticalScrollIndicator={false}>
-        <Text style={[ms.emoji]}>{sound.emoji}</Text>
-        <Text style={[ms.phaseName, { color: sound.color }]}>{sound.name}</Text>
-        <Text style={[ms.phaseMeaning, { color: colors.mutedForeground }]}>{sound.meaning}</Text>
+        <Text style={[ms.emoji, { fontSize: fs(36) }]}>{sound.emoji}</Text>
+        <Text style={[ms.phaseName, { color: sound.color, fontSize: fs(21) }]}>{sound.name}</Text>
+        <Text style={[ms.phaseMeaning, { color: colors.mutedForeground, fontSize: fs(13) }]}>{sound.meaning}</Text>
 
         <View style={ms.circleWrap}>
           <BreathingCircle playing={playing} color={sound.color} />
           <View style={ms.circleOverlay}>
-            <Text style={[ms.freqBig, { color: sound.color }]}>{sound.freq}</Text>
-            <Text style={[ms.freqUnit, { color: sound.color + "AA" }]}>Hz</Text>
+            <Text style={[ms.freqBig, { color: sound.color, fontSize: fs(30) }]}>{sound.freq}</Text>
+            <Text style={[ms.freqUnit, { color: sound.color + "AA", fontSize: fs(12) }]}>Hz</Text>
           </View>
         </View>
 
-        <Text style={[ms.timer, { color: playing ? sound.color : "#4B5563" }]}>
+        <Text style={[ms.timer, { color: playing ? sound.color : "#4B5563", fontSize: fs(21) }]}>
           {playing ? timer : "──:──"}
         </Text>
 
@@ -291,7 +293,7 @@ function WebSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () => vo
         </Pressable>
 
         {playing && (
-          <Text style={[ms.breathLabel, { color: "#6B7280" }]}>
+          <Text style={[ms.breathLabel, { color: "#6B7280", fontSize: fs(12) }]}>
             Follow the circle · breathe with the pulse
           </Text>
         )}
@@ -299,8 +301,8 @@ function WebSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () => vo
         <VolumeBar volume={volume} onChange={handleVolume} color={sound.color} />
 
         <View style={[ms.infoCard, { backgroundColor: sound.color + "15", borderColor: sound.color + "40" }]}>
-          <Text style={[ms.infoTitle, { color: sound.color }]}>SOLFEGGIO FREQUENCY · {sound.hz}</Text>
-          <Text style={[ms.infoBody, { color: colors.mutedForeground }]}>{sound.info}</Text>
+          <Text style={[ms.infoTitle, { color: sound.color, fontSize: fs(10) }]}>SOLFEGGIO FREQUENCY · {sound.hz}</Text>
+          <Text style={[ms.infoBody, { color: colors.mutedForeground, fontSize: fs(13) }]}>{sound.info}</Text>
         </View>
       </ScrollView>
     </View>
@@ -311,6 +313,7 @@ function WebSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () => vo
 
 function NativeSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () => void }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   // Lazy import WebView only on native to avoid web bundle errors
   const [WebViewComponent, setWebViewComponent] = useState<any>(null);
 
@@ -329,11 +332,11 @@ function NativeSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () =>
     <View style={[ms.container, { backgroundColor: "#080714" }]}>
       <View style={[ms.header, { borderBottomColor: colors.border }]}>
         <Pressable onPress={onClose} hitSlop={12} style={ms.closeBtn}>
-          <Text style={[ms.closeTxt, { color: colors.mutedForeground }]}>✕</Text>
+          <Text style={[ms.closeTxt, { color: colors.mutedForeground, fontSize: fs(18) }]}>✕</Text>
         </Pressable>
         <View style={ms.headerCenter}>
-          <Text style={ms.headerTitle}>Moon Sound Bath</Text>
-          <Text style={[ms.headerSub, { color: col }]}>{sound.hz}</Text>
+          <Text style={[ms.headerTitle, { fontSize: fs(16) }]}>Moon Sound Bath</Text>
+          <Text style={[ms.headerSub, { color: col, fontSize: fs(12) }]}>{sound.hz}</Text>
         </View>
         <View style={ms.headerRight} />
       </View>
@@ -353,7 +356,7 @@ function NativeSoundBath({ sound, onClose }: { sound: PhaseSound; onClose: () =>
         />
       ) : (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#6B7280" }}>Loading…</Text>
+          <Text style={{ color: "#6B7280", fontSize: fs(14) }}>Loading…</Text>
         </View>
       )}
     </View>

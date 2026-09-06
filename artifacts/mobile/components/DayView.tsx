@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   getMoonPhaseData,
   getMercuryRetrogradeInfo,
@@ -38,6 +39,7 @@ interface Props {
 
 export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = true, onSpecialEntryPress }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const moon = getMoonPhaseData(date);
   const retrograde = getMercuryRetrogradeInfo(date);
   const prayerDay = isIfaPrayerDay(date);
@@ -93,7 +95,7 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={[styles.dateTitle, { color: colors.foreground }]}>
+      <Text style={[styles.dateTitle, { color: colors.foreground }, { fontSize: fs(16) }]}>
         {formatDateLong(date)}
       </Text>
 
@@ -102,10 +104,10 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
         <View style={[styles.card, { backgroundColor: "#D4A84315", borderColor: "#D4A84355" }]}>
           <View style={styles.cardHeader}>
             <View style={[styles.cardDot, { backgroundColor: "#D4A843" }]} />
-            <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>PERSONAL</Text>
+          <Text style={[styles.cardCategory, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>PERSONAL</Text>
           </View>
-          <Text style={[styles.cardTitle, { color: "#D4A843" }]}>🥳 Happy Birthday, {birthdayName}!</Text>
-          <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+          <Text style={[styles.cardTitle, { color: "#D4A843" }, { fontSize: fs(18) }]}>🥳 Happy Birthday, {birthdayName}!</Text>
+          <Text style={[styles.cardDescription, { color: colors.mutedForeground }, { fontSize: fs(14) }]}>
             May this solar return bring clarity, abundance, and deep spiritual alignment.
           </Text>
         </View>
@@ -120,17 +122,17 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA55" }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["named-moon"] }]} />
-              <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>FULL MOON</Text>
-              <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+              <Text style={[styles.cardCategory, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>FULL MOON</Text>
+              <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>Tap for details</Text>
             </View>
             <View style={styles.moonContent}>
               <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
               <View style={styles.moonInfo}>
-                <Text style={[styles.cardTitle, { color: colors.foreground }]}>{namedMoon.name}</Text>
-                <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }, { fontSize: fs(18) }]}>{namedMoon.name}</Text>
+                <Text style={[styles.cardDescription, { color: "#A78BFA" }, { fontSize: fs(14) }]}>
                   {namedMoon.sign ? `in ${namedMoon.sign}` : ""}
                 </Text>
-                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }, { fontSize: fs(14) }]}>
                   {namedMoon.description}
                 </Text>
               </View>
@@ -140,17 +142,17 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#6D28D944" }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["dark-moon"] }]} />
-              <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>DARK MOON</Text>
-              <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+              <Text style={[styles.cardCategory, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>DARK MOON</Text>
+              <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>Tap for details</Text>
             </View>
             <View style={styles.moonContent}>
               <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
               <View style={styles.moonInfo}>
-                <Text style={[styles.cardTitle, { color: colors.foreground }]}>Dark Moon</Text>
-                <Text style={[styles.cardDescription, { color: "#A78BFA" }]}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }, { fontSize: fs(18) }]}>Dark Moon</Text>
+                <Text style={[styles.cardDescription, { color: "#A78BFA" }, { fontSize: fs(14) }]}>
                   {darkMoon.sign ? `in ${darkMoon.sign}` : ""}
                 </Text>
-                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }, { fontSize: fs(14) }]}>
                   A time for deep rest, shadow work, and release before the new cycle begins.
                 </Text>
               </View>
@@ -160,17 +162,17 @@ export function DayView({ date, birthdayName, specialEntries = [], ifaEnabled = 
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: "#A78BFA33" }]}>
             <View style={styles.cardHeader}>
               <View style={[styles.cardDot, { backgroundColor: EVENT_COLORS["full-moon"] }]} />
-              <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>LUNAR</Text>
-              <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap for details</Text>
+              <Text style={[styles.cardCategory, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>LUNAR</Text>
+              <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>Tap for details</Text>
             </View>
             <View style={styles.moonContent}>
               <MoonPhaseCircle moonData={moon} size={72} showLabel={false} />
               <View style={styles.moonInfo}>
-                <Text style={[styles.cardTitle, { color: colors.foreground }]}>{moon.name}</Text>
-                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                <Text style={[styles.cardTitle, { color: colors.foreground }, { fontSize: fs(18) }]}>{moon.name}</Text>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }, { fontSize: fs(14) }]}>
                   {moon.illumination}% illuminated
                 </Text>
-                <Text style={[styles.cardDescription, { color: colors.mutedForeground }]}>
+                <Text style={[styles.cardDescription, { color: colors.mutedForeground }, { fontSize: fs(14) }]}>
                   Day {Math.round(moon.phase)} of 30 in cycle
                 </Text>
               </View>

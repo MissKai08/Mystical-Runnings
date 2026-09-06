@@ -12,6 +12,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { getVoicePreference, setVoicePreference, clearVoicePreference } from "@/utils/voicePreference";
 
 const PREVIEW_TEXT = "Sacred words carry the weight of intention. May your prayers be heard.";
@@ -23,6 +24,7 @@ interface Props {
 
 export default function VoicePickerModal({ visible, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [loading, setLoading] = useState(false);
   const [voices, setVoices] = useState<Speech.Voice[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -108,13 +110,13 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.foreground }]}>Prayer Voice</Text>
+          <Text style={[styles.title, { color: colors.foreground, fontSize: fs(18) }]}>Prayer Voice</Text>
           <Pressable onPress={onClose} hitSlop={10}>
             <Feather name="x" size={20} color={colors.mutedForeground} />
           </Pressable>
         </View>
 
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground, fontSize: fs(13) }]}>
           Tap a voice to preview and select it. Your choice is saved automatically.
         </Text>
 
@@ -124,7 +126,7 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
           </View>
         ) : voices.length === 0 ? (
           <View style={styles.centerWrap}>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground, fontSize: fs(14) }]}>
               No voices available on this device.{"\n"}The default system voice will be used.
             </Text>
           </View>
@@ -154,12 +156,12 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
                   <Text
                     style={[
                       styles.rowName,
-                      { color: selectedId === null ? colors.foreground : colors.mutedForeground },
+                       { color: selectedId === null ? colors.foreground : colors.mutedForeground, fontSize: fs(14) },
                     ]}
                   >
                     System Default (en-NG)
                   </Text>
-                  <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>
+                   <Text style={[styles.rowSub, { color: colors.mutedForeground, fontSize: fs(12) }]}>
                     Original prayer voice
                   </Text>
                 </View>
@@ -197,13 +199,13 @@ export default function VoicePickerModal({ visible, onClose }: Props) {
                       <Text
                         style={[
                           styles.rowName,
-                          { color: isSelected ? colors.foreground : colors.mutedForeground },
+                           { color: isSelected ? colors.foreground : colors.mutedForeground, fontSize: fs(14) },
                         ]}
                       >
                         {voiceLabel(voice)}
                       </Text>
                       {voice.language ? (
-                        <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>
+                         <Text style={[styles.rowSub, { color: colors.mutedForeground, fontSize: fs(12) }]}>
                           {voice.language}
                         </Text>
                       ) : null}

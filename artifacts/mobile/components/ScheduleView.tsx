@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import {
@@ -116,6 +117,7 @@ const LOAD_CHUNK = 30;
 
 export function ScheduleView({ startDate, enabledRegions, specialEntries = [], ifaEnabled = true, onSpecialEntryPress }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const today = useMemo(() => new Date(), []);
   const [selectedEvent, setSelectedEvent] = useState<EventDetail | null>(null);
   const [oseModalGroup, setOseModalGroup] = useState<OseGroup | null>(null);
@@ -179,7 +181,7 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
             ]}
           >
             <Feather name="chevron-up" size={13} color={colors.mutedForeground} />
-            <Text style={[styles.loadEarlierText, { color: colors.mutedForeground }]}>
+            <Text style={[styles.loadEarlierText, { color: colors.mutedForeground }, { fontSize: fs(12) }]}>
               {pastDays === 0 ? "Load earlier dates" : `Load ${LOAD_CHUNK} more days earlier`}
             </Text>
           </Pressable>
@@ -194,9 +196,9 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
             >
               <View style={styles.dateCol}>
                 {isPast && (
-                  <Text style={[styles.pastLabel, { color: colors.mutedForeground }]}>PAST</Text>
+                   <Text style={[styles.pastLabel, { color: colors.mutedForeground }, { fontSize: fs(7) }]}>PAST</Text>
                 )}
-                <Text style={[styles.dateLabel, { color: isToday ? colors.primary : isPast ? colors.mutedForeground : colors.mutedForeground }]}>
+                 <Text style={[styles.dateLabel, { color: isToday ? colors.primary : isPast ? colors.mutedForeground : colors.mutedForeground }, { fontSize: fs(9) }]}>
                   {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
                 </Text>
                 <View
@@ -206,11 +208,11 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                     isPast && styles.dateCirclePast,
                   ]}
                 >
-                  <Text style={[styles.dateNumber, { color: isToday ? colors.primaryForeground : isPast ? colors.mutedForeground : colors.foreground }]}>
+                   <Text style={[styles.dateNumber, { color: isToday ? colors.primaryForeground : isPast ? colors.mutedForeground : colors.foreground }, { fontSize: fs(14) }]}>
                     {date.getDate()}
                   </Text>
                 </View>
-                <Text style={[styles.monthLabel, { color: colors.mutedForeground }]}>
+                 <Text style={[styles.monthLabel, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>
                   {date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </View>
@@ -225,10 +227,10 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                     ]}
                   >
                     <View style={styles.eventCardHeader}>
-                      <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>{event.name}</Text>
-                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                      <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }, { fontSize: fs(14) }]}>{event.name}</Text>
+                      <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                     </View>
-                    <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                     <Text style={[styles.eventDesc, { color: colors.mutedForeground }, { fontSize: fs(12) }]} numberOfLines={2}>
                       {event.description}
                     </Text>
                   </Pressable>
@@ -249,15 +251,15 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                     ]}
                   >
                     <View style={styles.eventCardHeader}>
-                      <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : HOLIDAY_REGION_COLOR[h.region] }]}>
+                      <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : HOLIDAY_REGION_COLOR[h.region] }, { fontSize: fs(10) }]}>
                         {HOLIDAY_REGION_FLAG[h.region]} {HOLIDAY_REGION_LABEL[h.region]}
                       </Text>
-                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                      <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                     </View>
-                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>
+                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }, { fontSize: fs(14) }]}>
                       {h.emoji} {h.name}
                     </Text>
-                    <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                    <Text style={[styles.eventDesc, { color: colors.mutedForeground }, { fontSize: fs(12) }]} numberOfLines={2}>
                       {h.description}
                     </Text>
                   </Pressable>
@@ -288,16 +290,16 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                     ]}
                   >
                     <View style={styles.eventCardHeader}>
-                      <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : SPECIAL_EVENT_COLOR }]}>
+                      <Text style={[styles.holidayRegionLabel, { color: isPast ? colors.mutedForeground : SPECIAL_EVENT_COLOR }, { fontSize: fs(10) }]}>
                         ✨ {entry.category.toUpperCase()}
                       </Text>
-                      <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap to edit</Text>
+                      <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap to edit</Text>
                     </View>
-                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>
+                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }, { fontSize: fs(14) }]}>
                       {entry.title}
                     </Text>
                     {entry.note ? (
-                      <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                       <Text style={[styles.eventDesc, { color: colors.mutedForeground }, { fontSize: fs(12) }]} numberOfLines={2}>
                         {entry.note}
                       </Text>
                     ) : null}
@@ -315,10 +317,10 @@ export function ScheduleView({ startDate, enabledRegions, specialEntries = [], i
                 >
                   <View style={styles.eventCardHeader}>
                     <View style={[styles.oseDot, { backgroundColor: isPast ? colors.mutedForeground : oseDay.color }]} />
-                    <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }]}>{oseDay.name}</Text>
-                    <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                     <Text style={[styles.eventName, { color: isPast ? colors.mutedForeground : colors.foreground }, { fontSize: fs(14) }]}>{oseDay.name}</Text>
+                     <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </View>
-                  <Text style={[styles.eventDesc, { color: colors.mutedForeground }]} numberOfLines={1}>
+                   <Text style={[styles.eventDesc, { color: colors.mutedForeground }, { fontSize: fs(12) }]} numberOfLines={1}>
                     {oseDay.guidance}
                   </Text>
                 </Pressable>

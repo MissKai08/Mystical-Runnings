@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   exportBackup,
   importBackupFromFile,
@@ -84,6 +85,7 @@ function nextRunLabel(freq: AutoBackupFrequency, lastAuto: Date | null): string 
 
 export function BackupRestoreModal({ visible, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>("export");
 
@@ -267,7 +269,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                 size={14}
                 color={isActive ? "#0D0D1A" : colors.mutedForeground}
               />
-              <Text style={[s.destChipText, isActive && s.destChipTextActive]}>
+              <Text style={[s.destChipText, isActive && s.destChipTextActive, { fontSize: fs(13) }]}>
                 {d === "local" ? localLabel : cloudLabel}
               </Text>
             </Pressable>
@@ -283,7 +285,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
       <View style={s.header}>
         <View style={s.headerLeft}>
           <Feather name="database" size={18} color="#D4A843" />
-          <Text style={s.title}>Backup & Restore</Text>
+          <Text style={[s.title, { fontSize: fs(18) }]}>Backup & Restore</Text>
         </View>
         <Pressable onPress={onClose} hitSlop={10} style={s.closeBtn}>
           <Feather name="x" size={20} color={colors.mutedForeground} />
@@ -293,13 +295,13 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
       {/* Status strip */}
       <View style={s.statusStrip}>
         <View style={s.statusItem}>
-          <Text style={s.statusLabel}>Last export</Text>
-          <Text style={s.statusValue}>{formatDate(lastBackup)}</Text>
+          <Text style={[s.statusLabel, { fontSize: fs(10) }]}>Last export</Text>
+          <Text style={[s.statusValue, { fontSize: fs(11) }]}>{formatDate(lastBackup)}</Text>
         </View>
         <View style={s.statusDivider} />
         <View style={s.statusItem}>
-          <Text style={s.statusLabel}>Last auto-backup</Text>
-          <Text style={s.statusValue}>{formatDate(lastAutoBackup)}</Text>
+          <Text style={[s.statusLabel, { fontSize: fs(10) }]}>Last auto-backup</Text>
+          <Text style={[s.statusValue, { fontSize: fs(11) }]}>{formatDate(lastAutoBackup)}</Text>
         </View>
       </View>
 
@@ -320,7 +322,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               size={14}
               color={tab === t ? "#D4A843" : colors.mutedForeground}
             />
-            <Text style={[s.tabText, tab === t && s.tabTextActive]}>
+            <Text style={[s.tabText, tab === t && s.tabTextActive, { fontSize: fs(13) }]}>
               {t === "export" ? "Export" : "Restore"}
             </Text>
           </Pressable>
@@ -336,13 +338,13 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
         {confirmState && (
           <View style={s.confirmCard}>
             <Feather name="alert-triangle" size={16} color="#F59E0B" />
-            <Text style={s.confirmText}>{confirmState.message}</Text>
+            <Text style={[s.confirmText, { fontSize: fs(13) }]}>{confirmState.message}</Text>
             <View style={s.confirmBtns}>
               <Pressable style={s.confirmCancel} onPress={() => setConfirmState(null)}>
-                <Text style={s.confirmCancelText}>Cancel</Text>
+                <Text style={[s.confirmCancelText, { fontSize: fs(13) }]}>Cancel</Text>
               </Pressable>
               <Pressable style={s.confirmOk} onPress={confirmState.onConfirm}>
-                <Text style={s.confirmOkText}>Yes, overwrite</Text>
+                <Text style={[s.confirmOkText, { fontSize: fs(13) }]}>Yes, overwrite</Text>
               </Pressable>
             </View>
           </View>
@@ -352,14 +354,14 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
           <>
             {/* Manual export destination */}
             <View style={s.sectionCard}>
-              <Text style={s.sectionTitle}>Save to</Text>
+              <Text style={[s.sectionTitle, { fontSize: fs(13) }]}>Save to</Text>
               <DestinationToggle
                 value={exportDest}
                 onChange={handleExportDestChange}
                 localLabel="Local (Device)"
                 cloudLabel="Cloud (Share)"
               />
-              <Text style={s.sectionHint}>
+              <Text style={[s.sectionHint, { fontSize: fs(12) }]}>
                 {Platform.OS === "web"
                   ? "Downloads the backup file to your device."
                   : exportDest === "local"
@@ -377,10 +379,10 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             {/* Android-only: Backup Folder picker */}
             {Platform.OS === "android" && (
               <View style={s.sectionCard}>
-                <Text style={s.sectionTitle}>Backup Folder</Text>
+                <Text style={[s.sectionTitle, { fontSize: fs(13) }]}>Backup Folder</Text>
                 <View style={s.folderRow}>
                   <Feather name="folder" size={15} color={backupFolderUri ? "#D4A843" : colors.mutedForeground} />
-                  <Text style={[s.folderLabel, { color: backupFolderUri ? colors.foreground : colors.mutedForeground }]} numberOfLines={1}>
+                  <Text style={[s.folderLabel, { color: backupFolderUri ? colors.foreground : colors.mutedForeground, fontSize: fs(13) }]} numberOfLines={1}>
                     {backupFolderUri
                       ? (() => {
                           try {
@@ -392,21 +394,21 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                       : "Not set — tap to choose"}
                   </Text>
                   <Pressable style={s.folderBtn} onPress={handlePickFolder}>
-                    <Text style={s.folderBtnText}>{backupFolderUri ? "Change" : "Choose"}</Text>
+                    <Text style={[s.folderBtnText, { fontSize: fs(12) }]}>{backupFolderUri ? "Change" : "Choose"}</Text>
                   </Pressable>
                   {backupFolderUri && (
                     <Pressable onPress={handleClearFolder} style={{ marginLeft: 8 }}>
-                      <Text style={[s.folderBtnText, { color: colors.mutedForeground }]}>Clear</Text>
+                      <Text style={[s.folderBtnText, { color: colors.mutedForeground, fontSize: fs(12) }]}>Clear</Text>
                     </Pressable>
                   )}
                 </View>
                 {autoFreq !== "off" && !backupFolderUri && (
                   <View style={s.folderWarn}>
                     <Feather name="alert-triangle" size={12} color="#F59E0B" />
-                    <Text style={s.folderWarnText}>Auto-backup is on — choose a folder so files save where you expect.</Text>
+                    <Text style={[s.folderWarnText, { fontSize: fs(11) }]}>Auto-backup is on — choose a folder so files save where you expect.</Text>
                   </View>
                 )}
-                <Text style={s.sectionHint}>
+                <Text style={[s.sectionHint, { fontSize: fs(12) }]}>
                   Local exports and auto-backups write to this folder. Cloud (Share) always opens the share sheet, regardless of this setting. Required on Android for Local exports and auto-backup — you'll be prompted to choose one if it's not set yet.
                 </Text>
               </View>
@@ -415,16 +417,16 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             {/* Auto-backup */}
             <View style={s.sectionCard}>
               <View style={s.sectionTitleRow}>
-                <Text style={s.sectionTitle}>Auto-Backup</Text>
+                <Text style={[s.sectionTitle, { fontSize: fs(13) }]}>Auto-Backup</Text>
                 {autoFreq !== "off" && (
-                  <Text style={s.nextRunBadge}>
+                  <Text style={[s.nextRunBadge, { fontSize: fs(11) }]}>
                     Due: {nextRunLabel(autoFreq, lastAutoBackup)}
                   </Text>
                 )}
               </View>
 
               {/* Frequency */}
-              <Text style={s.subLabel}>Frequency</Text>
+              <Text style={[s.subLabel, { fontSize: fs(11) }]}>Frequency</Text>
               <View style={s.chipRow}>
                 {(["off", "daily", "weekly"] as AutoBackupFrequency[]).map((f) => (
                   <Pressable
@@ -432,7 +434,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     style={[s.chip, autoFreq === f && s.chipActive]}
                     onPress={() => handleFreqChange(f)}
                   >
-                    <Text style={[s.chipText, autoFreq === f && s.chipTextActive]}>
+                    <Text style={[s.chipText, autoFreq === f && s.chipTextActive, { fontSize: fs(12) }]}>
                       {f === "off" ? "Off" : f === "daily" ? "Daily" : "Weekly"}
                     </Text>
                   </Pressable>
@@ -440,16 +442,16 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               </View>
 
               {autoFreq === "off" ? (
-                <Text style={s.sectionHint}>
+                <Text style={[s.sectionHint, { fontSize: fs(12) }]}>
                   Auto-backup is off. Use the Export button below to save manually whenever you like.
                 </Text>
               ) : (
-                <Text style={s.sectionHint}>
+                <Text style={[s.sectionHint, { fontSize: fs(12) }]}>
                   Checked each time you open the app — if it's due, it backs up then. It won't run while the app is closed.
                 </Text>
               )}
               {autoFreq !== "off" && (
-                <Text style={s.sectionHint}>
+                <Text style={[s.sectionHint, { fontSize: fs(12) }]}>
                   {Platform.OS === "ios"
                     ? "Saves silently to your Documents folder (syncs to iCloud Drive if enabled in Settings)."
                     : Platform.OS === "android"
@@ -459,14 +461,14 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     : "Saves a backup file each time the schedule is due."}
                 </Text>
               )}
-              <Text style={s.sectionHint}>
+              <Text style={[s.sectionHint, { fontSize: fs(12) }]}>
                 Auto-backup saves locally only — use Cloud (Share) above for manual cloud backups.
               </Text>
 
               {lastAutoBackup && autoFreq !== "off" && (
                 <View style={s.lastRow}>
                   <Feather name="clock" size={12} color={colors.mutedForeground} />
-                  <Text style={s.lastText}>Last auto-backup: {formatDate(lastAutoBackup)}</Text>
+                  <Text style={[s.lastText, { fontSize: fs(11) }]}>Last auto-backup: {formatDate(lastAutoBackup)}</Text>
                 </View>
               )}
             </View>
@@ -491,7 +493,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
                     size={18}
                     color="#0D0D1A"
                   />
-                  <Text style={s.primaryBtnText}>
+                  <Text style={[s.primaryBtnText, { fontSize: fs(15) }]}>
                     {Platform.OS === "web"
                       ? "Download Backup"
                       : exportDest === "cloud"
@@ -508,29 +510,29 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             <View style={s.locationCard}>
               {Platform.OS === "ios" ? (
                 <>
-                  <Text style={s.locationTitle}>📂 Where to find your backup</Text>
-                  <Text style={s.locationBody}>
+                  <Text style={[s.locationTitle, { fontSize: fs(13) }]}>📂 Where to find your backup</Text>
+                  <Text style={[s.locationBody, { fontSize: fs(13) }]}>
                     Open the <Text style={s.bold}>Files app</Text> → On My iPhone (or iCloud Drive
                     if you exported to Cloud).{"\n"}
-                    Look for a file named <Text style={s.mono}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.
+                    Look for a file named <Text style={[s.mono, { fontSize: fs(12) }]}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.
                   </Text>
                 </>
               ) : Platform.OS === "android" ? (
                 <>
-                  <Text style={s.locationTitle}>📂 Where to find your backup</Text>
-                  <Text style={s.locationBody}>
+                  <Text style={[s.locationTitle, { fontSize: fs(13) }]}>📂 Where to find your backup</Text>
+                  <Text style={[s.locationBody, { fontSize: fs(13) }]}>
                     Open the <Text style={s.bold}>Files app</Text> → your chosen backup folder (or Internal storage → Documents if no folder was set).
                     {"\n"}
                     Or check <Text style={s.bold}>Google Drive</Text> if you shared it there.{"\n"}
-                    Look for a file named <Text style={s.mono}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.
+                    Look for a file named <Text style={[s.mono, { fontSize: fs(12) }]}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.
                   </Text>
                 </>
               ) : (
                 <>
-                  <Text style={s.locationTitle}>📂 Where to find your backup</Text>
-                  <Text style={s.locationBody}>
+                  <Text style={[s.locationTitle, { fontSize: fs(13) }]}>📂 Where to find your backup</Text>
+                  <Text style={[s.locationBody, { fontSize: fs(13) }]}>
                     Open your <Text style={s.bold}>Downloads folder</Text>.{"\n"}
-                    Look for a file named <Text style={s.mono}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.{"\n"}
+                    Look for a file named <Text style={[s.mono, { fontSize: fs(12) }]}>mystical-runnings-backup-YYYY-MM-DD_HHMM.json</Text>.{"\n"}
                     Or check Google Drive / iCloud Drive if you saved it there.
                   </Text>
                 </>
@@ -538,21 +540,21 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             </View>
 
             <View style={s.stepsCard}>
-              <Text style={s.stepsTitle}>How to restore</Text>
+              <Text style={[s.stepsTitle, { fontSize: fs(13) }]}>How to restore</Text>
               <View style={s.stepRow}>
-                <Text style={s.stepNum}>1</Text>
-                <Text style={s.stepText}>Tap "Choose Backup File" below.</Text>
+                <Text style={[s.stepNum, { fontSize: fs(11) }]}>1</Text>
+                <Text style={[s.stepText, { fontSize: fs(13) }]}>Tap "Choose Backup File" below.</Text>
               </View>
               <View style={s.stepRow}>
-                <Text style={s.stepNum}>2</Text>
-                <Text style={s.stepText}>
+                <Text style={[s.stepNum, { fontSize: fs(11) }]}>2</Text>
+                <Text style={[s.stepText, { fontSize: fs(13) }]}>
                   Navigate to where you saved your backup and select{" "}
-                  <Text style={s.mono}>mystical-runnings-backup.json</Text>.
+                  <Text style={[s.mono, { fontSize: fs(12) }]}>mystical-runnings-backup.json</Text>.
                 </Text>
               </View>
               <View style={s.stepRow}>
-                <Text style={s.stepNum}>3</Text>
-                <Text style={s.stepText}>
+                <Text style={[s.stepNum, { fontSize: fs(11) }]}>3</Text>
+                <Text style={[s.stepText, { fontSize: fs(13) }]}>
                   Confirm — your data will be replaced. Restart the app afterwards.
                 </Text>
               </View>
@@ -568,7 +570,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
               ) : (
                 <>
                   <Feather name="folder" size={18} color="#fff" />
-                  <Text style={[s.primaryBtnText, { color: "#fff" }]}>Choose Backup File</Text>
+                  <Text style={[s.primaryBtnText, { color: "#fff", fontSize: fs(15) }]}>Choose Backup File</Text>
                 </>
               )}
             </Pressable>
@@ -590,7 +592,7 @@ export function BackupRestoreModal({ visible, onClose }: Props) {
             size={16}
             color={feedback.type === "success" ? "#4ADE80" : "#F87171"}
           />
-          <Text style={s.feedbackText}>{feedback.message}</Text>
+          <Text style={[s.feedbackText, { fontSize: fs(13) }]}>{feedback.message}</Text>
         </Animated.View>
       )}
     </View>

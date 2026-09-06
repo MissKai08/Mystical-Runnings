@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { loadAllIntentions, saveIntention, deleteIntention } from "@/utils/intentionsStorage";
 
 const MONTH_NAMES = [
@@ -44,6 +45,7 @@ interface Props {
 
 export default function LunarIntentionsHistoryModal({ visible, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [loading, setLoading] = useState(false);
   const [intentions, setIntentions] = useState<{ dateKey: string; text: string }[]>([]);
   const [editing, setEditing] = useState<{ dateKey: string; text: string } | null>(null);
@@ -98,7 +100,7 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.foreground }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontSize: fs(18) }]}>
             🌑 Lunar Intentions
           </Text>
           <Pressable onPress={onClose} hitSlop={10}>
@@ -112,8 +114,8 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
           </View>
         ) : intentions.length === 0 ? (
           <View style={styles.centerWrap}>
-            <Text style={[styles.emptyIcon, { color: colors.mutedForeground }]}>🌑</Text>
-            <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+            <Text style={[styles.emptyIcon, { color: colors.mutedForeground, fontSize: fs(36) }]}>🌑</Text>
+            <Text style={[styles.emptyText, { color: colors.mutedForeground, fontSize: fs(14) }]}>
               No intentions planted yet.{"\n"}Set a Lunar Intention at each new moon.
             </Text>
           </View>
@@ -128,7 +130,7 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
                 style={[styles.card, { backgroundColor: colors.card, borderColor: "#7C3AED30" }]}
               >
                 <View style={styles.cardHeader}>
-                  <Text style={[styles.cardDate, { color: "#A78BFA" }]}>
+                  <Text style={[styles.cardDate, { color: "#A78BFA", fontSize: fs(13) }]}>
                     🌑 {labelForDateKey(dateKey)}
                   </Text>
                   <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
@@ -143,7 +145,7 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
                     </Pressable>
                   </View>
                 </View>
-                <Text style={[styles.cardText, { color: colors.foreground }]}>
+                <Text style={[styles.cardText, { color: colors.foreground, fontSize: fs(15) }]}>
                   {text}
                 </Text>
               </View>
@@ -163,11 +165,11 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
           behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
-            <Text style={[styles.title, { color: colors.foreground, marginBottom: 4 }]}>
+            <Text style={[styles.title, { color: colors.foreground, fontSize: fs(18), marginBottom: 4 }]}>
               Edit Intention
             </Text>
             {editing && (
-              <Text style={[styles.cardDate, { color: "#A78BFA", marginBottom: 16 }]}>
+              <Text style={[styles.cardDate, { color: "#A78BFA", fontSize: fs(13), marginBottom: 16 }]}>
                 🌑 {labelForDateKey(editing.dateKey)}
               </Text>
             )}
@@ -179,7 +181,7 @@ export default function LunarIntentionsHistoryModal({ visible, onClose }: Props)
               autoFocus
               style={{
                 color: colors.foreground,
-                fontSize: 15,
+                fontSize: fs(15),
                 lineHeight: 22,
                 minHeight: 120,
                 borderWidth: 1,

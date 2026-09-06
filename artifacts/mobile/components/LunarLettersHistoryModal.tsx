@@ -10,6 +10,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { JournalEntry } from "@/utils/journalStorage";
 import { LunarLetterData } from "@/utils/lunarLetter";
 import LunarLetterModal from "@/components/LunarLetterModal";
@@ -27,6 +28,7 @@ interface Props {
 
 export default function LunarLettersHistoryModal({ visible, entries, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [selectedLetter, setSelectedLetter] = useState<LunarLetterData | null>(null);
 
   const lunarLetterEntries = entries
@@ -67,7 +69,7 @@ export default function LunarLettersHistoryModal({ visible, entries, onClose }: 
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.foreground }]}>
+            <Text style={[styles.title, { color: colors.foreground, fontSize: fs(18) }]}>
               ✦ Past Lunar Letters
             </Text>
             <Pressable onPress={onClose} hitSlop={10}>
@@ -77,8 +79,8 @@ export default function LunarLettersHistoryModal({ visible, entries, onClose }: 
 
           {lunarLetterEntries.length === 0 ? (
             <View style={styles.emptyWrap}>
-              <Text style={[styles.emptyIcon, { color: colors.mutedForeground }]}>✦</Text>
-              <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
+              <Text style={[styles.emptyIcon, { color: colors.mutedForeground, fontSize: fs(36) }]}>✦</Text>
+              <Text style={[styles.emptyText, { color: colors.mutedForeground, fontSize: fs(14) }]}>
                 No saved Lunar Letters yet.{"\n"}Open the Lunar Letter for any month and tap Save.
               </Text>
             </View>
@@ -94,8 +96,8 @@ export default function LunarLettersHistoryModal({ visible, entries, onClose }: 
                   onPress={() => openEntry(entry)}
                 >
                   <View style={styles.rowLeft}>
-                    <Text style={styles.rowGlyph}>✦</Text>
-                    <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    <Text style={[styles.rowGlyph, { fontSize: fs(16) }]}>✦</Text>
+                    <Text style={[styles.rowLabel, { color: colors.foreground, fontSize: fs(15) }]}>
                       {labelForEntry(entry)}
                     </Text>
                   </View>

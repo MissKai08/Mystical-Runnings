@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { LunarLetterData } from "@/utils/lunarLetter";
 
 interface LunarLetterModalProps {
@@ -28,6 +29,7 @@ export default function LunarLetterModal({
   onClose,
 }: LunarLetterModalProps) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
@@ -55,11 +57,11 @@ export default function LunarLetterModal({
         {/* Header */}
         <View style={[s.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={onClose} hitSlop={10} style={s.closeBtn}>
-            <Text style={[s.closeTxt, { color: colors.mutedForeground }]}>✕</Text>
+            <Text style={[s.closeTxt, { color: colors.mutedForeground, fontSize: fs(18) }]}>✕</Text>
           </Pressable>
           <View style={s.headerCenter}>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>Lunar Letter</Text>
-            <Text style={[s.headerSub, { color: "#D4A843" }]}>
+            <Text style={[s.headerTitle, { color: colors.foreground, fontSize: fs(16) }]}>Lunar Letter</Text>
+            <Text style={[s.headerSub, { color: "#D4A843", fontSize: fs(12) }]}>
               {MONTH_NAMES[letter.month]} {letter.year}
             </Text>
           </View>
@@ -75,7 +77,7 @@ export default function LunarLetterModal({
           {/* Decorative top */}
           <View style={s.decorRow}>
             <View style={[s.decorLine, { backgroundColor: "#D4A84344" }]} />
-            <Text style={s.decorSymbol}>✦</Text>
+            <Text style={[s.decorSymbol, { fontSize: fs(14) }]}>✦</Text>
             <View style={[s.decorLine, { backgroundColor: "#D4A84344" }]} />
           </View>
 
@@ -99,14 +101,14 @@ export default function LunarLetterModal({
                 key={idx}
                 style={[
                   s.letterLine,
-                  { color: colors.foreground },
-                  isHeading && [s.heading, { color: "#D4A843" }],
-                  line === "Dear One," && [s.salutation, { color: colors.foreground }],
-                  isOdu && [s.oduLine, { color: "#A78BFA" }],
-                  isIndented && [s.oduQuote, { color: colors.mutedForeground }],
-                  isSectionLabel && [s.sectionLabel, { color: colors.mutedForeground }],
-                  isIntentionQ && [s.intentionQ, { color: "#D4A843" }],
-                  isClosing && [s.closing, { color: colors.mutedForeground }],
+                  { color: colors.foreground, fontSize: fs(15) },
+                  isHeading && [s.heading, { color: "#D4A843", fontSize: fs(11) }],
+                  line === "Dear One," && [s.salutation, { color: colors.foreground, fontSize: fs(17) }],
+                  isOdu && [s.oduLine, { color: "#A78BFA", fontSize: fs(14) }],
+                  isIndented && [s.oduQuote, { color: colors.mutedForeground, fontSize: fs(13) }],
+                  isSectionLabel && [s.sectionLabel, { color: colors.mutedForeground, fontSize: fs(12) }],
+                  isIntentionQ && [s.intentionQ, { color: "#D4A843", fontSize: fs(16) }],
+                  isClosing && [s.closing, { color: colors.mutedForeground, fontSize: fs(13) }],
                 ]}
               >
                 {line}
@@ -117,7 +119,7 @@ export default function LunarLetterModal({
           {/* Decorative bottom */}
           <View style={[s.decorRow, { marginTop: 24 }]}>
             <View style={[s.decorLine, { backgroundColor: "#D4A84444" }]} />
-            <Text style={s.decorSymbol}>✦</Text>
+            <Text style={[s.decorSymbol, { fontSize: fs(14) }]}>✦</Text>
             <View style={[s.decorLine, { backgroundColor: "#D4A84444" }]} />
           </View>
         </ScrollView>
@@ -126,7 +128,7 @@ export default function LunarLetterModal({
         <View style={[s.footer, { borderTopColor: colors.border, paddingBottom: 32 }]}>
           {alreadySaved ? (
             <View style={[s.savedBadge, { backgroundColor: "#D4A84318", borderColor: "#D4A84344" }]}>
-              <Text style={[s.savedTxt, { color: "#D4A843" }]}>✦ Saved to your journal</Text>
+              <Text style={[s.savedTxt, { color: "#D4A843", fontSize: fs(14) }]}>✦ Saved to your journal</Text>
             </View>
           ) : (
             <Pressable
@@ -137,12 +139,12 @@ export default function LunarLetterModal({
               {saving ? (
                 <ActivityIndicator color="#080714" />
               ) : (
-                <Text style={s.saveBtnTxt}>Save to Journal</Text>
+                <Text style={[s.saveBtnTxt, { fontSize: fs(15) }]}>Save to Journal</Text>
               )}
             </Pressable>
           )}
           <Pressable onPress={onClose} style={s.dismissBtn}>
-            <Text style={[s.dismissTxt, { color: colors.mutedForeground }]}>Close</Text>
+            <Text style={[s.dismissTxt, { color: colors.mutedForeground, fontSize: fs(14) }]}>Close</Text>
           </Pressable>
         </View>
       </View>

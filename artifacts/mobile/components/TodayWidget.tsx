@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { MoonPhaseCircle } from "@/components/MoonPhaseCircle";
 import { OseDetailModal } from "@/components/OseDetailModal";
 import { EventDetailModal, EventDetail } from "@/components/EventDetailModal";
@@ -173,6 +174,7 @@ interface Props {
 
 export function TodayWidget({ today }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const moon = useMemo(() => getMoonPhaseData(today), [today]);
   const oseDay = useMemo(() => getOseDay(today), [today]);
   const nextEvent = useMemo(() => findNextEvent(today), [today]);
@@ -231,11 +233,11 @@ export function TodayWidget({ today }: Props) {
           style={({ pressed }) => [styles.panel, { opacity: pressed ? 0.75 : 1 }]}
         >
           <MoonPhaseCircle moonData={moon} size={44} />
-          <Text style={[styles.panelLabel, { color: "#A78BFA" }]}>MOON</Text>
-          <Text style={[styles.panelTitle, { color: colors.foreground }]} numberOfLines={2}>
+          <Text style={[styles.panelLabel, { color: "#A78BFA" }, { fontSize: fs(9) }]}>MOON</Text>
+          <Text style={[styles.panelTitle, { color: colors.foreground }, { fontSize: fs(12) }]} numberOfLines={2}>
             {moon.name}
           </Text>
-          <Text style={[styles.panelSub, { color: colors.mutedForeground }]}>
+          <Text style={[styles.panelSub, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
             {moon.illumination}% lit
           </Text>
         </Pressable>
@@ -249,11 +251,11 @@ export function TodayWidget({ today }: Props) {
           style={({ pressed }) => [styles.panel, { opacity: pressed ? 0.75 : 1 }]}
         >
           <View style={[styles.oseDot, { backgroundColor: oseDay.color }]} />
-          <Text style={[styles.panelLabel, { color: oseDay.color }]}>OSE DAY</Text>
-          <Text style={[styles.panelTitle, { color: colors.foreground }]} numberOfLines={2}>
+          <Text style={[styles.panelLabel, { color: oseDay.color }, { fontSize: fs(9) }]}>OSE DAY</Text>
+          <Text style={[styles.panelTitle, { color: colors.foreground }, { fontSize: fs(12) }]} numberOfLines={2}>
             {oseDay.name.replace("Ose ", "")}
           </Text>
-          <Text style={[styles.panelSub, { color: colors.mutedForeground }]} numberOfLines={2}>
+          <Text style={[styles.panelSub, { color: colors.mutedForeground }, { fontSize: fs(11) }]} numberOfLines={2}>
             {oseDay.shortOrisas}
           </Text>
         </Pressable>
@@ -275,20 +277,20 @@ export function TodayWidget({ today }: Props) {
         >
           {nextEvent ? (
             <>
-              <Text style={styles.nextEmoji}>{nextEvent.emoji}</Text>
-              <Text style={[styles.panelLabel, { color: nextEvent.color }]}>NEXT</Text>
-              <Text style={[styles.panelTitle, { color: colors.foreground }]} numberOfLines={2}>
+              <Text style={[styles.nextEmoji, { fontSize: fs(32) }]}>{nextEvent.emoji}</Text>
+              <Text style={[styles.panelLabel, { color: nextEvent.color }, { fontSize: fs(9) }]}>NEXT</Text>
+              <Text style={[styles.panelTitle, { color: colors.foreground }, { fontSize: fs(12) }]} numberOfLines={2}>
                 {nextEvent.label}
               </Text>
-              <Text style={[styles.panelSub, { color: colors.mutedForeground }]}>
+              <Text style={[styles.panelSub, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
                 {daysLabel(nextEvent.daysUntil)}
               </Text>
             </>
           ) : (
             <>
-              <Text style={styles.nextEmoji}>✦</Text>
-              <Text style={[styles.panelLabel, { color: colors.mutedForeground }]}>NEXT</Text>
-              <Text style={[styles.panelSub, { color: colors.mutedForeground }]}>Nothing soon</Text>
+              <Text style={[styles.nextEmoji, { fontSize: fs(32) }]}>✦</Text>
+              <Text style={[styles.panelLabel, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>NEXT</Text>
+              <Text style={[styles.panelSub, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>Nothing soon</Text>
             </>
           )}
         </Pressable>
@@ -304,10 +306,10 @@ export function TodayWidget({ today }: Props) {
         >
           <View style={[styles.sabbatDot, { backgroundColor: "#34D399" }]} />
           <View style={styles.sabbatText}>
-            <Text style={[styles.sabbatLabel, { color: "#34D399" }]}>WHEEL OF THE YEAR — TODAY</Text>
-            <Text style={[styles.sabbatTitle, { color: colors.foreground }]}>{sabbatToday!.name.split(" —")[0]}</Text>
+            <Text style={[styles.sabbatLabel, { color: "#34D399" }, { fontSize: fs(9) }]}>WHEEL OF THE YEAR — TODAY</Text>
+            <Text style={[styles.sabbatTitle, { color: colors.foreground }, { fontSize: fs(13) }]}>{sabbatToday!.name.split(" —")[0]}</Text>
           </View>
-          <Text style={[styles.sabbatHint, { color: colors.mutedForeground }]}>Tap ›</Text>
+          <Text style={[styles.sabbatHint, { color: colors.mutedForeground }, { fontSize: fs(13) }]}>Tap ›</Text>
         </Pressable>
       )}
 

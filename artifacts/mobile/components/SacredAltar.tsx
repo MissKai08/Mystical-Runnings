@@ -11,6 +11,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 
 const STORAGE_KEY = "@mystical_altar_v1";
 
@@ -88,6 +89,7 @@ interface SacredAltarProps {
 
 export default function SacredAltar({ collapsed = false }: SacredAltarProps) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [slots, setSlots] = useState<AltarSlot[]>(EMPTY_ALTAR);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
@@ -157,17 +159,17 @@ export default function SacredAltar({ collapsed = false }: SacredAltarProps) {
         onPress={() => { Haptics.selectionAsync(); setOpen((v) => !v); }}
       >
         <View style={s.headerLeft}>
-          <Text style={s.headerEmoji}>🏛️</Text>
+          <Text style={[s.headerEmoji, { fontSize: fs(24) }]}>🏛️</Text>
           <View>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>Sacred Altar</Text>
-            <Text style={[s.headerSub, { color: colors.mutedForeground }]}>
+            <Text style={[s.headerTitle, { color: colors.foreground, fontSize: fs(14) }]}>Sacred Altar</Text>
+            <Text style={[s.headerSub, { color: colors.mutedForeground, fontSize: fs(11) }]}>
               {filledCount === 0
                 ? "Place your offerings"
                 : `${filledCount} of 9 offerings placed`}
             </Text>
           </View>
         </View>
-        <Text style={[s.chevron, { color: colors.mutedForeground }]}>{open ? "▲" : "▼"}</Text>
+        <Text style={[s.chevron, { color: colors.mutedForeground, fontSize: fs(10) }]}>{open ? "▲" : "▼"}</Text>
       </Pressable>
 
       {open && (
@@ -192,13 +194,13 @@ export default function SacredAltar({ collapsed = false }: SacredAltarProps) {
                 >
                   {slot ? (
                     <>
-                      <Text style={[s.cellEmoji, isCenter && s.centerEmoji]}>{slot.emoji}</Text>
-                      <Text style={[s.cellLabel, { color: slot.color }]}>{slot.label}</Text>
+                       <Text style={[s.cellEmoji, isCenter && s.centerEmoji, { fontSize: fs(isCenter ? 32 : 26) }]}>{slot.emoji}</Text>
+                       <Text style={[s.cellLabel, { color: slot.color, fontSize: fs(9) }]}>{slot.label}</Text>
                     </>
                   ) : (
                     <>
-                      <Text style={[s.emptyPlus, { color: colors.border }]}>+</Text>
-                      <Text style={[s.emptyLabel, { color: colors.border }]}>{label}</Text>
+                       <Text style={[s.emptyPlus, { color: colors.border, fontSize: fs(20) }]}>+</Text>
+                       <Text style={[s.emptyLabel, { color: colors.border, fontSize: fs(8) }]}>{label}</Text>
                     </>
                   )}
                 </Pressable>
@@ -206,7 +208,7 @@ export default function SacredAltar({ collapsed = false }: SacredAltarProps) {
             })}
           </View>
 
-          <Text style={[s.hint, { color: colors.mutedForeground }]}>
+           <Text style={[s.hint, { color: colors.mutedForeground, fontSize: fs(10) }]}>
             Tap a spot to place an offering · Hold a placed symbol to remove
           </Text>
         </>
@@ -221,13 +223,13 @@ export default function SacredAltar({ collapsed = false }: SacredAltarProps) {
       >
         <View style={[s.pickerModal, { backgroundColor: colors.background }]}>
           <View style={[s.pickerHeader, { borderBottomColor: colors.border }]}>
-            <Text style={[s.pickerTitle, { color: colors.foreground }]}>Choose an Offering</Text>
+             <Text style={[s.pickerTitle, { color: colors.foreground, fontSize: fs(17) }]}>Choose an Offering</Text>
             <Pressable
               onPress={() => { setPickerOpen(false); setActiveSlot(null); }}
               style={s.pickerClose}
               hitSlop={10}
             >
-              <Text style={[s.pickerCloseText, { color: colors.mutedForeground }]}>✕</Text>
+               <Text style={[s.pickerCloseText, { color: colors.mutedForeground, fontSize: fs(18) }]}>✕</Text>
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={s.pickerGrid}>
@@ -241,8 +243,8 @@ export default function SacredAltar({ collapsed = false }: SacredAltarProps) {
                   pressed && { opacity: 0.7, transform: [{ scale: 0.96 }] },
                 ]}
               >
-                <Text style={s.pickerEmoji}>{sym.emoji}</Text>
-                <Text style={[s.pickerLabel, { color: sym.color }]}>{sym.label}</Text>
+                 <Text style={[s.pickerEmoji, { fontSize: fs(30) }]}>{sym.emoji}</Text>
+                 <Text style={[s.pickerLabel, { color: sym.color, fontSize: fs(9) }]}>{sym.label}</Text>
               </Pressable>
             ))}
           </ScrollView>

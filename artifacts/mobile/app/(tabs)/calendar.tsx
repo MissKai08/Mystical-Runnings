@@ -40,6 +40,7 @@ import {
 } from "@/constants/religiousHolidays";
 import * as Haptics from "expo-haptics";
 import { useUserProfile } from "@/contexts/UserProfileContext";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import { loadEntries, type JournalEntry } from "@/utils/journalStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Modal, TextInput, Alert } from "react-native";
@@ -148,6 +149,7 @@ const REGION_LABEL: Record<HolidayRegion, string> = {
 
 export default function CalendarScreen() {
   const colors = useColors();
+  const { fs } = useFontScale();
   const insets = useSafeAreaInsets();
   const { profile } = useUserProfile();
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>([]);
@@ -457,7 +459,7 @@ export default function CalendarScreen() {
               />
             </View>
             <Pressable onPress={closeSearch} style={styles.cancelBtn} hitSlop={8}>
-              <Text style={[styles.cancelText, { color: colors.primary }]}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: colors.primary, fontSize: fs(14) }]}>Cancel</Text>
             </Pressable>
           </View>
         ) : (
@@ -466,10 +468,10 @@ export default function CalendarScreen() {
               <Feather name="chevron-left" size={22} color={colors.foreground} />
             </Pressable>
             <Pressable onPress={openJumpModal} style={{ flex: 1 }} hitSlop={8}>
-              <Text style={[styles.headerTitle, { color: colors.foreground, textAlign: "center" }]}>{headerTitle}</Text>
+              <Text style={[styles.headerTitle, { color: colors.foreground, textAlign: "center", fontSize: fs(18) }]}>{headerTitle}</Text>
             </Pressable>
             <Pressable onPress={handleToday} style={styles.todayBtn} hitSlop={8}>
-              <Text style={[styles.todayBtnText, { color: "#D4A843" }]}>Today</Text>
+              <Text style={[styles.todayBtnText, { color: "#D4A843", fontSize: fs(13) }]}>Today</Text>
             </Pressable>
             <Pressable onPress={openSearch} style={styles.navBtn} hitSlop={8}>
               <Feather name="search" size={20} color={colors.foreground} />
@@ -493,19 +495,19 @@ export default function CalendarScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {searchQuery.length > 0 && (
-            <Text style={[styles.resultCount, { color: colors.mutedForeground }]}>
+            <Text style={[styles.resultCount, { color: colors.mutedForeground, fontSize: fs(11) }]}>
               {searchResults.length} event{searchResults.length === 1 ? "" : "s"} found
             </Text>
           )}
           {searchQuery.length === 0 && (
-            <Text style={[styles.resultCount, { color: colors.mutedForeground }]}>
+            <Text style={[styles.resultCount, { color: colors.mutedForeground, fontSize: fs(11) }]}>
               All notable events · tap to jump to date
             </Text>
           )}
           {searchResults.length === 0 && searchQuery.length > 0 && (
             <View style={styles.noResults}>
               <Feather name="search" size={32} color={colors.mutedForeground} />
-              <Text style={[styles.noResultsText, { color: colors.mutedForeground }]}>
+              <Text style={[styles.noResultsText, { color: colors.mutedForeground, fontSize: fs(14) }]}>
                 No events match "{searchQuery}"
               </Text>
             </View>
@@ -518,8 +520,8 @@ export default function CalendarScreen() {
             >
               <View style={[styles.resultDot, { backgroundColor: result.color }]} />
               <View style={styles.resultText}>
-                <Text style={[styles.resultName, { color: colors.foreground }]}>{result.name}</Text>
-                <Text style={[styles.resultDate, { color: "#D4A843" }]}>
+                <Text style={[styles.resultName, { color: colors.foreground, fontSize: fs(15) }]}>{result.name}</Text>
+                <Text style={[styles.resultDate, { color: "#D4A843", fontSize: fs(12) }]}>
                   {result.date.toLocaleDateString("en-US", {
                     weekday: "short",
                     month: "long",
@@ -527,7 +529,7 @@ export default function CalendarScreen() {
                     year: "numeric",
                   })}
                 </Text>
-                <Text style={[styles.resultDesc, { color: colors.mutedForeground }]} numberOfLines={2}>
+                <Text style={[styles.resultDesc, { color: colors.mutedForeground, fontSize: fs(12) }]} numberOfLines={2}>
                   {result.description}
                 </Text>
               </View>
@@ -554,8 +556,8 @@ export default function CalendarScreen() {
                   },
                 ]}
               >
-                <Text style={styles.regionChipFlag}>🔮</Text>
-                <Text style={[styles.regionChipLabel, { color: ifaEnabled ? EVENT_COLORS["ifa-prayer"] : colors.mutedForeground }]}>
+                <Text style={[styles.regionChipFlag, { fontSize: fs(12) }]}>🔮</Text>
+                <Text style={[styles.regionChipLabel, { color: ifaEnabled ? EVENT_COLORS["ifa-prayer"] : colors.mutedForeground, fontSize: fs(11) }]}>
                   Ifa
                 </Text>
               </Pressable>
@@ -574,8 +576,8 @@ export default function CalendarScreen() {
                       },
                     ]}
                   >
-                    <Text style={styles.regionChipFlag}>{HOLIDAY_REGION_FLAG[region]}</Text>
-                    <Text style={[styles.regionChipLabel, { color: active ? HOLIDAY_REGION_COLOR[region] : colors.mutedForeground }]}>
+                    <Text style={[styles.regionChipFlag, { fontSize: fs(12) }]}>{HOLIDAY_REGION_FLAG[region]}</Text>
+                    <Text style={[styles.regionChipLabel, { color: active ? HOLIDAY_REGION_COLOR[region] : colors.mutedForeground, fontSize: fs(11) }]}>
                       {REGION_LABEL[region]}
                     </Text>
                   </Pressable>
@@ -621,7 +623,7 @@ export default function CalendarScreen() {
           <Modal visible={specialModalOpen} transparent animationType="slide" onRequestClose={() => { setSpecialModalOpen(false); setSpecialEditingId(null); }}>
             <View style={styles.modalBackdrop}>
               <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                <Text style={[styles.modalTitle, { color: colors.foreground, fontSize: fs(18) }]}>
                   {specialEditingId ? "Edit Calendar Entry" : "New Calendar Entry"}
                 </Text>
                 <TextInput
@@ -670,12 +672,12 @@ export default function CalendarScreen() {
           <Modal visible={jumpModalOpen} transparent animationType="slide" onRequestClose={() => setJumpModalOpen(false)}>
             <View style={styles.modalBackdrop}>
               <View style={[styles.modalCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Jump to Date</Text>
+                <Text style={[styles.modalTitle, { color: colors.foreground, fontSize: fs(18) }]}>Jump to Date</Text>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24, marginBottom: 16 }}>
                   <Pressable onPress={() => setJumpYear((y) => y - 1)} hitSlop={8}>
                     <Feather name="chevron-left" size={20} color={colors.foreground} />
                   </Pressable>
-                  <Text style={{ color: colors.foreground, fontSize: 18, fontWeight: "700" }}>{jumpYear}</Text>
+                  <Text style={{ color: colors.foreground, fontSize: fs(18), fontWeight: "700" }}>{jumpYear}</Text>
                   <Pressable onPress={() => setJumpYear((y) => y + 1)} hitSlop={8}>
                     <Feather name="chevron-right" size={20} color={colors.foreground} />
                   </Pressable>
@@ -691,7 +693,7 @@ export default function CalendarScreen() {
                         borderWidth: 1, borderColor: colors.border,
                       }}
                     >
-                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>{m.slice(0, 3)}</Text>
+                      <Text style={{ color: colors.foreground, fontSize: fs(13), fontWeight: "600" }}>{m.slice(0, 3)}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -765,6 +767,7 @@ const LEGEND_GROUPS = [
 
 function Legend({ bottomPad }: { bottomPad: number }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -781,26 +784,26 @@ function Legend({ bottomPad }: { bottomPad: number }) {
                 <View style={[styles.legendDot, { backgroundColor: item.color }]} />
               </View>
             ))}
-            <Text style={[styles.legendToggleLabel, { color: colors.mutedForeground }]}>Legend</Text>
+            <Text style={[styles.legendToggleLabel, { color: colors.mutedForeground, fontSize: fs(11) }]}>Legend</Text>
             <Feather name="chevron-up" size={13} color={colors.mutedForeground} />
           </View>
         )}
         {expanded && (
           <View style={styles.legendExpanded}>
             <View style={styles.legendExpandedHeader}>
-              <Text style={[styles.legendExpandedTitle, { color: colors.foreground }]}>Calendar Legend</Text>
+              <Text style={[styles.legendExpandedTitle, { color: colors.foreground, fontSize: fs(13) }]}>Calendar Legend</Text>
               <Feather name="chevron-down" size={14} color={colors.mutedForeground} />
             </View>
             {LEGEND_GROUPS.map((group) => (
               <View key={group.heading} style={styles.legendGroup}>
-                <Text style={[styles.legendGroupLabel, { color: colors.mutedForeground }]}>
+                <Text style={[styles.legendGroupLabel, { color: colors.mutedForeground, fontSize: fs(9) }]}>
                   {group.heading.toUpperCase()}
                 </Text>
                 <View style={styles.legendGroupItems}>
                   {group.items.map((item, i) => (
                     <View key={i} style={styles.legendItem}>
                       <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                      <Text style={[styles.legendLabel, { color: colors.foreground }]}>{item.label}</Text>
+                      <Text style={[styles.legendLabel, { color: colors.foreground, fontSize: fs(12) }]}>{item.label}</Text>
                     </View>
                   ))}
                 </View>

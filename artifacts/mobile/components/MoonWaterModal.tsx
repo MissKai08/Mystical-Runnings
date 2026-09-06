@@ -14,6 +14,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { Feather } from "@expo/vector-icons";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   type RitualStep,
   type RitualLog,
@@ -62,6 +63,7 @@ function StepCard({
   accent: string;
 }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [tipOpen, setTipOpen] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
 
@@ -94,7 +96,7 @@ function StepCard({
         <View style={sc.body}>
           <View style={sc.topRow}>
             <View style={[sc.catBadge, { backgroundColor: cc + "22", borderColor: cc + "55" }]}>
-              <Text style={[sc.catText, { color: cc }]}>{step.category}</Text>
+              <Text style={[sc.catText, { color: cc, fontSize: fs(9) }]}>{step.category}</Text>
             </View>
             {step.tip && (
               <Pressable onPress={() => setTipOpen((v) => !v)} hitSlop={8}>
@@ -102,11 +104,11 @@ function StepCard({
               </Pressable>
             )}
           </View>
-          <Text style={[sc.label, { color: checked ? colors.mutedForeground : colors.foreground }, checked && sc.labelDone]}>
+          <Text style={[sc.label, { color: checked ? colors.mutedForeground : colors.foreground, fontSize: fs(14) }, checked && sc.labelDone]}>
             {step.label}
           </Text>
           {tipOpen && step.tip && (
-            <Text style={[sc.tip, { color: colors.mutedForeground, borderLeftColor: accent + "66" }]}>
+            <Text style={[sc.tip, { color: colors.mutedForeground, borderLeftColor: accent + "66", fontSize: fs(12) }]}>
               {step.tip}
             </Text>
           )}
@@ -163,6 +165,7 @@ function HistoryCard({
   onEdit: (log: RitualLog) => void;
 }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [open, setOpen] = useState(false);
   const steps = getStepsForPhase(log.phase);
   const pct = steps.length > 0 ? Math.round((log.completedSteps.length / steps.length) * 100) : 0;
@@ -174,18 +177,18 @@ function HistoryCard({
     >
       <View style={hc.row}>
         <View style={hc.left}>
-          <Text style={[hc.name, { color: log.isComplete ? accent : colors.foreground }]}>{log.phaseName}</Text>
-          <Text style={[hc.date, { color: colors.mutedForeground }]}>
+          <Text style={[hc.name, { color: log.isComplete ? accent : colors.foreground, fontSize: fs(14) }]}>{log.phaseName}</Text>
+          <Text style={[hc.date, { color: colors.mutedForeground, fontSize: fs(12) }]}>
             {new Date(log.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </Text>
         </View>
         <View style={hc.right}>
           {log.isComplete ? (
             <View style={[hc.badge, { backgroundColor: accent + "22", borderColor: accent + "55" }]}>
-              <Text style={[hc.badgeText, { color: accent }]}>Complete</Text>
+              <Text style={[hc.badgeText, { color: accent, fontSize: fs(10) }]}>Complete</Text>
             </View>
           ) : (
-            <Text style={[hc.pct, { color: colors.mutedForeground }]}>{pct}%</Text>
+            <Text style={[hc.pct, { color: colors.mutedForeground, fontSize: fs(13) }]}>{pct}%</Text>
           )}
           <Feather name={open ? "chevron-up" : "chevron-down"} size={14} color={colors.mutedForeground} />
         </View>
@@ -196,12 +199,12 @@ function HistoryCard({
             <View style={[hc.barBg, { backgroundColor: colors.border }]}>
               <View style={[hc.barFill, { width: `${pct}%` as any, backgroundColor: accent }]} />
             </View>
-            <Text style={[hc.barLabel, { color: colors.mutedForeground }]}>
+            <Text style={[hc.barLabel, { color: colors.mutedForeground, fontSize: fs(11) }]}>
               {log.completedSteps.length}/{steps.length} steps
             </Text>
           </View>
           {log.notes.trim() !== "" && (
-            <Text style={[hc.notes, { color: colors.mutedForeground, borderLeftColor: accent + "66" }]}>
+            <Text style={[hc.notes, { color: colors.mutedForeground, borderLeftColor: accent + "66", fontSize: fs(13) }]}>
               {log.notes}
             </Text>
           )}
@@ -210,7 +213,7 @@ function HistoryCard({
             style={hc.editLink}
           >
             <Feather name="edit-2" size={12} color={accent} />
-            <Text style={[hc.editLinkText, { color: accent }]}>
+            <Text style={[hc.editLinkText, { color: accent, fontSize: fs(12) }]}>
               {log.notes.trim() !== "" ? "Edit Notes" : "Add Notes"}
             </Text>
           </Pressable>
@@ -260,6 +263,7 @@ function EditHistoryNotesModal({
   onSaved: (updated: RitualLog) => void;
 }) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -285,10 +289,10 @@ function EditHistoryNotesModal({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 24 }}>
-          <Text style={[hc.name, { color: colors.foreground, fontSize: 18, marginBottom: 4 }]}>
+          <Text style={[hc.name, { color: colors.foreground, fontSize: fs(18), marginBottom: 4 }]}>
             Edit Notes
           </Text>
-          <Text style={[hc.date, { color: colors.mutedForeground, marginBottom: 16 }]}>
+          <Text style={[hc.date, { color: colors.mutedForeground, fontSize: fs(12), marginBottom: 16 }]}>
             {log?.phaseName}
           </Text>
           <TextInput
@@ -298,7 +302,7 @@ function EditHistoryNotesModal({
             placeholderTextColor={colors.mutedForeground}
             style={{
               color: colors.foreground,
-              fontSize: 15,
+              fontSize: fs(15),
               lineHeight: 22,
               minHeight: 140,
               borderWidth: 1,
@@ -368,6 +372,7 @@ type Tab = "ritual" | "history";
 
 export default function MoonWaterModal({ visible, onClose, phase, phaseName, phaseEmoji }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const accent = PHASE_ACCENT[phase] ?? "#A78BFA";
   const steps = getStepsForPhase(phase);
   const cycleKey = makeCycleKey(phase);
@@ -461,11 +466,11 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
         {/* Header */}
         <View style={[s.header, { borderBottomColor: colors.border }]}>
           <Pressable onPress={handleClose} hitSlop={12} style={s.closeBtn}>
-            <Text style={[s.closeTxt, { color: colors.mutedForeground }]}>✕</Text>
+            <Text style={[s.closeTxt, { color: colors.mutedForeground, fontSize: fs(18) }]}>✕</Text>
           </Pressable>
           <View style={s.headerCenter}>
-            <Text style={[s.headerTitle, { color: colors.foreground }]}>Moon Water Ritual</Text>
-            <Text style={[s.headerSub, { color: accent }]}>{phaseEmoji}  {phaseName}</Text>
+            <Text style={[s.headerTitle, { color: colors.foreground, fontSize: fs(16) }]}>Moon Water Ritual</Text>
+            <Text style={[s.headerSub, { color: accent, fontSize: fs(12) }]}>{phaseEmoji}  {phaseName}</Text>
           </View>
           <View style={s.headerRight} />
         </View>
@@ -478,7 +483,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
               onPress={() => { Haptics.selectionAsync(); setTab(t); }}
               style={[s.tabBtn, tab === t && { backgroundColor: accent }]}
             >
-              <Text style={[s.tabLabel, { color: tab === t ? "#fff" : colors.mutedForeground }]}>
+              <Text style={[s.tabLabel, { color: tab === t ? "#fff" : colors.mutedForeground, fontSize: fs(13) }]}>
                 {t === "ritual" ? "Today's Ritual" : "History"}
               </Text>
             </Pressable>
@@ -502,7 +507,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
                   ]}
                 />
               </View>
-              <Text style={[s.progressLabel, { color: allDone ? accent : colors.mutedForeground }]}>
+              <Text style={[s.progressLabel, { color: allDone ? accent : colors.mutedForeground, fontSize: fs(12) }]}>
                 {allDone ? "✦ Ritual Complete" : `${completedCount} of ${steps.length} steps`}
               </Text>
             </View>
@@ -510,7 +515,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
             {/* Completion banner */}
             {log?.isComplete && (
               <View style={[s.completeBanner, { backgroundColor: accent + "18", borderColor: accent + "55" }]}>
-                <Text style={[s.completeBannerText, { color: accent }]}>
+                <Text style={[s.completeBannerText, { color: accent, fontSize: fs(13) }]}>
                   ✦ This cycle's ritual is marked complete
                 </Text>
               </View>
@@ -531,7 +536,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
 
             {/* Notes */}
             <View style={[s.notesCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Text style={[s.notesLabel, { color: accent }]}>RITUAL NOTES</Text>
+              <Text style={[s.notesLabel, { color: accent, fontSize: fs(10) }]}>RITUAL NOTES</Text>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
@@ -540,7 +545,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
                 }}
                 placeholder="Record what you prepared, felt, or noticed…"
                 placeholderTextColor={colors.mutedForeground}
-                style={[s.notesInput, { color: colors.foreground }]}
+                style={[s.notesInput, { color: colors.foreground, fontSize: fs(14) }]}
                 multiline
                 scrollEnabled={false}
                 textAlignVertical="top"
@@ -553,7 +558,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
                 onPress={handleSave}
                 style={[s.saveBtn, { backgroundColor: accent + "20", borderColor: accent + "55" }]}
               >
-                <Text style={[s.saveBtnText, { color: accent }]}>
+                <Text style={[s.saveBtnText, { color: accent, fontSize: fs(14) }]}>
                   {saving ? "Saving…" : "Save Notes"}
                 </Text>
               </Pressable>
@@ -562,7 +567,7 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
                   onPress={handleComplete}
                   style={[s.completeBtn, { backgroundColor: accent }]}
                 >
-                  <Text style={s.completeBtnText}>Mark Ritual Complete</Text>
+                  <Text style={[s.completeBtnText, { fontSize: fs(14) }]}>Mark Ritual Complete</Text>
                 </Pressable>
               )}
             </View>
@@ -574,9 +579,9 @@ export default function MoonWaterModal({ visible, onClose, phase, phaseName, pha
           >
             {history.length === 0 ? (
               <View style={s.emptyWrap}>
-                <Text style={[s.emptyEmoji]}>🌊</Text>
-                <Text style={[s.emptyTitle, { color: colors.foreground }]}>No ritual logs yet</Text>
-                <Text style={[s.emptySub, { color: colors.mutedForeground }]}>
+                <Text style={[s.emptyEmoji, { fontSize: fs(48) }]}>🌊</Text>
+                <Text style={[s.emptyTitle, { color: colors.foreground, fontSize: fs(18) }]}>No ritual logs yet</Text>
+                <Text style={[s.emptySub, { color: colors.mutedForeground, fontSize: fs(14) }]}>
                   Complete your first moon water ritual to see it here.
                 </Text>
               </View>

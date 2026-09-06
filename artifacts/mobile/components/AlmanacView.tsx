@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect, useState } from "react";
 import { ScrollView, View, Text, StyleSheet, Pressable } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   getMoonPhaseData,
   NAMED_FULL_MOONS,
@@ -390,6 +391,7 @@ interface AlmanacViewProps {
 
 export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaEnabled = true, onSpecialEntryPress }: AlmanacViewProps = {}) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const today = useMemo(() => new Date(), []);
   const year = targetYear ?? today.getFullYear();
   const scrollMonth = targetMonth ?? today.getMonth();
@@ -425,7 +427,7 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaE
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.yearHeader, { color: colors.mutedForeground }]}>
+        <Text style={[styles.yearHeader, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
           {year} Spiritual Almanac
         </Text>
 
@@ -446,17 +448,18 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaE
                   style={[
                     styles.monthHeaderText,
                     { color: isCurrentMonth ? "#D4A843" : colors.mutedForeground },
+                    { fontSize: fs(12) },
                   ]}
                 >
                   {MONTH_NAMES[group.month].toUpperCase()}
                 </Text>
                 {isCurrentMonth && (
                   <View style={styles.nowBadge}>
-                    <Text style={styles.nowBadgeText}>NOW</Text>
+                    <Text style={[styles.nowBadgeText, { fontSize: fs(9) }]}>NOW</Text>
                   </View>
                 )}
                 <View style={[styles.monthHeaderLine, { backgroundColor: colors.border }]} />
-                <Text style={[styles.entryCount, { color: colors.mutedForeground }]}>
+                <Text style={[styles.entryCount, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>
                   {group.entries.length}
                 </Text>
               </View>
@@ -487,28 +490,28 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaE
                   {/* Card header: dot + category + date */}
                   <View style={styles.cardHeader}>
                     <View style={[styles.cardDot, { backgroundColor: entry.color }]} />
-                    <Text style={[styles.cardCategory, { color: colors.mutedForeground }]}>
+                    <Text style={[styles.cardCategory, { color: colors.mutedForeground }, { fontSize: fs(10) }]}>
                       {entry.category}
                     </Text>
-                    <Text style={[styles.cardDate, { color: entry.isToday ? "#D4A843" : colors.mutedForeground }]}>
+                    <Text style={[styles.cardDate, { color: entry.isToday ? "#D4A843" : colors.mutedForeground }, { fontSize: fs(10) }]}>
                       {entry.isToday ? "Today · " : ""}
                       {DAY_NAMES[entry.date.getDay()]}{" "}
                       {entry.date.getDate()}
                     </Text>
-                    <Text style={[styles.tapHint, { color: colors.mutedForeground }]}>Tap</Text>
+                    <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </View>
 
                   {/* Title */}
                   <View style={styles.titleRow}>
-                    <Text style={styles.emoji}>{entry.emoji}</Text>
-                    <Text style={[styles.cardTitle, { color: entry.color }]}>
+                    <Text style={[styles.emoji, { fontSize: fs(18) }]}>{entry.emoji}</Text>
+                    <Text style={[styles.cardTitle, { color: entry.color }, { fontSize: fs(17) }]}>
                       {entry.label}
                     </Text>
                   </View>
 
                   {/* Description */}
                   <Text
-                    style={[styles.cardDescription, { color: colors.mutedForeground }]}
+                    style={[styles.cardDescription, { color: colors.mutedForeground }, { fontSize: fs(13) }]}
                     numberOfLines={2}
                   >
                     {entry.description}
@@ -517,7 +520,7 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaE
                   {/* Today indicator */}
                   {entry.isToday && (
                     <View style={[styles.todayBar, { backgroundColor: entry.color + "22" }]}>
-                      <Text style={[styles.todayBarText, { color: entry.color }]}>
+                      <Text style={[styles.todayBarText, { color: entry.color }, { fontSize: fs(11) }]}>
                         ✦ This is today
                       </Text>
                     </View>

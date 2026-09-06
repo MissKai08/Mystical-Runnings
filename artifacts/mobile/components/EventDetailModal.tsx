@@ -8,6 +8,7 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 
 export interface EventDetail {
   title: string;
@@ -25,6 +26,7 @@ interface Props {
 
 export function EventDetailModal({ event, onClose }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const insets = useSafeAreaInsets();
   const sheetRef = useRef<BottomSheetModal>(null);
 
@@ -84,11 +86,11 @@ export function EventDetailModal({ event, onClose }: Props) {
             { backgroundColor: data.color + "22", borderColor: data.color + "55" },
           ]}
         >
-          <Text style={[styles.badgeText, { color: data.color }]}>{data.category}</Text>
+          <Text style={[styles.badgeText, { color: data.color }, { fontSize: fs(10) }]}>{data.category}</Text>
         </View>
 
         {/* Title */}
-        <Text style={[styles.title, { color: colors.foreground }]}>{data.title}</Text>
+        <Text style={[styles.title, { color: colors.foreground }, { fontSize: fs(26) }]}>{data.title}</Text>
       </View>
 
       <BottomSheetScrollView
@@ -96,7 +98,7 @@ export function EventDetailModal({ event, onClose }: Props) {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Description */}
-        <Text style={[styles.description, { color: colors.mutedForeground }]}>
+        <Text style={[styles.description, { color: colors.mutedForeground }, { fontSize: fs(15) }]}>
           {data.description}
         </Text>
 
@@ -113,10 +115,10 @@ export function EventDetailModal({ event, onClose }: Props) {
                   i < data.rows!.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
                 ]}
               >
-                <Text style={[styles.rowLabel, { color: colors.mutedForeground }]}>
+                <Text style={[styles.rowLabel, { color: colors.mutedForeground }, { fontSize: fs(12) }]}>
                   {row.label}
                 </Text>
-                <Text style={[styles.rowValue, { color: colors.foreground }]}>
+                <Text style={[styles.rowValue, { color: colors.foreground }, { fontSize: fs(14) }]}>
                   {row.value}
                 </Text>
               </View>
@@ -132,8 +134,8 @@ export function EventDetailModal({ event, onClose }: Props) {
               { backgroundColor: data.color + "15", borderLeftColor: data.color },
             ]}
           >
-            <Text style={[styles.guidanceLabel, { color: data.color }]}>Guidance</Text>
-            <Text style={[styles.guidanceText, { color: colors.foreground }]}>
+            <Text style={[styles.guidanceLabel, { color: data.color }, { fontSize: fs(10) }]}>Guidance</Text>
+            <Text style={[styles.guidanceText, { color: colors.foreground }, { fontSize: fs(14) }]}>
               {data.guidance}
             </Text>
           </View>
@@ -148,7 +150,7 @@ export function EventDetailModal({ event, onClose }: Props) {
           ]}
           onPress={() => sheetRef.current?.dismiss()}
         >
-          <Text style={styles.closeBtnText}>Close</Text>
+          <Text style={[styles.closeBtnText, { fontSize: fs(15) }]}>Close</Text>
         </Pressable>
       </View>
     </BottomSheetModal>

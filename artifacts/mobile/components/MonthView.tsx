@@ -7,6 +7,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useColors } from "@/hooks/useColors";
+import { useFontScale } from "@/contexts/FontScaleContext";
 import {
   getMonthGrid,
   isSameDay,
@@ -43,6 +44,7 @@ const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
 export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegions, birthdayMonth, birthdayDay, journaledDates, journalMoonColors, specialEntries = [], ifaEnabled = true }: Props) {
   const colors = useColors();
+  const { fs } = useFontScale();
   const today = useMemo(() => new Date(), []);
   const grid = useMemo(() => getMonthGrid(year, month), [year, month]);
 
@@ -56,7 +58,7 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
       <View style={[styles.dayHeaderRow]}>
         {DAY_LABELS.map((d, i) => (
           <View key={i} style={styles.dayHeaderCell}>
-            <Text style={[styles.dayHeaderText, { color: colors.mutedForeground }]}>{d}</Text>
+            <Text style={[styles.dayHeaderText, { color: colors.mutedForeground, fontSize: fs(11) }]}>{d}</Text>
           </View>
         ))}
       </View>
@@ -100,7 +102,7 @@ export function MonthView({ year, month, selectedDate, onSelectDate, enabledRegi
                   <Text
                     style={[
                       styles.dayText,
-                      { color: isToday || isSelected ? "#fff" : isCurrentMonth ? colors.foreground : colors.mutedForeground },
+                      { color: isToday || isSelected ? "#fff" : isCurrentMonth ? colors.foreground : colors.mutedForeground, fontSize: fs(14) },
                       isToday && { color: colors.primaryForeground },
                     ]}
                   >
