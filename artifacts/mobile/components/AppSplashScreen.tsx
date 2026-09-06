@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, ImageBackground, useWindowDimensions } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from "react-native-reanimated";
 
 const SPLASH_IMAGE = require("../assets/images/splash.png");
 
@@ -11,21 +12,24 @@ interface Props {
 
 export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
   const { width, height } = useWindowDimensions();
-  const [progress, setProgress] = useState(0);
+  const progress = useSharedValue(0);
   const [timerDone, setTimerDone] = useState(false);
 
   useEffect(() => { SplashScreen.hideAsync().catch(() => {}); }, []);
 
   useEffect(() => {
-    const progressTimer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) { clearInterval(progressTimer); return 100; }
-        return prev + 2;
-      });
-    }, 100);
+    progress.value = withTiming(100, { duration: 5500, easing: Easing.linear });
     const doneTimer = setTimeout(() => setTimerDone(true), 5500);
-    return () => { clearInterval(progressTimer); clearTimeout(doneTimer); };
+    return () => clearTimeout(doneTimer);
   }, []);
+
+  const fillStyle = useAnimatedStyle(() => ({
+    width: `${progress.value}%`,
+  }));
+  const tipStyle = useAnimatedStyle(() => ({
+    left: `${progress.value}%`,
+    marginLeft: -4,
+  }));
 
   useEffect(() => {
     if (timerDone && fontsLoaded) onComplete();
@@ -39,8 +43,8 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
     >
       <View style={[styles.progressSection, { width: width - 88 }]}>
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${progress}%` as `${number}%` }]} />
-          <View style={[styles.progressTip, { left: `${progress}%` as `${number}%`, marginLeft: -4 }]} />
+          <Animated.View style={[styles.progressFill, fillStyle]} />
+          <Animated.View style={[styles.progressTip, tipStyle]} />
         </View>
       </View>
     </ImageBackground>
