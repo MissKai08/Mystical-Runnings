@@ -3,7 +3,7 @@ name: Android Build
 on:
   push:
     branches:
-      - main   # test branch first, android-build-test — change to "main" once confirmed working
+      - main   # used test branch first, android-build-test — changed to "main" once confirmed working
   workflow_dispatch: {}       # lets you trigger it manually from the Actions tab too
 
 jobs:
