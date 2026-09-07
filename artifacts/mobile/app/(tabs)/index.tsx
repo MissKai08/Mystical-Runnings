@@ -1118,7 +1118,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   brandTitle: {
-    fontSize: 42,
+    fontSize: 38,
     letterSpacing: 0.5,
     textAlign: "center",
     fontFamily: "ZenDots_400Regular",
