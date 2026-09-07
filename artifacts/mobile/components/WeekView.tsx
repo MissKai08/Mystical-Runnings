@@ -167,7 +167,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
               return (
                 <View key={i} style={[styles.dayEvents, { borderLeftColor: colors.border }]}>
                   <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
-                    {SHORT_DAYS[day.getDay()]} {day.getDate()}
+                    {SHORT_DAYS[day.getDay()]} {day.getDate()} {day.toLocaleDateString("en-US", { month: "short" })}
                   </Text>
                   <Pressable
                     onPress={() => setOseModalGroup(oseDay)}
@@ -184,7 +184,7 @@ export function WeekView({ startDate, selectedDate, onSelectDate, enabledRegions
             return (
               <View key={i} style={[styles.dayEvents, { borderLeftColor: colors.border }]}>
                 <Text style={[styles.dayEventsLabel, { color: colors.mutedForeground }, { fontSize: fs(11) }]}>
-                  {SHORT_DAYS[day.getDay()]} {day.getDate()}
+                  {SHORT_DAYS[day.getDay()]} {day.getDate()} {day.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
                 {namedMoon && (
                   <Pressable

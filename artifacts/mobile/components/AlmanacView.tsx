@@ -496,7 +496,8 @@ export function AlmanacView({ targetYear, targetMonth, specialEntries = [], ifaE
                     <Text style={[styles.cardDate, { color: entry.isToday ? "#D4A843" : colors.mutedForeground }, { fontSize: fs(10) }]}>
                       {entry.isToday ? "Today · " : ""}
                       {DAY_NAMES[entry.date.getDay()]}{" "}
-                      {entry.date.getDate()}
+                      {entry.date.getDate()}{" "}
+                      {entry.date.toLocaleDateString("en-US", { month: "short" })}
                     </Text>
                     <Text style={[styles.tapHint, { color: colors.mutedForeground }, { fontSize: fs(9) }]}>Tap</Text>
                   </View>
