@@ -1,2 +1,3 @@
 - [React Native Web measurement](journal-web-measurement.md) — use component refs directly for measureLayout; findNodeHandle breaks the web preview.
 - [Android animated widths](android-animated-widths.md) — give Reanimated width-animated native views an explicit numeric initial width.
+- [Android APK validation boundary](journal-android-apk-validation.md) — distinguish Actions build/Expo preview evidence from actual Android device or emulator verification.
