@@ -54,7 +54,7 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
 
 const styles = StyleSheet.create({
   progressSection: { marginBottom: 72 },
-  progressTrack: { width: "100%", height: 2, backgroundColor: "#7C3AED22", borderRadius: 1, overflow: "visible" },
-  progressFill: { position: "absolute", left: 0, top: 0, height: 2, backgroundColor: "#D4A843", borderRadius: 1, shadowColor: "#D4A843", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6, elevation: 4 },
+  progressTrack: { position: "relative", width: "100%", height: 2, backgroundColor: "#7C3AED22", borderRadius: 1, overflow: "visible" },
+  progressFill: { position: "absolute", left: 0, top: 0, width: 0, height: 2, backgroundColor: "#D4A843", borderRadius: 1, zIndex: 1, shadowColor: "#D4A843", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 6, elevation: 4 },
   progressTip: { position: "absolute", top: -3, width: 8, height: 8, borderRadius: 4, backgroundColor: "#D4A843", shadowColor: "#D4A843", shadowOffset: { width: 0, height: 0 }, shadowOpacity: 1, shadowRadius: 8, elevation: 6 },
 });
