@@ -12,22 +12,23 @@ interface Props {
 
 export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
   const { width, height } = useWindowDimensions();
+  const trackWidth = width - 88;
   const progress = useSharedValue(0);
   const [timerDone, setTimerDone] = useState(false);
 
   useEffect(() => { SplashScreen.hideAsync().catch(() => {}); }, []);
 
   useEffect(() => {
-    progress.value = withTiming(100, { duration: 5500, easing: Easing.linear });
+    progress.value = withTiming(1, { duration: 5500, easing: Easing.linear });
     const doneTimer = setTimeout(() => setTimerDone(true), 5500);
     return () => clearTimeout(doneTimer);
   }, []);
 
   const fillStyle = useAnimatedStyle(() => ({
-    width: `${progress.value}%`,
+    width: trackWidth * progress.value,
   }));
   const tipStyle = useAnimatedStyle(() => ({
-    left: `${progress.value}%`,
+    left: trackWidth * progress.value,
     marginLeft: -4,
   }));
 
@@ -41,7 +42,7 @@ export function AppSplashScreen({ onComplete, fontsLoaded }: Props) {
       style={{ position: "absolute", top: 0, left: 0, width, height, zIndex: 9999, alignItems: "center", justifyContent: "flex-end", backgroundColor: "#080714" }}
       resizeMode="contain"
     >
-      <View style={[styles.progressSection, { width: width - 88 }]}>
+      <View style={[styles.progressSection, { width: trackWidth }]}>
         <View style={styles.progressTrack}>
           <Animated.View style={[styles.progressFill, fillStyle]} />
           <Animated.View style={[styles.progressTip, tipStyle]} />
