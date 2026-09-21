@@ -1,5 +1,12 @@
 {
   "expo": {
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
     "name": "Mystical Runnings",
     "slug": "mobile",
     "newArchEnabled": true,
@@ -24,9 +31,6 @@
       "backgroundColor": "#080714",
       "edgeToEdgeEnabled": false
     },
-    "web": {
-      "favicon": "./assets/images/icon.png"
-    },
     "plugins": [
       [
         "expo-router",
@@ -36,10 +40,6 @@
       ],
       "expo-font",
       "expo-web-browser"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
+    ]
   }
 }
