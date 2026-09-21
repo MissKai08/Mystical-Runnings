@@ -1,8 +1,9 @@
 {
   "expo": {
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+   "experiments": {
+   "typedRoutes": true,
+   "reactCompiler": true,
+   "baseUrl": "/Mystical-Runnings"
     },
     "web": {
       "favicon": "./assets/images/icon.png"
